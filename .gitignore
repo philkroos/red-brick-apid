@@ -1,0 +1,4 @@
+*.p
+*.o
+src/daemonlib
+src/redapid/redapid
