@@ -75,7 +75,7 @@ DEPENDS := ${SOURCES:.c=.p}
 TARGET := redapid
 
 CFLAGS += -O2 -Wall -Wextra -I..
-CFLAGS += -O0 -g -ggdb
+#CFLAGS += -O0 -g -ggdb
 
 CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DLOCALSTATEDIR="\"$(localstatedir)\""
 LDFLAGS += -pthread
