@@ -63,6 +63,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/socket_posix.c \
            ../daemonlib/threads_posix.c \
            ../daemonlib/utils.c \
+           ../daemonlib/writer.c \
            api.c \
            brickd.c \
            config_options.c \

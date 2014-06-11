@@ -34,41 +34,6 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_NETWORK
 
-#define MAX_QUEUED_WRITES 512
-
-static void brickd_handle_write(void *opaque) {
-	BrickDaemon *brickd = opaque;
-	Packet *response;
-	char packet_signature[PACKET_MAX_SIGNATURE_LENGTH];
-
-	if (brickd->write_queue.count == 0) {
-		return;
-	}
-
-	response = queue_peek(&brickd->write_queue);
-
-	if (socket_send(brickd->socket, response, response->header.length) < 0) {
-		log_error("Could not send queued response (%s) to Brick Daemon, disconnecting brickd: %s (%d)",
-		          packet_get_request_signature(packet_signature, response),
-		          get_errno_name(errno), errno);
-
-		brickd->disconnected = 1;
-
-		return;
-	}
-
-	queue_pop(&brickd->write_queue, NULL);
-
-	log_debug("Sent queued response (%s) to Brick Daemon, %d response(s) left in write queue",
-	          packet_get_request_signature(packet_signature, response),
-	          brickd->write_queue.count);
-
-	if (brickd->write_queue.count == 0) {
-		// last queued response handled, deregister for write events
-		event_remove_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC, EVENT_WRITE);
-	}
-}
-
 static void brickd_handle_read(void *opaque) {
 	BrickDaemon *brickd = opaque;
 	int length;
@@ -145,49 +110,23 @@ static void brickd_handle_read(void *opaque) {
 	}
 }
 
-static int brickd_push_response_to_write_queue(BrickDaemon *brickd, Packet *response) {
-	Packet *queued_response;
-	char packet_signature[PACKET_MAX_SIGNATURE_LENGTH];
+static char *brickd_get_recipient_signature(char *signature, int upper, void *opaque) {
+	(void)upper;
+	(void)opaque;
 
-	log_debug("Brick Daemon is not ready to receive, pushing response to write queue (count: %d +1)",
-	          brickd->write_queue.count);
+	snprintf(signature, WRITER_MAX_RECIPIENT_SIGNATURE_LENGTH,
+	         "Brick Daemon");
 
-	if (brickd->write_queue.count >= MAX_QUEUED_WRITES) {
-		log_warn("Write queue of Brick Daemon is full, dropping %d queued response(s)",
-		         brickd->write_queue.count - MAX_QUEUED_WRITES + 1);
+	return signature;
+}
 
-		while (brickd->write_queue.count >= MAX_QUEUED_WRITES) {
-			queue_pop(&brickd->write_queue, NULL);
-		}
-	}
+static void brickd_recipient_disconnect(void *opaque) {
+	BrickDaemon *brickd = opaque;
 
-	queued_response = queue_push(&brickd->write_queue);
-
-	if (queued_response == NULL) {
-		log_error("Could not push response (%s) to write queue of Brick Daemon, discarding response: %s (%d)",
-		          packet_get_request_signature(packet_signature, response),
-		          get_errno_name(errno), errno);
-
-		return -1;
-	}
-
-	memcpy(queued_response, response, response->header.length);
-
-	if (brickd->write_queue.count == 1) {
-		// first queued response, register for write events
-		if (event_add_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC,
-		                     EVENT_WRITE, brickd_handle_write, brickd) < 0) {
-			// FIXME: how to handle this error?
-			return -1;
-		}
-	}
-
-	return 0;
+	brickd->disconnected = 1;
 }
 
 int brickd_create(BrickDaemon *brickd, Socket *socket) {
-	int phase = 0;
-
 	log_debug("Creating Brick Daemon from UNIX domain socket (handle: %d)", socket->base.handle);
 
 	brickd->socket = socket;
@@ -195,52 +134,38 @@ int brickd_create(BrickDaemon *brickd, Socket *socket) {
 	brickd->request_used = 0;
 	brickd->request_header_checked = 0;
 
-	// create write queue
-	if (queue_create(&brickd->write_queue, sizeof(Packet)) < 0) {
-		log_error("Could not create write queue: %s (%d)",
+	// create response writer
+	if (writer_create(&brickd->response_writer, &brickd->socket->base,
+	                  "response", packet_get_response_signature,
+	                  "brickd", brickd_get_recipient_signature,
+	                  brickd_recipient_disconnect, brickd) < 0) {
+		log_error("Could not create response writer: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		goto cleanup;
+		return -1;
 	}
-
-	phase = 1;
 
 	// add I/O object as event source
 	if (event_add_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC,
 	                     EVENT_READ, brickd_handle_read, brickd) < 0) {
-		goto cleanup;
+		writer_destroy(&brickd->response_writer);
+
+		return -1;
 	}
 
-	phase = 2;
-
-cleanup:
-	switch (phase) { // no breaks, all cases fall through intentionally
-	case 1:
-		queue_destroy(&brickd->write_queue, NULL);
-
-	default:
-		break;
-	}
-
-	return phase == 2 ? 0 : -1;
+	return 0;
 }
 
 void brickd_destroy(BrickDaemon *brickd) {
-	if (brickd->write_queue.count > 0) {
-		log_warn("Destroying Brick Daemon while %d response(s) have not been send",
-		         brickd->write_queue.count);
-	}
+	writer_destroy(&brickd->response_writer);
 
-	event_remove_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC, -1);
+	event_remove_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
 	socket_destroy(brickd->socket);
 	free(brickd->socket);
-
-	queue_destroy(&brickd->write_queue, NULL);
 }
 
 void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 	int enqueued = 0;
-	char packet_signature[PACKET_MAX_SIGNATURE_LENGTH];
 
 	if (brickd->disconnected) {
 		log_debug("Ignoring disconnected Brick Daemon");
@@ -248,28 +173,10 @@ void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 		return;
 	}
 
-	if (brickd->write_queue.count > 0) {
-		if (brickd_push_response_to_write_queue(brickd, response) < 0) {
-			return;
-		}
+	enqueued = writer_write(&brickd->response_writer, response);
 
-		enqueued = 1;
-	} else {
-		if (socket_send(brickd->socket, response, response->header.length) < 0) {
-			if (!errno_would_block()) {
-				log_error("Could not send response (%s) to Brick Daemon, discarding response: %s (%d)",
-				          packet_get_request_signature(packet_signature, response),
-				          get_errno_name(errno), errno);
-
-				return;
-			}
-
-			if (brickd_push_response_to_write_queue(brickd, response) < 0) {
-				return;
-			}
-
-			enqueued = 1;
-		}
+	if (enqueued < 0) {
+		return;
 	}
 
 	log_debug("%s response to Brick Daemon", enqueued ? "Enqueued" : "Sent");

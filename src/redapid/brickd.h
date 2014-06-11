@@ -25,6 +25,7 @@
 #include <daemonlib/packet.h>
 #include <daemonlib/queue.h>
 #include <daemonlib/socket.h>
+#include <daemonlib/writer.h>
 
 typedef struct {
 	Socket *socket;
@@ -32,7 +33,7 @@ typedef struct {
 	Packet request;
 	int request_used;
 	int request_header_checked;
-	Queue write_queue;
+	Writer response_writer;
 } BrickDaemon;
 
 int brickd_create(BrickDaemon *brickd, Socket *socket);
