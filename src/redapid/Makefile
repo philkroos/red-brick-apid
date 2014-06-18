@@ -67,8 +67,11 @@ SOURCES := ../daemonlib/array.c \
            api.c \
            brickd.c \
            config_options.c \
+           file.c \
            main.c \
-           network.c
+           network.c \
+           object_table.c \
+           string.c
 
 OBJECTS := ${SOURCES:.c=.o}
 DEPENDS := ${SOURCES:.c=.p}

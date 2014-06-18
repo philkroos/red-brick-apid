@@ -97,6 +97,8 @@ static void brickd_handle_read(void *opaque) {
 			break;
 		}
 
+		// FIXME: filter requests by RED Brick UID
+
 		log_debug("Got request (%s) from Brick Daemon",
 		          packet_get_request_signature(packet_signature, &brickd->request));
 

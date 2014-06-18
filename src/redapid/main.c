@@ -37,6 +37,7 @@
 #include <daemonlib/utils.h>
 
 #include "api.h"
+#include "object_table.h"
 #include "network.h"
 #include "version.h"
 
@@ -213,6 +214,10 @@ int main(int argc, char **argv) {
 		goto error_event;
 	}
 
+	if (object_table_init() < 0) {
+		goto error_object_table;
+	}
+
 	if (api_init() < 0) {
 		goto error_api;
 	}
@@ -230,10 +235,13 @@ int main(int argc, char **argv) {
 error_run:
 	network_exit();
 
-error_api:
+error_network:
 	api_exit();
 
-error_network:
+error_api:
+	object_table_exit();
+
+error_object_table:
 	event_exit();
 
 error_event:
