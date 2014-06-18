@@ -50,8 +50,13 @@ typedef enum {
 
 	FUNCTION_OPEN_FILE,
 	FUNCTION_CLOSE_FILE,
+	FUNCTION_GET_FILE_NAME,
+	FUNCTION_WRITE_FILE,
 	FUNCTION_WRITE_FILE_UNCHECKED,
 	FUNCTION_WRITE_FILE_ASYNC,
+	FUNCTION_READ_FILE,
+	FUNCTION_READ_FILE_ASYNC,
+	CALLBACK_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_WRITE
 } APIFunctionIDs;
 
@@ -199,6 +204,28 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+} ATTRIBUTE_PACKED GetFileNameRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetFileNameResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint8_t buffer[FILE_WRITE_BUFFER_LENGTH];
+	uint8_t length_to_write;
+} ATTRIBUTE_PACKED WriteFileRequest;
+
+typedef struct {
+	PacketHeader header;
+	int8_t length_written;
+} ATTRIBUTE_PACKED WriteFileResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
 	uint8_t buffer[FILE_WRITE_UNCHECKED_BUFFER_LENGTH];
 	uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileUncheckedRequest;
@@ -213,6 +240,36 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+	uint8_t length_to_read;
+} ATTRIBUTE_PACKED ReadFileRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t buffer[FILE_READ_BUFFER_LENGTH];
+	int8_t length_read;
+} ATTRIBUTE_PACKED ReadFileResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint64_t length_to_read;
+} ATTRIBUTE_PACKED ReadFileAsyncRequest;
+
+typedef struct {
+	PacketHeader header;
+	bool success;
+} ATTRIBUTE_PACKED ReadFileAsyncResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
+	int8_t length_read;
+} ATTRIBUTE_PACKED AsyncFileReadCallback;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
 	int8_t length_written;
 } ATTRIBUTE_PACKED AsyncFileWriteCallback;
 
@@ -220,6 +277,8 @@ typedef struct {
 
 static APIErrorCode _last_api_error_code = API_ERROR_CODE_OK;
 static uint32_t _uid = 0; // always little endian
+static AsyncFileReadCallback _async_file_read_callback;
+static AsyncFileWriteCallback _async_file_write_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
 	memset(response, 0, length);
@@ -231,6 +290,17 @@ static void api_prepare_response(Packet *request, Packet *response, uint8_t leng
 	packet_header_set_sequence_number(&response->header,
 	                                  packet_header_get_sequence_number(&request->header));
 	packet_header_set_response_expected(&response->header, 1);
+}
+
+void api_prepare_callback(Packet *callback, uint8_t length, uint8_t function_id) {
+	memset(callback, 0, length);
+
+	callback->header.uid = _uid;
+	callback->header.length = length;
+	callback->header.function_id = function_id;
+
+	packet_header_set_sequence_number(&callback->header, 0);
+	packet_header_set_response_expected(&callback->header, 1);
 }
 
 static void api_send_response_if_expected(Packet *request, ErrorCode error_code) {
@@ -379,6 +449,26 @@ static void api_close_file(CloseFileRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_get_file_name(GetFileNameRequest *request) {
+	GetFileNameResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.name_string_id = file_get_name(request->file_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_write_file(WriteFileRequest *request) {
+	WriteFileResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.length_written = file_write(request->file_id, request->buffer, request->length_to_write);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 static void api_write_file_unchecked(WriteFileUncheckedRequest *request) {
 	if (file_write_unchecked(request->file_id, request->buffer,
 	                         request->length_to_write) < 0) {
@@ -395,6 +485,26 @@ static void api_write_file_async(WriteFileAsyncRequest *request) {
 	} else {
 		api_send_response_if_expected((Packet *)request, ERROR_CODE_OK);
 	}
+}
+
+static void api_read_file(ReadFileRequest *request) {
+	ReadFileResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.length_read = file_read(request->file_id, response.buffer, request->length_to_read);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_read_file_async(ReadFileAsyncRequest *request) {
+	ReadFileAsyncResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.success = file_read_async(request->file_id, request->length_to_read) >= 0;
+
+	network_dispatch_response((Packet *)&response);
 }
 
 //
@@ -417,6 +527,13 @@ int api_init(void) {
 	log_debug("Using %s (%u) as RED Brick UID",
 	          base58_encode(base58, uint32_from_le(_uid)),
 	          uint32_from_le(_uid));
+
+	api_prepare_callback((Packet *)&_async_file_read_callback,
+	                     sizeof(_async_file_read_callback),
+	                     CALLBACK_ASYNC_FILE_READ);
+	api_prepare_callback((Packet *)&_async_file_write_callback,
+	                     sizeof(_async_file_write_callback),
+	                     CALLBACK_ASYNC_FILE_WRITE);
 
 	return 0;
 }
@@ -460,8 +577,12 @@ void api_handle_request(Packet *request) {
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                   OpenFile,                open_file)
 	DISPATCH_FUNCTION(CLOSE_FILE,                  CloseFile,               close_file)
+	DISPATCH_FUNCTION(GET_FILE_NAME,               GetFileName,             get_file_name)
+	DISPATCH_FUNCTION(WRITE_FILE,                  WriteFile,               write_file)
 	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,        WriteFileUnchecked,      write_file_unchecked)
 	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,            WriteFileAsync,          write_file_async)
+	DISPATCH_FUNCTION(READ_FILE,                   ReadFile,                read_file)
+	DISPATCH_FUNCTION(READ_FILE_ASYNC,             ReadFileAsync,           read_file_async)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -493,21 +614,22 @@ void api_set_last_error_from_errno(void) {
 	}
 }
 
+void api_send_async_file_read_callback(uint16_t file_id, uint8_t *buffer, int8_t length_read) {
+	_async_file_read_callback.file_id = file_id;
+	_async_file_read_callback.length_read = length_read;
+
+	memcpy(_async_file_read_callback.buffer, buffer, length_read);
+	memset(_async_file_read_callback.buffer + length_read, 0,
+	       sizeof(_async_file_read_callback.buffer) - length_read);
+
+	network_dispatch_response((Packet *)&_async_file_read_callback);
+}
+
 void api_send_async_file_write_callback(uint16_t file_id, int8_t length_written) {
-	AsyncFileWriteCallback async_file_write_callback;
+	_async_file_write_callback.file_id = file_id;
+	_async_file_write_callback.length_written = length_written;
 
-	memset(&async_file_write_callback, 0, sizeof(async_file_write_callback));
-
-	async_file_write_callback.header.uid = _uid;
-	async_file_write_callback.header.length = sizeof(async_file_write_callback);
-	async_file_write_callback.header.function_id = CALLBACK_ASYNC_FILE_WRITE;
-	packet_header_set_sequence_number(&async_file_write_callback.header, 0);
-	packet_header_set_response_expected(&async_file_write_callback.header, 1);
-
-	async_file_write_callback.file_id = file_id;
-	async_file_write_callback.length_written = length_written;
-
-	network_dispatch_response((Packet *)&async_file_write_callback);
+	network_dispatch_response((Packet *)&_async_file_write_callback);
 }
 
 #if 0

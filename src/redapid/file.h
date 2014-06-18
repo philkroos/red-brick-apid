@@ -60,13 +60,22 @@ typedef enum { // bitmask
                              FILE_PERMISSION_GROUP_ALL | \
                              FILE_PERMISSION_OTHERS_ALL)
 
+#define FILE_WRITE_BUFFER_LENGTH 61
 #define FILE_WRITE_UNCHECKED_BUFFER_LENGTH 61
 #define FILE_WRITE_ASYNC_BUFFER_LENGTH 61
+#define FILE_READ_BUFFER_LENGTH 63
+#define FILE_ASYNC_READ_BUFFER_LENGTH 61
 
 ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions);
 int file_close(ObjectID id);
 
+ObjectID file_get_name(ObjectID id);
+
+int8_t file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
 int file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
 int file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
+
+int8_t file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read);
+int file_read_async(ObjectID id, uint64_t length_to_read);
 
 #endif // REDAPID_FILE_H
