@@ -618,9 +618,14 @@ void api_send_async_file_read_callback(uint16_t file_id, uint8_t *buffer, int8_t
 	_async_file_read_callback.file_id = file_id;
 	_async_file_read_callback.length_read = length_read;
 
-	memcpy(_async_file_read_callback.buffer, buffer, length_read);
-	memset(_async_file_read_callback.buffer + length_read, 0,
-	       sizeof(_async_file_read_callback.buffer) - length_read);
+	if (length_read > 0) {
+		memcpy(_async_file_read_callback.buffer, buffer, length_read);
+		memset(_async_file_read_callback.buffer + length_read, 0,
+		       sizeof(_async_file_read_callback.buffer) - length_read);
+	} else {
+		memset(_async_file_read_callback.buffer, 0,
+		       sizeof(_async_file_read_callback.buffer));
+	}
 
 	network_dispatch_response((Packet *)&_async_file_read_callback);
 }
