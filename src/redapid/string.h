@@ -25,22 +25,22 @@
 #include "object_table.h"
 
 #define STRING_SET_CHUNK_BUFFER_LENGTH 58
-#define STRING_GET_CHUNK_BUFFER_LENGTH 64
+#define STRING_GET_CHUNK_BUFFER_LENGTH 63
 
-ObjectID string_acquire_external(uint32_t reserve);
-ObjectID string_acquire_internal(char *buffer);
-int string_acquire_ref(ObjectID id);
-int string_release(ObjectID id);
+APIE string_acquire_external(uint32_t reserve, ObjectID *id);
+APIE string_acquire_internal(char *buffer, ObjectID *id);
+APIE string_acquire_ref(ObjectID id);
+APIE string_release(ObjectID id);
 
-int string_truncate(ObjectID id, uint32_t length);
-int32_t string_get_length(ObjectID id);
+APIE string_truncate(ObjectID id, uint32_t length);
+APIE string_get_length(ObjectID id, uint32_t *length);
 
-int string_set_chunk(ObjectID id, uint32_t offset, char *buffer);
-void string_get_chunk(ObjectID id, uint32_t offset, char *buffer);
+APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer);
+APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer);
 
-int string_lock(ObjectID id);
-int string_unlock(ObjectID id);
+APIE string_lock(ObjectID id);
+APIE string_unlock(ObjectID id);
 
-const char *string_get_null_terminated_buffer(ObjectID id);
+APIE string_get_null_terminated_buffer(ObjectID id, const char **buffer);
 
 #endif // REDAPID_STRING_H

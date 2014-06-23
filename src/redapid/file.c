@@ -59,7 +59,8 @@ static void file_handle_async_read(void *opaque) {
 	File *file = opaque;
 	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
 	uint8_t length_to_read = sizeof(buffer);
-	int8_t length_read;
+	ssize_t length_read;
+	APIE error_code;
 
 	// FIXME: maybe add a loop here and read multiple times per read event
 
@@ -77,6 +78,8 @@ static void file_handle_async_read(void *opaque) {
 			log_debug("Reading from file object (id: %u) asynchronously would block, retrying",
 			          file->id);
 		} else {
+			error_code = api_get_error_code_from_errno();
+
 			log_warn("Could not read from file object (id: %u) asynchronously, giving up: %s (%d)",
 			         file->id, get_errno_name(errno), errno);
 
@@ -84,7 +87,7 @@ static void file_handle_async_read(void *opaque) {
 
 			file->length_to_read_async = 0;
 
-			api_send_async_file_read_callback(file->fd, buffer, -1);
+			api_send_async_file_read_callback(file->fd, error_code, buffer, 0);
 		}
 
 		return;
@@ -98,7 +101,7 @@ static void file_handle_async_read(void *opaque) {
 
 		file->length_to_read_async = 0;
 
-		api_send_async_file_read_callback(file->fd, buffer, 0);
+		api_send_async_file_read_callback(file->fd, API_E_NO_MORE_DATA, buffer, 0);
 
 		return;
 	}
@@ -109,7 +112,7 @@ static void file_handle_async_read(void *opaque) {
 		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
 	}
 
-	api_send_async_file_read_callback(file->fd, buffer, length_read);
+	api_send_async_file_read_callback(file->fd, API_E_OK, buffer, length_read);
 
 	if (file->length_to_read_async == 0) {
 		log_debug("Finished asynchronous reading from file object (id: %u)",
@@ -117,8 +120,9 @@ static void file_handle_async_read(void *opaque) {
 	}
 }
 
-ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
+APIE file_open(ObjectID name_id, uint32_t flags, uint32_t permissions, ObjectID *id) {
 	int phase = 0;
+	APIE error_code;
 	const char *name;
 	int open_flags = 0;
 	mode_t open_mode = 0;
@@ -127,7 +131,7 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 
 	// check parameters
 	if ((flags & ~FILE_FLAG_ALL) != 0) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
+		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("Invalid file flags 0x%04X", flags);
 
@@ -135,7 +139,7 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 	}
 
 	if ((permissions & ~FILE_PERMISSION_ALL) != 0) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
+		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("Invalid file permissions 0o%04o", permissions);
 
@@ -143,7 +147,7 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 	}
 
 	if ((flags & FILE_FLAG_CREATE) != 0 && permissions == FILE_PERMISSION_NONE) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
+		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("FILE_FLAG_CREATE used without specifying file permissions");
 
@@ -226,23 +230,27 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 	}
 
 	// acquire string ref
-	if (string_acquire_ref(name_id) < 0) {
+	error_code = string_acquire_ref(name_id);
+
+	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
 	phase = 1;
 
 	// lock string
-	if (string_lock(name_id) < 0) {
+	error_code = string_lock(name_id);
+
+	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
 	phase = 2;
 
 	// get string as NULL-terminated buffer
-	name = string_get_null_terminated_buffer(name_id);
+	error_code = string_get_null_terminated_buffer(name_id, &name);
 
-	if (name == NULL) {
+	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
@@ -250,7 +258,7 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 	fd = open(name, open_flags | O_NONBLOCK, open_mode);
 
 	if (fd < 0) {
-		api_set_last_error_from_errno();
+		error_code = api_get_error_code_from_errno();
 
 		log_warn("Could not open file '%s' (name-id: %u): %s (%d)",
 		         name, name_id, get_errno_name(errno), errno);
@@ -264,7 +272,7 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 	file = calloc(1, sizeof(File));
 
 	if (file == NULL) {
-		api_set_last_error(API_ERROR_CODE_NO_FREE_MEMORY);
+		error_code = API_E_NO_FREE_MEMORY;
 
 		log_error("Could not allocate file object: %s (%d)",
 		          get_errno_name(ENOMEM), ENOMEM);
@@ -278,12 +286,14 @@ ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions) {
 	file->fd = fd;
 	file->length_to_read_async = 0;
 
-	file->id = object_table_add_object(OBJECT_TYPE_FILE, file,
-	                                   (FreeFunction)file_free);
+	error_code = object_table_add_object(OBJECT_TYPE_FILE, file,
+	                                     (FreeFunction)file_free, &file->id);
 
-	if (file->id == OBJECT_ID_INVALID) {
+	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
+
+	*id = file->id;
 
 	log_debug("Opened file object (id: %u) at '%s' (flags: 0x%04X, permissions: 0o%04o)",
 	          file->id, name, flags, permissions);
@@ -308,14 +318,15 @@ cleanup:
 		break;
 	}
 
-	return phase == 5 ? file->id : OBJECT_ID_INVALID;
+	return phase == 5 ? API_E_OK : error_code;
 }
 
-int file_close(ObjectID id) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
+APIE file_close(ObjectID id) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
 
-	if (file == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	if (file->length_to_read_async > 0) {
@@ -328,185 +339,187 @@ int file_close(ObjectID id) {
 	return object_table_remove_object(OBJECT_TYPE_FILE, id);
 }
 
-ObjectID file_get_name(ObjectID id) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
+APIE file_get_name(ObjectID id, ObjectID *name_id) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
 
-	if (file == NULL) {
-		return OBJECT_ID_INVALID;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
-	return file->name_id;
+	*name_id = file->name_id;
+
+	return API_E_OK;
 }
 
-int8_t file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
-	int8_t length_written;
+APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	ssize_t rc;
 
-	if (file == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	if (length_to_write > FILE_WRITE_BUFFER_LENGTH) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Length of %u byte(s) exceeds maximum length of file write buffer",
 		         length_to_write);
 
-		return -1;
+		return API_E_INVALID_PARAMETER;
 	}
 
-	length_written = write(file->fd, buffer, length_to_write);
+	rc = write(file->fd, buffer, length_to_write);
 
-	if (length_written < 0) {
-		api_set_last_error_from_errno();
+	if (rc < 0) {
+		error_code = api_get_error_code_from_errno();
 
 		log_warn("Could not write to file object (id: %u): %s (%d)",
 		         id, get_errno_name(errno), errno);
 
-		return -1;
+		return error_code;
 	}
 
-	return length_written;
+	*length_written = rc;
+
+	return API_E_OK;
 }
 
-int file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
+ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
 
-	if (file == NULL) {
-		return -1;
+	if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
+		return ERROR_CODE_INVALID_PARAMETER;
+	} else if (error_code != API_E_OK) {
+		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
 	if (length_to_write > FILE_WRITE_UNCHECKED_BUFFER_LENGTH) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Length of %u byte(s) exceeds maximum length of file unchecked write buffer",
 		         length_to_write);
 
-		return -1;
+		return ERROR_CODE_INVALID_PARAMETER;
 	}
 
 	if (write(file->fd, buffer, length_to_write) < 0) {
-		api_set_last_error_from_errno();
-
 		log_warn("Could not write to file object (id: %u): %s (%d)",
 		         id, get_errno_name(errno), errno);
 
-		return -1;
+		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
-	return 0;
+	return ERROR_CODE_OK;
 }
 
-int file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
-	int8_t length_written;
+ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	ssize_t length_written;
 
-	if (file == NULL) {
-		api_send_async_file_write_callback(id, -1);
+	if (error_code != API_E_OK) {
+		api_send_async_file_write_callback(id, error_code, 0);
 
-		return -1;
+		if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
+			return ERROR_CODE_INVALID_PARAMETER;
+		} else {
+			return ERROR_CODE_UNKNOWN_ERROR;
+		}
 	}
 
 	if (length_to_write > FILE_WRITE_ASYNC_BUFFER_LENGTH) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Length of %u byte(s) exceeds maximum length of file async write buffer",
 		         length_to_write);
 
-		api_send_async_file_write_callback(id, -1);
+		api_send_async_file_write_callback(id, API_E_INVALID_PARAMETER, 0);
 
-		return -1;
+		return ERROR_CODE_INVALID_PARAMETER;
 	}
 
 	length_written = write(file->fd, buffer, length_to_write);
 
 	if (length_written < 0) {
-		api_set_last_error_from_errno();
+		error_code = api_get_error_code_from_errno();
 
 		log_warn("Could not write to file object (id: %u): %s (%d)",
 		         id, get_errno_name(errno), errno);
 
-		api_send_async_file_write_callback(id, -1);
+		api_send_async_file_write_callback(id, error_code, 0);
 
-		return -1;
+		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
-	api_send_async_file_write_callback(id, length_written);
+	api_send_async_file_write_callback(id, API_E_OK, length_written);
 
-	return 0;
+	return ERROR_CODE_OK;
 }
 
-int8_t file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
-	int8_t length_read;
+APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	ssize_t rc;
 
-	if (file == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	if (length_to_read > FILE_READ_BUFFER_LENGTH) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Length of %u byte(s) exceeds maximum length of file read buffer",
 		         length_to_read);
 
-		return -1;
+		return API_E_INVALID_PARAMETER;
 	}
 
-	length_read = read(file->fd, buffer, length_to_read);
+	rc = read(file->fd, buffer, length_to_read);
 
-	if (length_read < 0) {
-		api_set_last_error_from_errno();
+	if (rc < 0) {
+		error_code = api_get_error_code_from_errno();
 
 		log_warn("Could not read from file object (id: %u): %s (%d)",
 		         id, get_errno_name(errno), errno);
 
-		return -1;
+		return error_code;
 	}
 
-	return length_read;
+	*length_read = rc;
+
+	return API_E_OK;
 }
 
-int file_read_async(ObjectID id, uint64_t length_to_read) {
-	File *file = object_table_get_object_data(OBJECT_TYPE_FILE, id);
+APIE file_read_async(ObjectID id, uint64_t length_to_read) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
 
-	if (file == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	if (file->length_to_read_async > 0) {
-		api_set_last_error(API_ERROR_CODE_INVALID_OPERATION);
-
 		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u) asynchronously",
 		         file->length_to_read_async, id);
 
-		return -1;
+		return API_E_INVALID_OPERATION;
 	}
 
 	if (length_to_read > INT64_MAX) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
 		         length_to_read);
 
-		return -1;
+		return API_E_INVALID_PARAMETER;
 	}
 
 	if (length_to_read == 0) {
-		return 0;
+		return API_E_OK;
 	}
 
 	file->length_to_read_async = length_to_read;
 
 	if (event_add_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ,
 	                     file_handle_async_read, file) < 0) {
-		api_set_last_error(API_ERROR_CODE_INTERNAL_ERROR);
-
-		return -1;
+		return API_E_INTERNAL_ERROR;
 	}
 
 	log_debug("Started asynchronous reading of %"PRIu64" byte(s) from file object (id: %u)",
 	          length_to_read, id);
 
-	return 0;
+	return API_E_OK;
 }

@@ -47,130 +47,133 @@ static void string_free(String *string) {
 	free(string);
 }
 
-static int string_reserve(String *string, uint32_t reserve) {
+static APIE string_reserve(String *string, uint32_t reserve) {
 	uint32_t allocated;
 	char *buffer;
 
 	if (reserve <= string->allocated) {
-		return 0;
+		return API_E_OK;
 	}
 
 	if (reserve > INT32_MAX) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Cannot reserve %u bytes, exceeds maximum length of a string object", reserve);
 
-		return -1;
+		return API_E_INVALID_PARAMETER;
 	}
 
 	allocated = GROW_ALLOCATION(reserve);
 	buffer = realloc(string->buffer, allocated);
 
 	if (buffer == NULL) {
-		api_set_last_error(API_ERROR_CODE_NO_FREE_MEMORY);
-
 		log_error("Could not reallocate string object (id: %u) buffer to %u bytes: %s (%d)",
 		          string->id, allocated, get_errno_name(ENOMEM), ENOMEM);
 
-		return -1;
+		return API_E_NO_FREE_MEMORY;
 	}
 
 	string->buffer = buffer;
 	string->allocated = allocated;
 
-	return 0;
+	return API_E_OK;
 }
 
-static String *string_acquire(uint32_t reserve) {
-	String *string;
+static APIE string_acquire(uint32_t reserve, String **string) {
+	APIE error_code;
 
-	string = calloc(1, sizeof(String));
+	*string = calloc(1, sizeof(String));
 
-	if (string == NULL) {
-		api_set_last_error(API_ERROR_CODE_NO_FREE_MEMORY);
-
+	if (*string == NULL) {
 		log_error("Could not allocate string object: %s (%d)",
 		          get_errno_name(ENOMEM), ENOMEM);
 
-		return NULL;
+		return API_E_NO_FREE_MEMORY;
 	}
 
-	string->buffer = NULL;
-	string->used = 0;
-	string->allocated = 0;
-	string->ref_count = 1;
-	string->lock_count = 0;
+	(*string)->buffer = NULL;
+	(*string)->used = 0;
+	(*string)->allocated = 0;
+	(*string)->ref_count = 1;
+	(*string)->lock_count = 0;
 
-	string->id = object_table_add_object(OBJECT_TYPE_STRING, string,
-	                                     (FreeFunction)string_free);
+	error_code = object_table_add_object(OBJECT_TYPE_STRING, *string,
+	                                     (FreeFunction)string_free,
+	                                     &(*string)->id);
 
-	if (string->id == OBJECT_ID_INVALID) {
-		string_free(string);
+	if (error_code != API_E_OK) {
+		string_free(*string);
 
-		return NULL;
+		return error_code;
 	}
 
-	if (string_reserve(string, reserve) < 0) {
-		object_table_remove_object(OBJECT_TYPE_STRING, string->id);
+	error_code = string_reserve(*string, reserve);
 
-		return NULL;
+	if (error_code != API_E_OK) {
+		object_table_remove_object(OBJECT_TYPE_STRING, (*string)->id);
+
+		return error_code;
 	}
 
-	return string;
+	return API_E_OK;
 }
 
-ObjectID string_acquire_external(uint32_t reserve) {
-	String *string = string_acquire(reserve);
+APIE string_acquire_external(uint32_t reserve, ObjectID *id) {
+	String *string;
+	APIE error_code = string_acquire(reserve, &string);
 
-	if (string == NULL) {
-		return OBJECT_ID_INVALID;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
-	return string->id;
+	*id = string->id;
+
+	return API_E_OK;
 }
 
-ObjectID string_acquire_internal(char *buffer) {
+APIE string_acquire_internal(char *buffer, ObjectID *id) {
 	String *string;
 	uint32_t length = strlen(buffer);
+	APIE error_code;
 
 	if (length > INT32_MAX) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Length of %u bytes exceeds maximum length of a string object", length);
 
-		return OBJECT_ID_INVALID;
+		return API_E_INVALID_PARAMETER;
 	}
 
-	string = string_acquire(length);
+	error_code = string_acquire(length, &string);
 
-	if (string == NULL) {
-		return OBJECT_ID_INVALID;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	memcpy(string->buffer, buffer, length);
 
 	string->used = length;
 
-	return string->id;
+	*id = string->id;
+
+	return error_code;
 }
 
-int string_acquire_ref(ObjectID id) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_acquire_ref(ObjectID id) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	++string->ref_count;
 
-	return 0;
+	return API_E_OK;
 }
 
-int string_release(ObjectID id) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_release(ObjectID id) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	--string->ref_count;
@@ -178,91 +181,91 @@ int string_release(ObjectID id) {
 	if (string->ref_count == 0) {
 		log_debug("Last reference to string object (id: %u) released", id);
 
-		if (object_table_remove_object(OBJECT_TYPE_STRING, id) < 0) {
-			return -1;
+		error_code = object_table_remove_object(OBJECT_TYPE_STRING, id);
+
+		if (error_code != API_E_OK) {
+			return error_code;
 		}
 	}
 
-	return 0;
+	return API_E_OK;
 }
 
-int string_truncate(ObjectID id, uint32_t length) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_truncate(ObjectID id, uint32_t length) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	if (string->lock_count > 0) {
-		api_set_last_error(API_ERROR_CODE_INVALID_OPERATION);
-
 		log_warn("Cannot truncate a locked string object (id: %u)", id);
 
-		return -1;
+		return API_E_INVALID_OPERATION;
 	}
 
-	if (length >= string->used) {
-		return 0;
+	if (length < string->used) {
+		string->used = length;
 	}
 
-	string->used = length;
-
-	return 0;
+	return API_E_OK;
 }
 
-int32_t string_get_length(ObjectID id) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_get_length(ObjectID id, uint32_t *length) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
-	return string->used;
+	*length = string->used;
+
+	return API_E_OK;
 }
 
-int string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 	uint32_t length;
 	uint32_t i;
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	length = strnlen(buffer, STRING_SET_CHUNK_BUFFER_LENGTH);
 
 	if (string->lock_count > 0) {
-		api_set_last_error(API_ERROR_CODE_INVALID_OPERATION);
-
 		log_warn("Cannot change locked string object (id: %u)", id);
 
-		return -1;
+		return API_E_INVALID_OPERATION;
 	}
 
 	if (offset > INT32_MAX) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Offset of %u bytes exceeds maximum length of a string object", length);
 
-		return -1;
+		return API_E_INVALID_PARAMETER;
 	}
 
 	if (offset + length > INT32_MAX) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Offset + length of %u bytes exceeds maximum length of a string object", length);
 
-		return -1;
+		return API_E_INVALID_PARAMETER;
 	}
 
 	if (length == 0) {
-		return 0;
+		return API_E_OK;
 	}
 
 	// reallocate if necessary
-	if (offset + length > string->allocated &&
-	    string_reserve(string, offset + length) < 0) {
-		return -1;
+	if (offset + length > string->allocated) {
+		error_code = string_reserve(string, offset + length);
+
+		if (error_code != API_E_OK) {
+			return error_code;
+		}
 	}
 
 	// fill gap between old buffer end and offset with whitespace
@@ -279,36 +282,33 @@ int string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	log_debug("Setting %u byte(s) at offset %u of string object (id: %u)",
 	          length, offset, id);
 
-	return length;
+	return API_E_OK;
 }
 
-void string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 	uint32_t length;
 
-	if (string == NULL) {
+	if (error_code != API_E_OK) {
 		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
 
-		return;
+		return error_code;
 	}
 
 	if (offset > INT32_MAX) {
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Offset of %u bytes exceeds maximum length of a string object", offset);
 
-		return;
+		return API_E_INVALID_PARAMETER;
 	}
 
 	if (offset > string->used) {
 		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
 
-		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
-
 		log_warn("Offset of %u bytes exceeds string object (id: %u) length of %u bytes",
 		         offset, id, string->used);
 
-		return;
+		return API_E_INVALID_PARAMETER;
 	}
 
 	length = string->used - offset;
@@ -316,7 +316,7 @@ void string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	if (length == 0) {
 		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
 
-		return;
+		return API_E_OK;
 	}
 
 	if (length > STRING_GET_CHUNK_BUFFER_LENGTH) {
@@ -331,13 +331,16 @@ void string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 
 	log_debug("Getting %u byte(s) at offset %u of string object (id: %u)",
 	          length, offset, id);
+
+	return API_E_OK;
 }
 
-int string_lock(ObjectID id) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_lock(ObjectID id) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	log_debug("Locking string object (id: %u, lock-count: %d +1)",
@@ -345,22 +348,21 @@ int string_lock(ObjectID id) {
 
 	++string->lock_count;
 
-	return 0;
+	return API_E_OK;
 }
 
-int string_unlock(ObjectID id) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_unlock(ObjectID id) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return -1;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	if (string->lock_count == 0) {
-		api_set_last_error(API_ERROR_CODE_INVALID_OPERATION);
-
 		log_warn("Cannot unlock already unlocked string object (id: %u)", id);
 
-		return -1;
+		return API_E_INVALID_OPERATION;
 	}
 
 	log_debug("Unlocking string object (id: %u, lock-count: %d -1)",
@@ -368,21 +370,26 @@ int string_unlock(ObjectID id) {
 
 	--string->lock_count;
 
-	return 0;
+	return API_E_OK;
 }
 
-const char *string_get_null_terminated_buffer(ObjectID id) {
-	String *string = object_table_get_object_data(OBJECT_TYPE_STRING, id);
+APIE string_get_null_terminated_buffer(ObjectID id, const char **buffer) {
+	String *string;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
 
-	if (string == NULL) {
-		return NULL;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
-	if (string_reserve(string, string->used + 1) < 0) {
-		return NULL;
+	error_code = string_reserve(string, string->used + 1);
+
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
 	string->buffer[string->used] = '\0';
 
-	return string->buffer;
+	*buffer = string->buffer;
+
+	return API_E_OK;
 }

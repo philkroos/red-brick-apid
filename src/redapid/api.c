@@ -35,9 +35,7 @@
 #define LOG_CATEGORY LOG_CATEGORY_API
 
 typedef enum {
-	FUNCTION_GET_LAST_ERROR = 1,
-
-	FUNCTION_GET_OBJECT_TYPE,
+	FUNCTION_GET_OBJECT_TYPE = 1,
 	FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY,
 	FUNCTION_REWIND_OBJECT_TABLE,
 
@@ -60,18 +58,7 @@ typedef enum {
 	CALLBACK_ASYNC_FILE_WRITE
 } APIFunctionIDs;
 
-typedef uint8_t bool;
-
 #include <daemonlib/packed_begin.h>
-
-typedef struct {
-	PacketHeader header;
-} ATTRIBUTE_PACKED GetLastErrorRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint32_t error_code;
-} ATTRIBUTE_PACKED GetLastErrorResponse;
 
 //
 // object table
@@ -84,7 +71,8 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	int8_t object_type;
+	uint8_t error_code;
+	uint8_t object_type;
 } ATTRIBUTE_PACKED GetObjectTypeResponse;
 
 typedef struct {
@@ -94,6 +82,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t error_code;
 	uint16_t object_id;
 } ATTRIBUTE_PACKED GetNextObjectTableEntryResponse;
 
@@ -104,7 +93,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	bool success;
+	uint8_t error_code;
 } ATTRIBUTE_PACKED RewindObjectTableResponse;
 
 //
@@ -118,6 +107,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t error_code;
 	uint16_t string_id;
 } ATTRIBUTE_PACKED AcquireStringResponse;
 
@@ -128,7 +118,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	bool success;
+	uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseStringResponse;
 
 typedef struct {
@@ -139,7 +129,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	bool success;
+	uint8_t error_code;
 } ATTRIBUTE_PACKED TruncateStringResponse;
 
 typedef struct {
@@ -149,7 +139,8 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	int32_t length;
+	uint8_t error_code;
+	uint32_t length;
 } ATTRIBUTE_PACKED GetStringLengthResponse;
 
 typedef struct {
@@ -161,7 +152,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	bool success;
+	uint8_t error_code;
 } ATTRIBUTE_PACKED SetStringChunkResponse;
 
 typedef struct {
@@ -172,6 +163,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t error_code;
 	char buffer[STRING_GET_CHUNK_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED GetStringChunkResponse;
 
@@ -188,6 +180,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t error_code;
 	uint16_t file_id;
 } ATTRIBUTE_PACKED OpenFileResponse;
 
@@ -198,7 +191,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	bool success;
+	uint8_t error_code;
 } ATTRIBUTE_PACKED CloseFileResponse;
 
 typedef struct {
@@ -208,6 +201,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t error_code;
 	uint16_t name_string_id;
 } ATTRIBUTE_PACKED GetFileNameResponse;
 
@@ -220,7 +214,8 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	int8_t length_written;
+	uint8_t error_code;
+	uint8_t length_written;
 } ATTRIBUTE_PACKED WriteFileResponse;
 
 typedef struct {
@@ -245,8 +240,9 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t error_code;
 	uint8_t buffer[FILE_READ_BUFFER_LENGTH];
-	int8_t length_read;
+	uint8_t length_read;
 } ATTRIBUTE_PACKED ReadFileResponse;
 
 typedef struct {
@@ -257,25 +253,25 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	bool success;
+	uint8_t error_code;
 } ATTRIBUTE_PACKED ReadFileAsyncResponse;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
-	int8_t length_read;
+	uint8_t length_read;
 } ATTRIBUTE_PACKED AsyncFileReadCallback;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-	int8_t length_written;
+	uint8_t error_code;
+	uint8_t length_written;
 } ATTRIBUTE_PACKED AsyncFileWriteCallback;
 
 #include <daemonlib/packed_end.h>
 
-static APIErrorCode _last_api_error_code = API_ERROR_CODE_OK;
 static uint32_t _uid = 0; // always little endian
 static AsyncFileReadCallback _async_file_read_callback;
 static AsyncFileWriteCallback _async_file_write_callback;
@@ -317,26 +313,21 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 	network_dispatch_response((Packet *)&response);
 }
 
-static void api_get_last_error(GetLastErrorRequest *request) {
-	GetLastErrorResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = _last_api_error_code;
-
-	network_dispatch_response((Packet *)&response);
-}
-
 //
 // object table
 //
 
 static void api_get_object_type(GetObjectTypeRequest *request) {
 	GetObjectTypeResponse response;
+	ObjectType type;
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.object_type = object_table_get_object_type(request->object_id);
+	response.error_code = object_table_get_object_type(request->object_id, &type);
+
+	if (response.error_code == API_E_OK) {
+		response.object_type = type;
+	}
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -346,7 +337,7 @@ static void api_get_next_object_table_entry(GetNextObjectTableEntryRequest *requ
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.object_id = object_table_get_next_entry(request->object_type);
+	response.error_code = object_table_get_next_entry(request->object_type, &response.object_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -356,7 +347,7 @@ static void api_rewind_object_table(RewindObjectTableRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.success = object_table_rewind(request->object_type) >= 0;
+	response.error_code = object_table_rewind(request->object_type);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -370,7 +361,7 @@ static void api_acquire_string(AcquireStringRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.string_id = string_acquire_external(request->length_to_reserve);
+	response.error_code = string_acquire_external(request->length_to_reserve, &response.string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -380,7 +371,7 @@ static void api_release_string(ReleaseStringRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.success = string_release(request->string_id) >= 0;
+	response.error_code = string_release(request->string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -390,7 +381,7 @@ static void api_truncate_string(TruncateStringRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.success = string_truncate(request->string_id, request->length) >= 0;
+	response.error_code = string_truncate(request->string_id, request->length);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -400,7 +391,7 @@ static void api_get_string_length(GetStringLengthRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.length = string_get_length(request->string_id);
+	response.error_code = string_get_length(request->string_id, &response.length);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -410,7 +401,7 @@ static void api_set_string_chunk(SetStringChunkRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.success = string_set_chunk(request->string_id, request->offset, request->buffer) >= 0;
+	response.error_code = string_set_chunk(request->string_id, request->offset, request->buffer);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -420,7 +411,7 @@ static void api_get_string_chunk(GetStringChunkRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	string_get_chunk(request->string_id, request->offset, response.buffer);
+	response.error_code = string_get_chunk(request->string_id, request->offset, response.buffer);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -434,7 +425,7 @@ static void api_open_file(OpenFileRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.file_id = file_open(request->name_string_id, request->flags, request->permissions);
+	response.error_code = file_open(request->name_string_id, request->flags, request->permissions, &response.file_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -444,7 +435,7 @@ static void api_close_file(CloseFileRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.success = file_close(request->file_id) >= 0;
+	response.error_code = file_close(request->file_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -454,7 +445,7 @@ static void api_get_file_name(GetFileNameRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.name_string_id = file_get_name(request->file_id);
+	response.error_code = file_get_name(request->file_id, &response.name_string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -464,27 +455,23 @@ static void api_write_file(WriteFileRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.length_written = file_write(request->file_id, request->buffer, request->length_to_write);
+	response.error_code = file_write(request->file_id, request->buffer, request->length_to_write, &response.length_written);
 
 	network_dispatch_response((Packet *)&response);
 }
 
 static void api_write_file_unchecked(WriteFileUncheckedRequest *request) {
-	if (file_write_unchecked(request->file_id, request->buffer,
-	                         request->length_to_write) < 0) {
-		api_send_response_if_expected((Packet *)request, ERROR_CODE_INVALID_PARAMETER);
-	} else {
-		api_send_response_if_expected((Packet *)request, ERROR_CODE_OK);
-	}
+	ErrorCode error_code = file_write_unchecked(request->file_id, request->buffer,
+	                                            request->length_to_write);
+
+	api_send_response_if_expected((Packet *)request, error_code);
 }
 
 static void api_write_file_async(WriteFileAsyncRequest *request) {
-	if (file_write_async(request->file_id, request->buffer,
-	                     request->length_to_write) < 0) {
-		api_send_response_if_expected((Packet *)request, ERROR_CODE_INVALID_PARAMETER);
-	} else {
-		api_send_response_if_expected((Packet *)request, ERROR_CODE_OK);
-	}
+	ErrorCode error_code = file_write_async(request->file_id, request->buffer,
+	                                        request->length_to_write);
+
+	api_send_response_if_expected((Packet *)request, error_code);
 }
 
 static void api_read_file(ReadFileRequest *request) {
@@ -492,7 +479,8 @@ static void api_read_file(ReadFileRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.length_read = file_read(request->file_id, response.buffer, request->length_to_read);
+	response.error_code = file_read(request->file_id, response.buffer,
+	                                request->length_to_read, &response.length_read);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -502,7 +490,7 @@ static void api_read_file_async(ReadFileAsyncRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.success = file_read_async(request->file_id, request->length_to_read) >= 0;
+	response.error_code = file_read_async(request->file_id, request->length_to_read);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -543,10 +531,6 @@ void api_exit(void) {
 }
 
 void api_handle_request(Packet *request) {
-	if (request->header.function_id != FUNCTION_GET_LAST_ERROR) {
-		_last_api_error_code = API_ERROR_CODE_OK;
-	}
-
 	#define DISPATCH_FUNCTION(function_id_suffix, packet_prefix, function_suffix) \
 		case FUNCTION_##function_id_suffix: \
 			if (request->header.length != sizeof(packet_prefix##Request)) { \
@@ -559,8 +543,6 @@ void api_handle_request(Packet *request) {
 			break;
 
 	switch (request->header.function_id) {
-	DISPATCH_FUNCTION(GET_LAST_ERROR,              GetLastError,            get_last_error)
-
 	// object table
 	DISPATCH_FUNCTION(GET_OBJECT_TYPE,             GetObjectType,           get_object_type)
 	DISPATCH_FUNCTION(GET_NEXT_OBJECT_TABLE_ENTRY, GetNextObjectTableEntry, get_next_object_table_entry)
@@ -595,43 +577,38 @@ void api_handle_request(Packet *request) {
 	#undef DISPATCH_FUNCTION
 }
 
-void api_set_last_error(APIErrorCode error_code) {
-	_last_api_error_code = error_code;
-}
-
-void api_set_last_error_from_errno(void) {
+APIE api_get_error_code_from_errno(void) {
 	switch (errno) {
-	case EACCES:      api_set_last_error(API_ERROR_CODE_ACCESS_DENIED);     break;
-	case EEXIST:      api_set_last_error(API_ERROR_CODE_ALREADY_EXISTS);    break;
-	case EINTR:       api_set_last_error(API_ERROR_CODE_INTERRUPTED);       break;
-	case EINVAL:      api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER); break;
-	case EISDIR:      api_set_last_error(API_ERROR_CODE_IS_DIRECTORY);      break;
-	case ENOENT:      api_set_last_error(API_ERROR_CODE_DOES_NOT_EXIST);    break;
-	case ENOMEM:      api_set_last_error(API_ERROR_CODE_NO_FREE_MEMORY);    break;
-	case ENOSPC:      api_set_last_error(API_ERROR_CODE_NO_FREE_SPACE);     break;
-	case EWOULDBLOCK: api_set_last_error(API_ERROR_CODE_WOULD_BLOCK);       break;
-	default:          api_set_last_error(API_ERROR_CODE_UNKNOWN_ERROR);     break;
+	case EACCES:      return API_E_ACCESS_DENIED;
+	case EEXIST:      return API_E_ALREADY_EXISTS;
+	case EINTR:       return API_E_INTERRUPTED;
+	case EINVAL:      return API_E_INVALID_PARAMETER;
+	case EISDIR:      return API_E_IS_DIRECTORY;
+	case ENOENT:      return API_E_DOES_NOT_EXIST;
+	case ENOMEM:      return API_E_NO_FREE_MEMORY;
+	case ENOSPC:      return API_E_NO_FREE_SPACE;
+	case EWOULDBLOCK: return API_E_WOULD_BLOCK;
+	default:          return API_E_UNKNOWN_ERROR;
 	}
 }
 
-void api_send_async_file_read_callback(uint16_t file_id, uint8_t *buffer, int8_t length_read) {
+void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
+                                       uint8_t *buffer, uint8_t length_read) {
 	_async_file_read_callback.file_id = file_id;
+	_async_file_read_callback.error_code = error_code;
 	_async_file_read_callback.length_read = length_read;
 
-	if (length_read > 0) {
-		memcpy(_async_file_read_callback.buffer, buffer, length_read);
-		memset(_async_file_read_callback.buffer + length_read, 0,
-		       sizeof(_async_file_read_callback.buffer) - length_read);
-	} else {
-		memset(_async_file_read_callback.buffer, 0,
-		       sizeof(_async_file_read_callback.buffer));
-	}
+	memcpy(_async_file_read_callback.buffer, buffer, length_read);
+	memset(_async_file_read_callback.buffer + length_read, 0,
+	       sizeof(_async_file_read_callback.buffer) - length_read);
 
 	network_dispatch_response((Packet *)&_async_file_read_callback);
 }
 
-void api_send_async_file_write_callback(uint16_t file_id, int8_t length_written) {
+void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
+                                        uint8_t length_written) {
 	_async_file_write_callback.file_id = file_id;
+	_async_file_write_callback.error_code = error_code;
 	_async_file_write_callback.length_written = length_written;
 
 	network_dispatch_response((Packet *)&_async_file_write_callback);
@@ -639,23 +616,20 @@ void api_send_async_file_write_callback(uint16_t file_id, int8_t length_written)
 
 #if 0
 
-get_last_error() -> uint32_t error_code
-
 /*
  * object handling
  */
 
 enum object_type {
-	OBJECT_TYPE_INVALID = -1,
 	OBJECT_TYPE_STRING = 0,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
 	OBJECT_TYPE_PROGRAM
 }
 
-get_object_type(uint16_t object_id) -> int8_t object_type // type == OBJECT_ID_TYPE_INVALID means error, see get_last_error()
-get_next_object_table_entry(uint8_t object_type) -> uint16_t object_id // object_id == 0 means error or end-of-table, see get_last_error()
-rewind_object_table(uint8_t object_type) -> bool success // success == false means error, see get_last_error()
+get_object_type(uint16_t object_id) -> uint8_t error_code, uint8_t object_type
+get_next_object_table_entry(uint8_t object_type) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-table
+rewind_object_table(uint8_t object_type) -> uint8_t error_code
 
 
 /*
@@ -670,12 +644,12 @@ struct string {
 	int ref_count;
 }
 
-acquire_string(uint32_t length_to_reserve) -> uint16_t string_id // string_id == 0 means error, see get_last_error()
-release_string(uint16_t string_id) -> bool success // success == false means error, see get_last_error()
-truncate_string(uint16_t string_id, uint32_t length) -> bool success // success == false means error, see get_last_error()
-get_string_length(uint16_t string_id) -> int32_t length // length < 0 means error, see get_last_error()
-set_string_chuck(uint16_t string_id, uint32_t offset, char buffer[58]) -> bool success // success == false means error, see get_last_error()
-get_string_chunk(uint16_t string_id, uint32_t offset) -> char buffer[64] // strnlen(buffer, 64) == 0 means error or end-of-string, see get_last_error()
+acquire_string    (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id
+release_string    (uint16_t string_id)                                   -> uint8_t error_code
+truncate_string   (uint16_t string_id, uint32_t length)                  -> uint8_t error_code
+get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
+set_string_chuck  (uint16_t string_id, uint32_t offset, char buffer[58]) -> uint8_t error_code
+get_string_chunk  (uint16_t string_id, uint32_t offset)                  -> uint8_t error_code, char buffer[64] // error_code == NO_MORE_DATA means end-of-string
 
 
 /*
@@ -708,26 +682,26 @@ enum file_event { // bitmask
 	FILE_EVENT_WRITE = 0x0002
 }
 
-open_file(uint16_t name_string_id, uint32_t flags, uint32_t permissions) -> uint16_t file_id // file_id == 0 means error, see get_last_error()
-close_file(uint16_t file_id) -> bool success // success == false means error, see get_last_error()
-get_file_name(uint16_t file_id) -> uint16_t name_string_id // name_string_id == 0 means this file has no name
-write_file(uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> int8_t length_written // length_written < 0 means error, see get_last_error()
-write_file_unchecked(uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
-write_file_async(uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
-read_file(uint16_t file_id, uint8_t length_to_read) -> uint8_t buffer[63], int8_t length_read // length_read == 0 means end-of-file, length_read < 0 means error, see get_last_error()
-read_file_async(uint16_t file_id, uint64_t length_to_read) -> bool success // success == false means error, see get_last_error()
-abort_async_file_read(uint16_t file_id) -> bool success // success == false means error, see get_last_error()
-set_file_position(uint16_t file_id, int64_t offset, uint8_t origin) -> int64_t position // position < 0 means error, see get_last_error()
-get_file_position(uint16_t file_id) -> int64_t position // position < 0 means error, see get_last_error()
-set_file_events(uint16_t file_id, uint32_t events) -> bool success // success == false means error, see get_last_error()
-get_file_events(uint16_t file_id) -> int32_t events // events < 0 means error, see get_last_error()
+open_file             (uint16_t name_string_id, uint32_t flags, uint32_t permissions) -> uint8_t error_code, uint16_t file_id
+close_file            (uint16_t file_id)                                              -> uint8_t error_code
+get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id
+write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
+write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
+write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
+read_file             (uint16_t file_id, uint8_t length_to_read)                      -> uint8_t error_code, uint8_t buffer[62], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
+read_file_async       (uint16_t file_id, uint64_t length_to_read)                     -> uint8_t error_code
+abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
+set_file_position     (uint16_t file_id, int64_t offset, uint8_t origin)              -> uint8_t error_code, uint64_t position
+get_file_position     (uint16_t file_id)                                              -> uint8_t error_code, uint64_t position
+set_file_events       (uint16_t file_id, uint32_t events)                             -> uint8_t error_code
+get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint32_t events
 
-callback: file_event(uint16_t file_id, uint16_t events)
-callback: async_file_read(uint16_t file_id, uint8_t buffer[61], int8_t length_read) // length_read == 0 means end-of-range, length_read < 0 means error, see get_last_error()
-callback: async_file_write(uint16_t file_id, int8_t length_written) // length_written < 0 means error, see get_last_error()
+callback: async_file_read  (uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read) // error_code == NO_MORE_DATA means end-of-file
+callback: async_file_write (uint16_t file_id, uint8_t error_code, uint8_t length_written)
+callback: file_event       (uint16_t file_id, uint32_t events)
 
-get_file_status(uint16_t name_string_id, bool follow_symlink) -> struct stat // FIXME
-get_file_sha1_digest(uint16_t name_string_id) -> uint8_t digest[20]
+get_file_status      (uint16_t name_string_id, bool follow_symlink) -> uint8_t error_code, struct stat // FIXME
+get_file_sha1_digest (uint16_t name_string_id)                      -> uint8_t error_code, uint8_t digest[20]
 
 
 /*
@@ -740,13 +714,13 @@ struct directory {
 	DIR *dp;
 }
 
-open_directory(uint16_t name_string_id) -> uint16_t directory_id // directory_id == 0 means error, see get_last_error()
-close_directory(uint16_t directory_id) -> bool success // success == false means error, see get_last_error()
-get_directory_name(uint16_t directory_id) -> uint16_t name_string_id
-get_next_directory_entry(uint16_t directory_id) -> uint16_t entry_name_string_id // entry_name_string_id == 0 means error or end-of-directory, see get_last_error()
-rewind_directory(uint16_t directory_id)
+open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id
+close_directory          (uint16_t directory_id)   -> uint8_t error_code
+get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id
+get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory
+rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-create_directory(uint16_t name_string_id, uint32_t mode) -> bool success // success == false means error, see get_last_error()
+create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code,
 
 
 /*
@@ -759,20 +733,21 @@ struct program {
 	uint16_t command_string_id;
 }
 
-define_program(uint16_t name_string_id) -> uint16_t program_id // program_id == 0 means error, see get_last_error()
-undefine_program(uint16_t program_id) -> bool success // success == false means error, see get_last_error()
-set_program_command(uint16_t program_id, uint16_t command_string_id)
-get_program_command(uint16_t program_id) -> uint16_t command_string_id
+define_program      (uint16_t name_string_id)                         -> uint8_t error_code, uint16_t program_id
+undefine_program    (uint16_t program_id)                             -> uint8_t error_code,
+set_program_command (uint16_t program_id, uint16_t command_string_id) -> uint8_t error_code
+get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id
 
 
 /*
  * misc stuff
  */
 
-remove(uint16_t name_string_id, bool recursive) -> bool success // success == false means error, see get_last_error()
-rename(uint16_t source_string_id, uint16_t destination_string_id) -> bool success // success == false means error, see get_last_error()
+remove (uint16_t name_string_id, bool recursive)                   -> uint8_t error_code
+rename (uint16_t source_string_id, uint16_t destination_string_id) -> uint8_t error_code
 
-execute(uint16_t command_string_id) -> uint16_t execute_id // execute_id == 0 means error, see get_last_error()
-callback: execute_done(uint16_t execute_id, uint8_t exit_code)
+execute (uint16_t command_string_id) -> uint8_t error_code, uint16_t execute_id
+
+callback: execute_done (uint16_t execute_id, uint8_t error_code, uint8_t exit_code)
 
 #endif

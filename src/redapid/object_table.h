@@ -22,12 +22,11 @@
 #ifndef REDAPID_OBJECT_TABLE_H
 #define REDAPID_OBJECT_TABLE_H
 
+#include "api.h"
+
 typedef uint16_t ObjectID;
 
-#define OBJECT_ID_INVALID 0
-
 typedef enum {
-	OBJECT_TYPE_INVALID = -1,
 	OBJECT_TYPE_STRING = 0,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
@@ -39,14 +38,13 @@ typedef enum {
 int object_table_init(void);
 void object_table_exit(void);
 
-ObjectID object_table_add_object(ObjectType type, void *data, FreeFunction function);
-int object_table_remove_object(ObjectType type, ObjectID id);
+APIE object_table_add_object(ObjectType type, void *data,
+                             FreeFunction function, ObjectID *id);
+APIE object_table_remove_object(ObjectType type, ObjectID id);
 
-void *object_table_get_object_data(ObjectType type, ObjectID id);
-
-ObjectType object_table_get_object_type(ObjectID id);
-
-ObjectID object_table_get_next_entry(ObjectType type);
-int object_table_rewind(ObjectType type);
+APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data);
+APIE object_table_get_object_type(ObjectID id, ObjectType *type);
+APIE object_table_get_next_entry(ObjectType type, ObjectID *id);
+APIE object_table_rewind(ObjectType type);
 
 #endif // REDAPID_OBJECT_TABLE_H

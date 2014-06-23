@@ -63,19 +63,19 @@ typedef enum { // bitmask
 #define FILE_WRITE_BUFFER_LENGTH 61
 #define FILE_WRITE_UNCHECKED_BUFFER_LENGTH 61
 #define FILE_WRITE_ASYNC_BUFFER_LENGTH 61
-#define FILE_READ_BUFFER_LENGTH 63
-#define FILE_ASYNC_READ_BUFFER_LENGTH 61
+#define FILE_READ_BUFFER_LENGTH 62
+#define FILE_ASYNC_READ_BUFFER_LENGTH 60
 
-ObjectID file_open(ObjectID name_id, uint32_t flags, uint32_t permissions);
-int file_close(ObjectID id);
+APIE file_open(ObjectID name_id, uint32_t flags, uint32_t permissions, ObjectID *id);
+APIE file_close(ObjectID id);
 
-ObjectID file_get_name(ObjectID id);
+APIE file_get_name(ObjectID id, ObjectID *name_id);
 
-int8_t file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
-int file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
-int file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
+APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written);
+ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
+ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
 
-int8_t file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read);
-int file_read_async(ObjectID id, uint64_t length_to_read);
+APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read);
+APIE file_read_async(ObjectID id, uint64_t length_to_read);
 
 #endif // REDAPID_FILE_H

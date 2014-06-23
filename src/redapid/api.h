@@ -25,34 +25,36 @@
 #include <daemonlib/packet.h>
 
 typedef enum {
-	API_ERROR_CODE_OK = 0,
-	API_ERROR_CODE_INVALID_OPERATION,
-	API_ERROR_CODE_INTERNAL_ERROR,
-	API_ERROR_CODE_UNKNOWN_OBJECT_ID,
-	API_ERROR_CODE_NO_FREE_OBJECT_ID,
-	API_ERROR_CODE_NO_REWIND,
-	API_ERROR_CODE_NO_MORE_DATA,
-	API_ERROR_CODE_INVALID_PARAMETER, // EINVAL
-	API_ERROR_CODE_NO_FREE_MEMORY,    // ENOMEM
-	API_ERROR_CODE_NO_FREE_SPACE,     // ENOSPC
-	API_ERROR_CODE_ACCESS_DENIED,     // EACCES
-	API_ERROR_CODE_ALREADY_EXISTS,    // EEXIST
-	API_ERROR_CODE_DOES_NOT_EXIST,    // ENOENT
-	API_ERROR_CODE_INTERRUPTED,       // EINTR
-	API_ERROR_CODE_IS_DIRECTORY,      // EISDIR
-	API_ERROR_CODE_WOULD_BLOCK,       // EWOULDBLOCK
-	API_ERROR_CODE_UNKNOWN_ERROR
-} APIErrorCode;
+	API_E_OK = 0,
+	API_E_UNKNOWN_ERROR,
+	API_E_INVALID_OPERATION,
+	API_E_OPERATION_ABORTED,
+	API_E_INTERNAL_ERROR,
+	API_E_UNKNOWN_OBJECT_ID,
+	API_E_NO_FREE_OBJECT_ID,
+	API_E_NO_REWIND,
+	API_E_NO_MORE_DATA,
+	API_E_INVALID_PARAMETER, // EINVAL
+	API_E_NO_FREE_MEMORY,    // ENOMEM
+	API_E_NO_FREE_SPACE,     // ENOSPC
+	API_E_ACCESS_DENIED,     // EACCES
+	API_E_ALREADY_EXISTS,    // EEXIST
+	API_E_DOES_NOT_EXIST,    // ENOENT
+	API_E_INTERRUPTED,       // EINTR
+	API_E_IS_DIRECTORY,      // EISDIR
+	API_E_WOULD_BLOCK        // EWOULDBLOCK
+} APIE;
 
 int api_init(void);
 void api_exit(void);
 
 void api_handle_request(Packet *request);
 
-void api_set_last_error(APIErrorCode error_code);
-void api_set_last_error_from_errno(void);
+APIE api_get_error_code_from_errno(void);
 
-void api_send_async_file_read_callback(uint16_t file_id, uint8_t *buffer, int8_t length_read);
-void api_send_async_file_write_callback(uint16_t file_id, int8_t length_written);
+void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
+                                       uint8_t *buffer, uint8_t length_read);
+void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
+                                        uint8_t length_written);
 
 #endif // REDAPID_API_H
