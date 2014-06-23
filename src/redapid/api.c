@@ -54,6 +54,7 @@ typedef enum {
 	FUNCTION_WRITE_FILE_ASYNC,
 	FUNCTION_READ_FILE,
 	FUNCTION_READ_FILE_ASYNC,
+	FUNCTION_ABORT_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_WRITE
 } APIFunctionIDs;
@@ -259,6 +260,17 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+} ATTRIBUTE_PACKED AbortAsyncFileReadRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED AbortAsyncFileReadResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint8_t error_code;
 	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
 	uint8_t length_read;
 } ATTRIBUTE_PACKED AsyncFileReadCallback;
@@ -495,6 +507,16 @@ static void api_read_file_async(ReadFileAsyncRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_abort_async_file_read(AbortAsyncFileReadRequest *request) {
+	AbortAsyncFileReadResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_abort_async_read(request->file_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 //
 // api
 //
@@ -565,6 +587,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,            WriteFileAsync,          write_file_async)
 	DISPATCH_FUNCTION(READ_FILE,                   ReadFile,                read_file)
 	DISPATCH_FUNCTION(READ_FILE_ASYNC,             ReadFileAsync,           read_file_async)
+	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,       AbortAsyncFileRead,      abort_async_file_read)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);

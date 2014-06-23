@@ -77,5 +77,6 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read);
 APIE file_read_async(ObjectID id, uint64_t length_to_read);
+APIE file_abort_async_read(ObjectID id);
 
 #endif // REDAPID_FILE_H

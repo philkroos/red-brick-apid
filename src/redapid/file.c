@@ -330,8 +330,8 @@ APIE file_close(ObjectID id) {
 	}
 
 	if (file->length_to_read_async > 0) {
-		log_warn("Closing file object (id: %u) while an asynchronous read is in progress",
-		         file->id);
+		log_warn("Closing file object (id: %u) while an asynchronous read for %"PRIu64" byte(s) is in progress",
+		         file->id, file->length_to_read_async);
 
 		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
 	}
@@ -520,6 +520,29 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 
 	log_debug("Started asynchronous reading of %"PRIu64" byte(s) from file object (id: %u)",
 	          length_to_read, id);
+
+	return API_E_OK;
+}
+
+APIE file_abort_async_read(ObjectID id) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (file->length_to_read_async == 0) {
+		// nothing to abort
+		return API_E_OK;
+	}
+
+	event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+
+	file->length_to_read_async = 0;
+
+	api_send_async_file_read_callback(file->fd, API_E_OPERATION_ABORTED, buffer, 0);
 
 	return API_E_OK;
 }
