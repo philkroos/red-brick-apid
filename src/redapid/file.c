@@ -334,7 +334,7 @@ int8_t file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
 	if (length_to_write > FILE_WRITE_BUFFER_LENGTH) {
 		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
 
-		log_warn("Length of %u bytes exceeds maximum length of file write buffer",
+		log_warn("Length of %u byte(s) exceeds maximum length of file write buffer",
 		         length_to_write);
 
 		return -1;
@@ -364,7 +364,7 @@ int file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write) 
 	if (length_to_write > FILE_WRITE_UNCHECKED_BUFFER_LENGTH) {
 		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
 
-		log_warn("Length of %u bytes exceeds maximum length of file unchecked write buffer",
+		log_warn("Length of %u byte(s) exceeds maximum length of file unchecked write buffer",
 		         length_to_write);
 
 		return -1;
@@ -395,7 +395,7 @@ int file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
 	if (length_to_write > FILE_WRITE_ASYNC_BUFFER_LENGTH) {
 		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
 
-		log_warn("Length of %u bytes exceeds maximum length of file async write buffer",
+		log_warn("Length of %u byte(s) exceeds maximum length of file async write buffer",
 		         length_to_write);
 
 		api_send_async_file_write_callback(id, -1);
@@ -432,7 +432,7 @@ int8_t file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read) {
 	if (length_to_read > FILE_READ_BUFFER_LENGTH) {
 		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
 
-		log_warn("Length of %u bytes exceeds maximum length of file read buffer",
+		log_warn("Length of %u byte(s) exceeds maximum length of file read buffer",
 		         length_to_read);
 
 		return -1;
@@ -462,7 +462,8 @@ int file_read_async(ObjectID id, uint64_t length_to_read) {
 	if (file->length_to_read_async > 0) {
 		api_set_last_error(API_ERROR_CODE_INVALID_OPERATION);
 
-		log_warn("Already reading from file object (id: %u) asynchronously", id);
+		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u) asynchronously",
+		         file->length_to_read_async, id);
 
 		return -1;
 	}
@@ -470,7 +471,7 @@ int file_read_async(ObjectID id, uint64_t length_to_read) {
 	if (length_to_read > INT64_MAX) {
 		api_set_last_error(API_ERROR_CODE_INVALID_PARAMETER);
 
-		log_warn("Length of %"PRIu64" bytes exceeds maximum length of file",
+		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
 		         length_to_read);
 
 		return -1;
@@ -489,7 +490,7 @@ int file_read_async(ObjectID id, uint64_t length_to_read) {
 		return -1;
 	}
 
-	log_debug("Started asynchronous reading of %"PRIu64" bytes(s) from file object (id: %u)",
+	log_debug("Started asynchronous reading of %"PRIu64" byte(s) from file object (id: %u)",
 	          length_to_read, id);
 
 	return 0;
