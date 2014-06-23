@@ -83,7 +83,22 @@ static void file_handle_async_read(void *opaque) {
 			event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
 
 			file->length_to_read_async = 0;
+
+			api_send_async_file_read_callback(file->fd, buffer, -1);
 		}
+
+		return;
+	}
+
+	if (length_read == 0) {
+		log_debug("Reading from file object (id: %u) asynchronously reached end-of-file",
+		          file->id);
+
+		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+
+		file->length_to_read_async = 0;
+
+		api_send_async_file_read_callback(file->fd, buffer, 0);
 
 		return;
 	}
