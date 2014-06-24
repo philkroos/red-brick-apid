@@ -55,6 +55,8 @@ typedef enum {
 	FUNCTION_READ_FILE,
 	FUNCTION_READ_FILE_ASYNC,
 	FUNCTION_ABORT_ASYNC_FILE_READ,
+	FUNCTION_SET_FILE_POSITION,
+	FUNCTION_GET_FILE_POSITION,
 	CALLBACK_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_WRITE
 } APIFunctionIDs;
@@ -266,6 +268,30 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED AbortAsyncFileReadResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	int64_t offset;
+	uint8_t origin;
+} ATTRIBUTE_PACKED SetFilePositionRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint64_t position;
+} ATTRIBUTE_PACKED SetFilePositionResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED GetFilePositionRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint64_t position;
+} ATTRIBUTE_PACKED GetFilePositionResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -517,6 +543,27 @@ static void api_abort_async_file_read(AbortAsyncFileReadRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_set_file_position(SetFilePositionRequest *request) {
+	SetFilePositionResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_set_position(request->file_id, request->offset,
+	                                        request->origin, &response.position);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_file_position(GetFilePositionRequest *request) {
+	GetFilePositionResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_get_position(request->file_id, &response.position);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 //
 // api
 //
@@ -541,6 +588,7 @@ int api_init(void) {
 	api_prepare_callback((Packet *)&_async_file_read_callback,
 	                     sizeof(_async_file_read_callback),
 	                     CALLBACK_ASYNC_FILE_READ);
+
 	api_prepare_callback((Packet *)&_async_file_write_callback,
 	                     sizeof(_async_file_write_callback),
 	                     CALLBACK_ASYNC_FILE_WRITE);
@@ -588,6 +636,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(READ_FILE,                   ReadFile,                read_file)
 	DISPATCH_FUNCTION(READ_FILE_ASYNC,             ReadFileAsync,           read_file_async)
 	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,       AbortAsyncFileRead,      abort_async_file_read)
+	DISPATCH_FUNCTION(SET_FILE_POSITION,           SetFilePosition,         set_file_position)
+	DISPATCH_FUNCTION(GET_FILE_POSITION,           GetFilePosition,         get_file_position)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -611,6 +661,8 @@ APIE api_get_error_code_from_errno(void) {
 	case ENOMEM:      return API_E_NO_FREE_MEMORY;
 	case ENOSPC:      return API_E_NO_FREE_SPACE;
 	case EWOULDBLOCK: return API_E_WOULD_BLOCK;
+	case EOVERFLOW:   return API_E_OVERFLOW;
+	case EBADF:       return API_E_INVALID_FILE_DESCRIPTOR;
 	default:          return API_E_UNKNOWN_ERROR;
 	}
 }

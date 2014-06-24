@@ -546,3 +546,65 @@ APIE file_abort_async_read(ObjectID id) {
 
 	return API_E_OK;
 }
+
+APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	int whence;
+	off_t rc;
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	switch (origin) {
+	case FILE_ORIGIN_SET:     whence = SEEK_SET; break;
+	case FILE_ORIGIN_CURRENT: whence = SEEK_CUR; break;
+	case FILE_ORIGIN_END:     whence = SEEK_END; break;
+
+	default:
+		log_warn("Invalid file origin %d", origin);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	rc = lseek(file->fd, offset, whence);
+
+	if (rc == (off_t)-1) {
+		error_code = api_get_error_code_from_errno();
+
+		log_warn("Could not set position (offset %"PRIi64", origin: %d) of file object (id: %u): %s (%d)",
+		         offset, origin, id, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	*position = rc;
+
+	return API_E_OK;
+}
+
+APIE file_get_position(ObjectID id, uint64_t *position) {
+	File *file;
+	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	off_t rc;
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	rc = lseek(file->fd, 0, SEEK_CUR);
+
+	if (rc == (off_t)-1) {
+		error_code = api_get_error_code_from_errno();
+
+		log_warn("Could not get position of file object (id: %u): %s (%d)",
+		         id, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	*position = rc;
+
+	return API_E_OK;
+}

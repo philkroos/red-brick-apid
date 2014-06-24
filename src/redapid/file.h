@@ -60,6 +60,12 @@ typedef enum { // bitmask
                              FILE_PERMISSION_GROUP_ALL | \
                              FILE_PERMISSION_OTHERS_ALL)
 
+typedef enum {
+	FILE_ORIGIN_SET = 0,
+	FILE_ORIGIN_CURRENT,
+	FILE_ORIGIN_END
+} FileOrigin;
+
 #define FILE_WRITE_BUFFER_LENGTH 61
 #define FILE_WRITE_UNCHECKED_BUFFER_LENGTH 61
 #define FILE_WRITE_ASYNC_BUFFER_LENGTH 61
@@ -78,5 +84,8 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read);
 APIE file_read_async(ObjectID id, uint64_t length_to_read);
 APIE file_abort_async_read(ObjectID id);
+
+APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position);
+APIE file_get_position(ObjectID id, uint64_t *position);
 
 #endif // REDAPID_FILE_H
