@@ -757,9 +757,9 @@ enum file_event { // bitmask
 	FILE_EVENT_WRITE = 0x0002
 }
 
-open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id
-close_file            (uint16_t file_id)                                              -> uint8_t error_code
-get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id
+open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it
+close_file            (uint16_t file_id)                                              -> uint8_t error_code // unlocks and releases name
+get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_string() if done with name
 write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
 write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
 write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
@@ -789,10 +789,10 @@ struct directory {
 	DIR *dp;
 }
 
-open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id
-close_directory          (uint16_t directory_id)   -> uint8_t error_code
-get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id
-get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory
+open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id // adds a reference to the name and locks it
+close_directory          (uint16_t directory_id)   -> uint8_t error_code // unlocks and releases name
+get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_string() if done with name
+get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_string() if done with entry
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
 create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code,
@@ -808,10 +808,10 @@ struct program {
 	uint16_t command_string_id;
 }
 
-define_program      (uint16_t name_string_id)                         -> uint8_t error_code, uint16_t program_id
-undefine_program    (uint16_t program_id)                             -> uint8_t error_code,
-set_program_command (uint16_t program_id, uint16_t command_string_id) -> uint8_t error_code
-get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id
+define_program      (uint16_t name_string_id)                         -> uint8_t error_code, uint16_t program_id // adds a reference to the name and locks it
+undefine_program    (uint16_t program_id)                             -> uint8_t error_code // unlocks and releases name
+set_program_command (uint16_t program_id, uint16_t command_string_id) -> uint8_t error_code // adds a reference to the command and locks it, unlocks and releases previous command, if any
+get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_string() if done with command
 
 
 /*
@@ -821,7 +821,7 @@ get_program_command (uint16_t program_id)                             -> uint8_t
 remove (uint16_t name_string_id, bool recursive)                   -> uint8_t error_code
 rename (uint16_t source_string_id, uint16_t destination_string_id) -> uint8_t error_code
 
-execute (uint16_t command_string_id) -> uint8_t error_code, uint16_t execute_id
+execute (uint16_t command_string_id) -> uint8_t error_code, uint16_t execute_id // adds a reference to the command and locks it, unlocks and releases command after execution is done
 
 callback: execute_done (uint16_t execute_id, uint8_t error_code, uint8_t exit_code)
 

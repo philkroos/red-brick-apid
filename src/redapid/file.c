@@ -347,6 +347,12 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 		return error_code;
 	}
 
+	error_code = string_acquire_ref(file->name_id);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
 	*name_id = file->name_id;
 
 	return API_E_OK;
