@@ -297,22 +297,22 @@ typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
-	uint8_t length_read;
-} ATTRIBUTE_PACKED AsyncFileReadCallback;
+	uint8_t length_written;
+} ATTRIBUTE_PACKED AsyncFileWriteCallback;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t length_written;
-} ATTRIBUTE_PACKED AsyncFileWriteCallback;
+	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t length_read;
+} ATTRIBUTE_PACKED AsyncFileReadCallback;
 
 #include <daemonlib/packed_end.h>
 
 static uint32_t _uid = 0; // always little endian
-static AsyncFileReadCallback _async_file_read_callback;
 static AsyncFileWriteCallback _async_file_write_callback;
+static AsyncFileReadCallback _async_file_read_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
 	memset(response, 0, length);
@@ -585,13 +585,13 @@ int api_init(void) {
 	          base58_encode(base58, uint32_from_le(_uid)),
 	          uint32_from_le(_uid));
 
-	api_prepare_callback((Packet *)&_async_file_read_callback,
-	                     sizeof(_async_file_read_callback),
-	                     CALLBACK_ASYNC_FILE_READ);
-
 	api_prepare_callback((Packet *)&_async_file_write_callback,
 	                     sizeof(_async_file_write_callback),
 	                     CALLBACK_ASYNC_FILE_WRITE);
+
+	api_prepare_callback((Packet *)&_async_file_read_callback,
+	                     sizeof(_async_file_read_callback),
+	                     CALLBACK_ASYNC_FILE_READ);
 
 	return 0;
 }
@@ -667,6 +667,15 @@ APIE api_get_error_code_from_errno(void) {
 	}
 }
 
+void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
+                                        uint8_t length_written) {
+	_async_file_write_callback.file_id = file_id;
+	_async_file_write_callback.error_code = error_code;
+	_async_file_write_callback.length_written = length_written;
+
+	network_dispatch_response((Packet *)&_async_file_write_callback);
+}
+
 void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
                                        uint8_t *buffer, uint8_t length_read) {
 	_async_file_read_callback.file_id = file_id;
@@ -678,15 +687,6 @@ void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
 	       sizeof(_async_file_read_callback.buffer) - length_read);
 
 	network_dispatch_response((Packet *)&_async_file_read_callback);
-}
-
-void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
-                                        uint8_t length_written) {
-	_async_file_write_callback.file_id = file_id;
-	_async_file_write_callback.error_code = error_code;
-	_async_file_write_callback.length_written = length_written;
-
-	network_dispatch_response((Packet *)&_async_file_write_callback);
 }
 
 #if 0
@@ -796,8 +796,8 @@ get_file_position     (uint16_t file_id)                                        
 set_file_events       (uint16_t file_id, uint8_t events)                              -> uint8_t error_code
 get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint8_t events
 
-callback: async_file_read  (uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read) // error_code == NO_MORE_DATA means end-of-file
 callback: async_file_write (uint16_t file_id, uint8_t error_code, uint8_t length_written)
+callback: async_file_read  (uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read) // error_code == NO_MORE_DATA means end-of-file
 callback: file_ready       (uint16_t file_id, uint8_t events)
 
 get_file_info        (uint16_t name_string_id, bool follow_symlink) -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
