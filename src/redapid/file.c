@@ -120,7 +120,7 @@ static void file_handle_async_read(void *opaque) {
 	}
 }
 
-APIE file_open(ObjectID name_id, uint32_t flags, uint32_t permissions, ObjectID *id) {
+APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	const char *name;

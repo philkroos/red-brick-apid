@@ -757,7 +757,7 @@ enum file_event { // bitmask
 	FILE_EVENT_WRITE = 0x0002
 }
 
-open_file             (uint16_t name_string_id, uint32_t flags, uint32_t permissions) -> uint8_t error_code, uint16_t file_id
+open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id
 close_file            (uint16_t file_id)                                              -> uint8_t error_code
 get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id
 write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
