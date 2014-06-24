@@ -746,6 +746,21 @@ enum file_flag { // bitmask
 	FILE_FLAG_TRUNCATE = 0x0020
 }
 
+enum file_permission { // bitmask
+	FILE_PERMISSION_USER_ALL = 00700,
+	FILE_PERMISSION_USER_READ = 00400,
+	FILE_PERMISSION_USER_WRITE = 00200,
+	FILE_PERMISSION_USER_EXECUTE = 00100,
+	FILE_PERMISSION_GROUP_ALL = 00070,
+	FILE_PERMISSION_GROUP_READ = 00040,
+	FILE_PERMISSION_GROUP_WRITE = 00020,
+	FILE_PERMISSION_GROUP_EXECUTE = 00010,
+	FILE_PERMISSION_OTHERS_ALL = 00007,
+	FILE_PERMISSION_OTHERS_READ = 00004,
+	FILE_PERMISSION_OTHERS_WRITE = 00002,
+	FILE_PERMISSION_OTHERS_EXECUTE = 00001
+};
+
 enum file_origin {
 	FILE_ORIGIN_SET = 0,
 	FILE_ORIGIN_CURRENT,
@@ -753,8 +768,18 @@ enum file_origin {
 }
 
 enum file_event { // bitmask
-	FILE_EVENT_READ = 0x0001,
-	FILE_EVENT_WRITE = 0x0002
+	FILE_EVENT_READ = 0x01,
+	FILE_EVENT_WRITE = 0x02
+}
+
+enum file_type {
+	FILE_TYPE_REGULAR = 0,
+	FILE_TYPE_DIRECTORY,
+	FILE_TYPE_CHARACTER,
+	FILE_TYPE_BLOCK,
+	FILE_TYPE_FIFO,
+	FILE_TYPE_SYMLINK,
+	FILE_TYPE_SOCKET
 }
 
 open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it
@@ -768,14 +793,14 @@ read_file_async       (uint16_t file_id, uint64_t length_to_read)               
 abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
 set_file_position     (uint16_t file_id, int64_t offset, uint8_t origin)              -> uint8_t error_code, uint64_t position
 get_file_position     (uint16_t file_id)                                              -> uint8_t error_code, uint64_t position
-set_file_events       (uint16_t file_id, uint32_t events)                             -> uint8_t error_code
-get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint32_t events
+set_file_events       (uint16_t file_id, uint8_t events)                              -> uint8_t error_code
+get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint8_t events
 
 callback: async_file_read  (uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read) // error_code == NO_MORE_DATA means end-of-file
 callback: async_file_write (uint16_t file_id, uint8_t error_code, uint8_t length_written)
-callback: file_event       (uint16_t file_id, uint32_t events)
+callback: file_ready       (uint16_t file_id, uint8_t events)
 
-get_file_status      (uint16_t name_string_id, bool follow_symlink) -> uint8_t error_code, struct stat // FIXME
+get_file_info        (uint16_t name_string_id, bool follow_symlink) -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
 get_file_sha1_digest (uint16_t name_string_id)                      -> uint8_t error_code, uint8_t digest[20]
 
 
@@ -795,7 +820,7 @@ get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16
 get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_string() if done with entry
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code,
+create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code
 
 
 /*
@@ -824,5 +849,9 @@ rename (uint16_t source_string_id, uint16_t destination_string_id) -> uint8_t er
 execute (uint16_t command_string_id) -> uint8_t error_code, uint16_t execute_id // adds a reference to the command and locks it, unlocks and releases command after execution is done
 
 callback: execute_done (uint16_t execute_id, uint8_t error_code, uint8_t exit_code)
+
+// FIXME: timezone? DST? etc?
+get_system_time () -> uint8_t error_code, uint64_t system_time
+set_system_time (uint64_t system_time) -> uint8_t error_code
 
 #endif
