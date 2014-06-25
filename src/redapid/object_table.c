@@ -62,7 +62,7 @@ typedef struct {
 static int _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
 static Array _free_ids;
-static int _iteration_index[MAX_OBJECT_TYPES] = { -1, -1, -1, -1, -1 };
+static int _next_entry_index[MAX_OBJECT_TYPES] = { 0, 0, 0, 0, 0 };
 
 static const char *object_table_get_object_type_name(ObjectType type) {
 	switch (type) {
@@ -391,9 +391,9 @@ APIE object_table_release_object(ObjectID id, ObjectReferenceType reference_type
 						*free_id = id;
 					}
 
-					// adjust iteration index
-					if (_iteration_index[type] > 0 && _iteration_index[type] < i) {
-						--_iteration_index[type];
+					// adjust next-entry-index
+					if (_next_entry_index[type] > i) {
+						--_next_entry_index[type];
 					}
 
 					log_debug("Destroyed %s object (id: %u)",
@@ -419,24 +419,16 @@ APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (_iteration_index[type] < 0) {
-		log_warn("Trying to get next %s object without rewinding the table first",
-		         object_table_get_object_type_name(type));
-
-		return API_E_NO_REWIND;
-	}
-
-	if (_iteration_index[type] >= _objects[type].count) {
+	if (_next_entry_index[type] >= _objects[type].count) {
 		log_debug("Reached end of %s object table",
 		          object_table_get_object_type_name(type));
 
 		return API_E_NO_MORE_DATA;
 	}
 
-	object = (Object *)array_get(&_objects[type], _iteration_index[type]);
+	object = (Object *)array_get(&_objects[type], _next_entry_index[type]++);
 
 	++object->external_ref_count;
-	++_iteration_index[type];
 
 	*id = object->id;
 
@@ -450,7 +442,7 @@ APIE object_table_rewind(ObjectType type) {
 		return API_E_INVALID_PARAMETER;
 	}
 
-	_iteration_index[type] = 0;
+	_next_entry_index[type] = 0;
 
 	return API_E_OK;
 }
