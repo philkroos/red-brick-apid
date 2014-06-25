@@ -177,8 +177,8 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	uint32_t flags;
-	uint32_t permissions;
+	uint16_t flags;
+	uint16_t permissions;
 } ATTRIBUTE_PACKED OpenFileRequest;
 
 typedef struct {
