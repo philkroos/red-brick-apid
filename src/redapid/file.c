@@ -149,7 +149,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 		goto cleanup;
 	}
 
-	if ((flags & FILE_FLAG_CREATE) != 0 && permissions == FILE_PERMISSION_NONE) {
+	if ((flags & FILE_FLAG_CREATE) != 0 && permissions == 0) {
 		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("FILE_FLAG_CREATE used without specifying file permissions");
@@ -184,10 +184,6 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	}
 
 	// translate permissions
-	if (permissions & FILE_PERMISSION_USER_ALL) {
-		open_mode |= S_IRWXU;
-	}
-
 	if (permissions & FILE_PERMISSION_USER_READ) {
 		open_mode |= S_IRUSR;
 	}
@@ -200,10 +196,6 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 		open_mode |= S_IXUSR;
 	}
 
-	if (permissions & FILE_PERMISSION_GROUP_ALL) {
-		open_mode |= S_IRWXG;
-	}
-
 	if (permissions & FILE_PERMISSION_GROUP_READ) {
 		open_mode |= S_IRGRP;
 	}
@@ -214,10 +206,6 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	if (permissions & FILE_PERMISSION_GROUP_EXECUTE) {
 		open_mode |= S_IXGRP;
-	}
-
-	if (permissions & FILE_PERMISSION_OTHERS_ALL) {
-		open_mode |= S_IRWXO;
 	}
 
 	if (permissions & FILE_PERMISSION_OTHERS_READ) {
