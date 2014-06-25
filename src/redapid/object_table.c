@@ -60,7 +60,7 @@ typedef struct {
 static int _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
 static Array _free_ids;
-static int _iteration_index[MAX_OBJECT_TYPES] = { -1, -1, -1, -1 };
+static int _iteration_index[MAX_OBJECT_TYPES] = { -1, -1, -1, -1, -1 };
 
 static const char *object_table_get_object_type_name(ObjectType type) {
 	switch (type) {
@@ -72,6 +72,9 @@ static const char *object_table_get_object_type_name(ObjectType type) {
 
 	case OBJECT_TYPE_DIRECTORY:
 		return "directory";
+
+	case OBJECT_TYPE_TASK:
+		return "task";
 
 	case OBJECT_TYPE_PROGRAM:
 		return "program";
@@ -86,6 +89,7 @@ static int object_table_is_object_type_valid(ObjectType type) {
 	case OBJECT_TYPE_STRING:
 	case OBJECT_TYPE_FILE:
 	case OBJECT_TYPE_DIRECTORY:
+	case OBJECT_TYPE_TASK:
 	case OBJECT_TYPE_PROGRAM:
 		return 1;
 
@@ -142,6 +146,15 @@ int object_table_init(void) {
 
 	phase = 3;
 
+	if (array_create(&_objects[OBJECT_TYPE_TASK], 32, sizeof(Object), 1) < 0) {
+		log_error("Could not create task object array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	if (array_create(&_objects[OBJECT_TYPE_PROGRAM], 32, sizeof(Object), 1) < 0) {
 		log_error("Could not create program object array: %s (%d)",
 		          get_errno_name(errno), errno);
@@ -149,7 +162,7 @@ int object_table_init(void) {
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 5;
 
 	if (array_create(&_free_ids, 32, sizeof(ObjectID), 1) < 0) {
 		log_error("Could not create free object ID array: %s (%d)",
@@ -158,12 +171,15 @@ int object_table_init(void) {
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 6;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 4:
+	case 5:
 		array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_destroy);
+
+	case 4:
+		array_destroy(&_objects[OBJECT_TYPE_TASK], (FreeFunction)object_destroy);
 
 	case 3:
 		array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_destroy);
@@ -178,7 +194,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 5 ? 0 : -1;
+	return phase == 6 ? 0 : -1;
 }
 
 void object_table_exit(void) {
@@ -186,6 +202,7 @@ void object_table_exit(void) {
 
 	// destroy all objects that could have references to string objects...
 	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_destroy);
+	array_destroy(&_objects[OBJECT_TYPE_TASK], (FreeFunction)object_destroy);
 	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_destroy);
 	array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_destroy);
 

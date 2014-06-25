@@ -30,10 +30,11 @@ typedef enum {
 	OBJECT_TYPE_STRING = 0,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
+	OBJECT_TYPE_TASK,
 	OBJECT_TYPE_PROGRAM
 } ObjectType;
 
-#define MAX_OBJECT_TYPES 4
+#define MAX_OBJECT_TYPES 5
 
 int object_table_init(void);
 void object_table_exit(void);
