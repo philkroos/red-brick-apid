@@ -58,6 +58,7 @@ typedef enum {
 	FUNCTION_GET_FILE_POSITION,
 	CALLBACK_ASYNC_FILE_WRITE,
 	CALLBACK_ASYNC_FILE_READ,
+	FUNCTION_GET_FILE_INFO,
 
 	FUNCTION_OPEN_DIRECTORY,
 	FUNCTION_GET_DIRECTORY_NAME,
@@ -275,6 +276,25 @@ typedef struct {
 	uint8_t error_code;
 	uint64_t position;
 } ATTRIBUTE_PACKED GetFilePositionResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t name_string_id;
+	bool follow_symlink;
+} ATTRIBUTE_PACKED GetFileInfoRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t type;
+	uint16_t permissions;
+	uint32_t user_id;
+	uint32_t group_id;
+	uint64_t length;
+	uint64_t access_time;
+	uint64_t modification_time;
+	uint64_t status_change_time;
+} ATTRIBUTE_PACKED GetFileInfoResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -569,6 +589,21 @@ static void api_get_file_position(GetFilePositionRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_get_file_info(GetFileInfoRequest *request) {
+	GetFileInfoResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_get_info(request->name_string_id, request->follow_symlink,
+	                                    &response.type, &response.permissions,
+	                                    &response.user_id, &response.group_id,
+	                                    &response.length, &response.access_time,
+	                                    &response.modification_time,
+	                                    &response.status_change_time);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 //
 // directory
 //
@@ -685,6 +720,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,       AbortAsyncFileRead,      abort_async_file_read)
 	DISPATCH_FUNCTION(SET_FILE_POSITION,           SetFilePosition,         set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,           GetFilePosition,         get_file_position)
+	DISPATCH_FUNCTION(GET_FILE_INFO,               GetFileInfo,             get_file_info)
 
 	// directory
 	DISPATCH_FUNCTION(OPEN_DIRECTORY,              OpenDirectory,           open_directory)

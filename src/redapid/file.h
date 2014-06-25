@@ -74,6 +74,17 @@ typedef enum {
 	FILE_ORIGIN_END
 } FileOrigin;
 
+typedef enum {
+	FILE_TYPE_UNKNOWN = 0,
+	FILE_TYPE_REGULAR,
+	FILE_TYPE_DIRECTORY,
+	FILE_TYPE_CHARACTER,
+	FILE_TYPE_BLOCK,
+	FILE_TYPE_FIFO,
+	FILE_TYPE_SYMLINK,
+	FILE_TYPE_SOCKET
+} FileType;
+
 #define FILE_WRITE_BUFFER_LENGTH 61
 #define FILE_WRITE_UNCHECKED_BUFFER_LENGTH 61
 #define FILE_WRITE_ASYNC_BUFFER_LENGTH 61
@@ -94,5 +105,10 @@ APIE file_abort_async_read(ObjectID id);
 
 APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position);
 APIE file_get_position(ObjectID id, uint64_t *position);
+
+APIE file_get_info(uint16_t name_id, bool follow_symlink,
+                   uint8_t *type, uint16_t *permissions, uint32_t *user_id,
+                   uint32_t *group_id, uint64_t *length, uint64_t *access_time,
+                   uint64_t *modification_time, uint64_t *status_change_time);
 
 #endif // REDAPID_FILE_H

@@ -167,64 +167,64 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	// translate flags
 	// FIXME: check for invalid flag combinations?
-	if (flags & FILE_FLAG_READ_ONLY) {
+	if ((flags & FILE_FLAG_READ_ONLY) != 0) {
 		open_flags |= O_RDONLY;
 	}
 
-	if (flags & FILE_FLAG_WRITE_ONLY) {
+	if ((flags & FILE_FLAG_WRITE_ONLY) != 0) {
 		open_flags |= O_WRONLY;
 	}
 
-	if (flags & FILE_FLAG_READ_WRITE) {
+	if ((flags & FILE_FLAG_READ_WRITE) != 0) {
 		open_flags |= O_RDWR;
 	}
 
-	if (flags & FILE_FLAG_APPEND) {
+	if ((flags & FILE_FLAG_APPEND) != 0) {
 		open_flags |= O_APPEND;
 	}
 
-	if (flags & FILE_FLAG_CREATE) {
+	if ((flags & FILE_FLAG_CREATE) != 0) {
 		open_flags |= O_CREAT;
 	}
 
-	if (flags & FILE_FLAG_TRUNCATE) {
+	if ((flags & FILE_FLAG_TRUNCATE) != 0) {
 		open_flags |= O_TRUNC;
 	}
 
 	// translate permissions
-	if (permissions & FILE_PERMISSION_USER_READ) {
+	if ((permissions & FILE_PERMISSION_USER_READ) != 0) {
 		open_mode |= S_IRUSR;
 	}
 
-	if (permissions & FILE_PERMISSION_USER_WRITE) {
+	if ((permissions & FILE_PERMISSION_USER_WRITE) != 0) {
 		open_mode |= S_IWUSR;
 	}
 
-	if (permissions & FILE_PERMISSION_USER_EXECUTE) {
+	if ((permissions & FILE_PERMISSION_USER_EXECUTE) != 0) {
 		open_mode |= S_IXUSR;
 	}
 
-	if (permissions & FILE_PERMISSION_GROUP_READ) {
+	if ((permissions & FILE_PERMISSION_GROUP_READ) != 0) {
 		open_mode |= S_IRGRP;
 	}
 
-	if (permissions & FILE_PERMISSION_GROUP_WRITE) {
+	if ((permissions & FILE_PERMISSION_GROUP_WRITE) != 0) {
 		open_mode |= S_IWGRP;
 	}
 
-	if (permissions & FILE_PERMISSION_GROUP_EXECUTE) {
+	if ((permissions & FILE_PERMISSION_GROUP_EXECUTE) != 0) {
 		open_mode |= S_IXGRP;
 	}
 
-	if (permissions & FILE_PERMISSION_OTHERS_READ) {
+	if ((permissions & FILE_PERMISSION_OTHERS_READ) != 0) {
 		open_mode |= S_IROTH;
 	}
 
-	if (permissions & FILE_PERMISSION_OTHERS_WRITE) {
+	if ((permissions & FILE_PERMISSION_OTHERS_WRITE) != 0) {
 		open_mode |= S_IWOTH;
 	}
 
-	if (permissions & FILE_PERMISSION_OTHERS_EXECUTE) {
+	if ((permissions & FILE_PERMISSION_OTHERS_EXECUTE) != 0) {
 		open_mode |= S_IXOTH;
 	}
 
@@ -595,6 +595,84 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 	}
 
 	*position = rc;
+
+	return API_E_OK;
+}
+
+APIE file_get_info(uint16_t name_id, bool follow_symlink,
+                   uint8_t *type, uint16_t *permissions, uint32_t *user_id,
+                   uint32_t *group_id, uint64_t *length, uint64_t *access_time,
+                   uint64_t *modification_time, uint64_t *status_change_time) {
+	const char *name;
+	APIE error_code = string_get_null_terminated_buffer(name_id, &name);
+	struct stat buffer;
+	int rc;
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (follow_symlink) {
+		rc = stat(name, &buffer);
+	} else {
+		rc = lstat(name, &buffer);
+	}
+
+	if (rc < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_warn("Could not get information for file (name-id: %u): %s (%d)",
+		         name_id, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	if (S_ISREG(buffer.st_mode)) {
+		*type = FILE_TYPE_REGULAR;
+	} else if (S_ISDIR(buffer.st_mode)) {
+		*type = FILE_TYPE_DIRECTORY;
+	} else if (S_ISCHR(buffer.st_mode)) {
+		*type = FILE_TYPE_CHARACTER;
+	} else if (S_ISBLK(buffer.st_mode)) {
+		*type = FILE_TYPE_BLOCK;
+	} else if (S_ISFIFO(buffer.st_mode)) {
+		*type = FILE_TYPE_FIFO;
+	} else if (S_ISLNK(buffer.st_mode)) {
+		*type = FILE_TYPE_SYMLINK;
+	} else if (S_ISSOCK(buffer.st_mode)) {
+		*type = FILE_TYPE_SOCKET;
+	} else {
+		*type = FILE_TYPE_UNKNOWN;
+	}
+
+	*permissions = 0;
+
+	if ((buffer.st_mode & S_IRUSR) != 0) {
+		*permissions |= FILE_PERMISSION_USER_READ;
+	} else if ((buffer.st_mode & S_IWUSR) != 0) {
+		*permissions |= FILE_PERMISSION_USER_WRITE;
+	} else if ((buffer.st_mode & S_IXUSR) != 0) {
+		*permissions |= FILE_PERMISSION_USER_EXECUTE;
+	} else if ((buffer.st_mode & S_IRGRP) != 0) {
+		*permissions |= FILE_PERMISSION_GROUP_READ;
+	} else if ((buffer.st_mode & S_IWGRP) != 0) {
+		*permissions |= FILE_PERMISSION_GROUP_WRITE;
+	} else if ((buffer.st_mode & S_IXGRP) != 0) {
+		*permissions |= FILE_PERMISSION_GROUP_EXECUTE;
+	} else if ((buffer.st_mode & S_IROTH) != 0) {
+		*permissions |= FILE_PERMISSION_OTHERS_READ;
+	} else if ((buffer.st_mode & S_IWOTH) != 0) {
+		*permissions |= FILE_PERMISSION_OTHERS_WRITE;
+	} else if ((buffer.st_mode & S_IXOTH) != 0) {
+		*permissions |= FILE_PERMISSION_OTHERS_EXECUTE;
+	}
+
+	*user_id = buffer.st_uid;
+	*group_id = buffer.st_gid;
+	*length = buffer.st_size;
+	*access_time = buffer.st_atime;
+	*modification_time = buffer.st_mtime;
+	*status_change_time = buffer.st_ctime;
 
 	return API_E_OK;
 }
