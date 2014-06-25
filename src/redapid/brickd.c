@@ -168,6 +168,7 @@ void brickd_destroy(BrickDaemon *brickd) {
 
 void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 	int enqueued = 0;
+	char packet_signature[PACKET_MAX_SIGNATURE_LENGTH];
 
 	if (brickd->disconnected) {
 		log_debug("Ignoring disconnected Brick Daemon");
@@ -181,5 +182,7 @@ void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 		return;
 	}
 
-	log_debug("%s response to Brick Daemon", enqueued ? "Enqueued" : "Sent");
+	log_debug("%s response (%s) to Brick Daemon",
+	          enqueued ? "Enqueued" : "Sent",
+	          packet_get_response_signature(packet_signature, response));
 }

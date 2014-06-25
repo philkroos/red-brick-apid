@@ -238,19 +238,19 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	length = strnlen(buffer, STRING_SET_CHUNK_BUFFER_LENGTH);
 
 	if (string->lock_count > 0) {
-		log_warn("Cannot change locked string object (id: %u)", id);
+		log_warn("Cannot change a locked string object (id: %u)", id);
 
 		return API_E_INVALID_OPERATION;
 	}
 
 	if (offset > INT32_MAX) {
-		log_warn("Offset of %u bytes exceeds maximum length of a string object", length);
+		log_warn("Offset of %u byte(s) exceeds maximum length of a string object", length);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
 	if (offset + length > INT32_MAX) {
-		log_warn("Offset + length of %u bytes exceeds maximum length of a string object", length);
+		log_warn("Offset + length of %u byte(s) exceeds maximum length of a string object", length);
 
 		return API_E_INVALID_PARAMETER;
 	}
@@ -297,7 +297,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	if (offset > INT32_MAX) {
-		log_warn("Offset of %u bytes exceeds maximum length of a string object", offset);
+		log_warn("Offset of %u byte(s) exceeds maximum length of a string object", offset);
 
 		return API_E_INVALID_PARAMETER;
 	}
@@ -305,7 +305,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	if (offset > string->used) {
 		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
 
-		log_warn("Offset of %u bytes exceeds string object (id: %u) length of %u bytes",
+		log_warn("Offset of %u byte(s) exceeds string object (id: %u) length of %u byte(s)",
 		         offset, id, string->used);
 
 		return API_E_INVALID_PARAMETER;

@@ -108,6 +108,9 @@ static void file_handle_async_read(void *opaque) {
 
 	file->length_to_read_async -= length_read;
 
+	log_debug("Read %d byte(s) from file object (id: %u) asynchronously, %"PRIu64" byte(s) left to read",
+	          (int)length_read, file->id, file->length_to_read_async);
+
 	if (file->length_to_read_async == 0) {
 		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
 	}
@@ -116,7 +119,7 @@ static void file_handle_async_read(void *opaque) {
 
 	if (file->length_to_read_async == 0) {
 		log_debug("Finished asynchronous reading from file object (id: %u)",
-		          file->fd);
+		          file->id);
 	}
 }
 
