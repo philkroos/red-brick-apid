@@ -54,7 +54,9 @@ typedef struct {
 	ObjectID id;
 	ObjectType type;
 	void *data;
-	FreeFunction function;
+	FreeFunction destroy;
+	int internal_ref_count;
+	int external_ref_count;
 } Object;
 
 static int _next_id = 0;
@@ -98,19 +100,23 @@ static int object_table_is_object_type_valid(ObjectType type) {
 	}
 }
 
-static void object_destroy(Object *object) {
-	ObjectID id = object->id;
-	ObjectType type = object->type;
+static const char *object_table_get_object_reference_type_name(ObjectReferenceType type) {
+	switch (type) {
+	case OBJECT_REFERENCE_TYPE_INTERNAL:
+		return "internal";
 
-	log_debug("Destroying %s object (id: %u)",
-	          object_table_get_object_type_name(type), id);
+	case OBJECT_REFERENCE_TYPE_EXTERNAL:
+		return "external";
 
-	if (object->function != NULL) {
-		object->function(object->data);
+	default:
+		return "<unknown>";
 	}
+}
 
-	log_debug("Destroyed %s object (id: %u)",
-	          object_table_get_object_type_name(type), id);
+static void object_destroy(Object *object) {
+	if (object->destroy != NULL) {
+		object->destroy(object->data);
+	}
 }
 
 int object_table_init(void) {
@@ -213,8 +219,8 @@ void object_table_exit(void) {
 	array_destroy(&_free_ids, NULL);
 }
 
-APIE object_table_add_object(ObjectType type, void *data,
-                             FreeFunction function, ObjectID *id) {
+APIE object_table_allocate_object(ObjectType type, void *data,
+                                  FreeFunction destroy, ObjectID *id) {
 	Object *object;
 	APIE error_code;
 	int last;
@@ -225,7 +231,7 @@ APIE object_table_add_object(ObjectType type, void *data,
 		return API_E_INVALID_PARAMETER;
 	}
 
-	log_debug("Adding %s object",
+	log_debug("Allocating %s object",
 	          object_table_get_object_type_name(type));
 
 	if (_free_ids.count == 0 && _next_id > OBJECT_ID_MAX) {
@@ -262,73 +268,16 @@ APIE object_table_add_object(ObjectType type, void *data,
 
 	object->type = type;
 	object->data = data;
-	object->function = function;
+	object->destroy = destroy;
+	object->internal_ref_count = 0;
+	object->external_ref_count = 1;
 
-	log_debug("Added %s object (id: %u)",
+	log_debug("Allocated %s object (id: %u)",
 	          object_table_get_object_type_name(type), object->id);
 
 	*id = object->id;
 
 	return API_E_OK;
-}
-
-APIE object_table_remove_object(ObjectType type, ObjectID id) {
-	int i;
-	Object *object;
-	ObjectID *free_id;
-
-	if (!object_table_is_object_type_valid(type)) {
-		log_warn("Invalid object type %d for object ID %u", type, id);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	log_debug("Removing %s object (id: %u)",
-	          object_table_get_object_type_name(type), id);
-
-	// find object ID
-	for (i = 0; i < _objects[type].count; ++i) {
-		object = (Object *)array_get(&_objects[type], i);
-
-		if (object->id != id) {
-			continue;
-		}
-
-		object_destroy(object);
-
-		array_remove(&_objects[type], i, NULL);
-
-		// adjust next-object-ID or add it to the array of free object IDs
-		if (_next_id < OBJECT_ID_MAX && id == _next_id - 1) {
-			--_next_id;
-		} else {
-			free_id = (ObjectID *)array_append(&_free_ids);
-
-			if (free_id == NULL) {
-				log_error("Could not append to free object ID array: %s (%d)",
-				          get_errno_name(errno), errno);
-
-				return API_E_NO_FREE_MEMORY;
-			}
-
-			*free_id = id;
-		}
-
-		// adjust iteration index
-		if (_iteration_index[type] > 0 && _iteration_index[type] < i) {
-			--_iteration_index[type];
-		}
-
-		log_debug("Removed %s object (id: %u)",
-		          object_table_get_object_type_name(type), id);
-
-		return API_E_OK;
-	}
-
-	log_warn("Could not remove unknown %s object (id: %u)",
-	         object_table_get_object_type_name(type), id);
-
-	return API_E_UNKNOWN_OBJECT_ID;
 }
 
 APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data) {
@@ -341,7 +290,6 @@ APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data) {
 		return API_E_INVALID_PARAMETER;
 	}
 
-	// find object ID
 	for (i = 0; i < _objects[type].count; ++i) {
 		object = (Object *)array_get(&_objects[type], i);
 
@@ -358,29 +306,113 @@ APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data) {
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
-APIE object_table_get_object_type(ObjectID id, ObjectType *type) {
-	ObjectType k;
+APIE object_table_acquire_object(ObjectType type, ObjectID id, ObjectReferenceType reference_type) {
 	int i;
 	Object *object;
 
-	for (k = OBJECT_TYPE_STRING; k <= OBJECT_TYPE_PROGRAM; ++k) {
-		for (i = 0; i < _objects[k].count; ++i) {
-			object = (Object *)array_get(&_objects[k], i);
+	if (!object_table_is_object_type_valid(type)) {
+		log_warn("Invalid object type %d for object ID %u", type, id);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	log_debug("Acquiring an %s %s object (id: %u) reference",
+	          object_table_get_object_reference_type_name(reference_type),
+	          object_table_get_object_type_name(type), id);
+
+	for (i = 0; i < _objects[type].count; ++i) {
+		object = (Object *)array_get(&_objects[type], i);
+
+		if (object->id == id) {
+			++object->internal_ref_count;
+
+			return API_E_OK;
+		}
+	}
+
+	log_warn("Could not acquire unknown %s object (id: %u)",
+	         object_table_get_object_type_name(type), id);
+
+	return API_E_UNKNOWN_OBJECT_ID;
+}
+
+APIE object_table_release_object(ObjectID id, ObjectReferenceType reference_type) {
+	ObjectType type;
+	int i;
+	Object *object;
+	ObjectID *free_id;
+
+	log_debug("Releasing an %s object (id: %u) reference",
+	          object_table_get_object_reference_type_name(reference_type), id);
+
+	// find object
+	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
+		for (i = 0; i < _objects[type].count; ++i) {
+			object = (Object *)array_get(&_objects[type], i);
 
 			if (object->id == id) {
-				*type = k;
+				if (reference_type == OBJECT_REFERENCE_TYPE_INTERNAL) {
+					if (object->internal_ref_count == 0) {
+						log_warn("Could not release %s object (id: %u), internal reference count is already zero",
+						          object_table_get_object_type_name(type), id);
+
+						return API_E_INVALID_OPERATION;
+					}
+
+					--object->internal_ref_count;
+				} else {
+					if (object->external_ref_count == 0) {
+						log_warn("Could not release %s object (id: %u), external reference count is already zero",
+						          object_table_get_object_type_name(type), id);
+
+						return API_E_INVALID_OPERATION;
+					}
+
+					--object->external_ref_count;
+				}
+
+				// destroy object if last reference was released
+				if (object->internal_ref_count == 0 && object->external_ref_count == 0) {
+					array_remove(&_objects[type], i, (FreeFunction)object_destroy);
+
+					// adjust next-object-ID or add it to the array of free object IDs
+					if (_next_id < OBJECT_ID_MAX && id == _next_id - 1) {
+						--_next_id;
+					} else {
+						free_id = (ObjectID *)array_append(&_free_ids);
+
+						if (free_id == NULL) {
+							log_error("Could not append to free object ID array: %s (%d)",
+							          get_errno_name(errno), errno);
+
+							return API_E_NO_FREE_MEMORY;
+						}
+
+						*free_id = id;
+					}
+
+					// adjust iteration index
+					if (_iteration_index[type] > 0 && _iteration_index[type] < i) {
+						--_iteration_index[type];
+					}
+
+					log_debug("Destroyed %s object (id: %u)",
+					          object_table_get_object_type_name(type), id);
+				}
 
 				return API_E_OK;
 			}
 		}
 	}
 
-	log_warn("Unknown object ID %u", id);
+	log_warn("Could not release unknown object (id: %u)", id);
 
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
 APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
+	Object *object;
+
 	if (!object_table_is_object_type_valid(type)) {
 		log_warn("Invalid object type %d", type);
 
@@ -401,7 +433,12 @@ APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
 		return API_E_NO_MORE_DATA;
 	}
 
-	*id = ((Object *)array_get(&_objects[type], _iteration_index[type]++))->id;
+	object = (Object *)array_get(&_objects[type], _iteration_index[type]);
+
+	++object->external_ref_count;
+	++_iteration_index[type];
+
+	*id = object->id;
 
 	return API_E_OK;
 }

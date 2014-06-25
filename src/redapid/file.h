@@ -81,7 +81,6 @@ typedef enum {
 #define FILE_ASYNC_READ_BUFFER_LENGTH 60
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID *id);
-APIE file_close(ObjectID id);
 
 APIE file_get_name(ObjectID id, ObjectID *name_id);
 

@@ -27,10 +27,8 @@
 #define STRING_SET_CHUNK_BUFFER_LENGTH 58
 #define STRING_GET_CHUNK_BUFFER_LENGTH 63
 
-APIE string_acquire_external(uint32_t reserve, ObjectID *id);
-APIE string_acquire_internal(char *buffer, ObjectID *id);
-APIE string_acquire_ref(ObjectID id);
-APIE string_release(ObjectID id);
+APIE string_allocate(uint32_t reserve, ObjectID *id);
+APIE string_wrap(char *buffer, ObjectID *id);
 
 APIE string_truncate(ObjectID id, uint32_t length);
 APIE string_get_length(ObjectID id, uint32_t *length);

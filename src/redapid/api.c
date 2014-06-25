@@ -35,19 +35,17 @@
 #define LOG_CATEGORY LOG_CATEGORY_API
 
 typedef enum {
-	FUNCTION_GET_OBJECT_TYPE = 1,
+	FUNCTION_RELEASE_OBJECT = 1,
 	FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY,
 	FUNCTION_REWIND_OBJECT_TABLE,
 
-	FUNCTION_ACQUIRE_STRING,
-	FUNCTION_RELEASE_STRING,
+	FUNCTION_ALLOCATE_STRING,
 	FUNCTION_TRUNCATE_STRING,
 	FUNCTION_GET_STRING_LENGTH,
 	FUNCTION_SET_STRING_CHUNK,
 	FUNCTION_GET_STRING_CHUNK,
 
 	FUNCTION_OPEN_FILE,
-	FUNCTION_CLOSE_FILE,
 	FUNCTION_GET_FILE_NAME,
 	FUNCTION_WRITE_FILE,
 	FUNCTION_WRITE_FILE_UNCHECKED,
@@ -70,13 +68,12 @@ typedef enum {
 typedef struct {
 	PacketHeader header;
 	uint16_t object_id;
-} ATTRIBUTE_PACKED GetObjectTypeRequest;
+} ATTRIBUTE_PACKED ReleaseObjectRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t object_type;
-} ATTRIBUTE_PACKED GetObjectTypeResponse;
+} ATTRIBUTE_PACKED ReleaseObjectResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -106,23 +103,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint32_t length_to_reserve;
-} ATTRIBUTE_PACKED AcquireStringRequest;
+} ATTRIBUTE_PACKED AllocateStringRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t string_id;
-} ATTRIBUTE_PACKED AcquireStringResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t string_id;
-} ATTRIBUTE_PACKED ReleaseStringRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED ReleaseStringResponse;
+} ATTRIBUTE_PACKED AllocateStringResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -186,16 +173,6 @@ typedef struct {
 	uint8_t error_code;
 	uint16_t file_id;
 } ATTRIBUTE_PACKED OpenFileResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED CloseFileRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED CloseFileResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -355,17 +332,12 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 // object table
 //
 
-static void api_get_object_type(GetObjectTypeRequest *request) {
-	GetObjectTypeResponse response;
-	ObjectType type;
+static void api_release_object(ReleaseObjectRequest *request) {
+	ReleaseObjectResponse response;
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = object_table_get_object_type(request->object_id, &type);
-
-	if (response.error_code == API_E_OK) {
-		response.object_type = type;
-	}
+	response.error_code = object_table_release_object(request->object_id, OBJECT_REFERENCE_TYPE_EXTERNAL);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -394,22 +366,12 @@ static void api_rewind_object_table(RewindObjectTableRequest *request) {
 // string
 //
 
-static void api_acquire_string(AcquireStringRequest *request) {
-	AcquireStringResponse response;
+static void api_allocate_string(AllocateStringRequest *request) {
+	AllocateStringResponse response;
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = string_acquire_external(request->length_to_reserve, &response.string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_release_string(ReleaseStringRequest *request) {
-	ReleaseStringResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = string_release(request->string_id);
+	response.error_code = string_allocate(request->length_to_reserve, &response.string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -464,16 +426,6 @@ static void api_open_file(OpenFileRequest *request) {
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
 	response.error_code = file_open(request->name_string_id, request->flags, request->permissions, &response.file_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_close_file(CloseFileRequest *request) {
-	CloseFileResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = file_close(request->file_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -614,13 +566,12 @@ void api_handle_request(Packet *request) {
 
 	switch (request->header.function_id) {
 	// object table
-	DISPATCH_FUNCTION(GET_OBJECT_TYPE,             GetObjectType,           get_object_type)
+	DISPATCH_FUNCTION(RELEASE_OBJECT,              ReleaseObject,           release_object)
 	DISPATCH_FUNCTION(GET_NEXT_OBJECT_TABLE_ENTRY, GetNextObjectTableEntry, get_next_object_table_entry)
 	DISPATCH_FUNCTION(REWIND_OBJECT_TABLE,         RewindObjectTable,       rewind_object_table)
 
 	// string
-	DISPATCH_FUNCTION(ACQUIRE_STRING,              AcquireString,           acquire_string)
-	DISPATCH_FUNCTION(RELEASE_STRING,              ReleaseString,           release_string)
+	DISPATCH_FUNCTION(ALLOCATE_STRING,             AllocateString,          allocate_string)
 	DISPATCH_FUNCTION(TRUNCATE_STRING,             TruncateString,          truncate_string)
 	DISPATCH_FUNCTION(GET_STRING_LENGTH,           GetStringLength,         get_string_length)
 	DISPATCH_FUNCTION(SET_STRING_CHUNK,            SetStringChunk,          set_string_chunk)
@@ -628,7 +579,6 @@ void api_handle_request(Packet *request) {
 
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                   OpenFile,                open_file)
-	DISPATCH_FUNCTION(CLOSE_FILE,                  CloseFile,               close_file)
 	DISPATCH_FUNCTION(GET_FILE_NAME,               GetFileName,             get_file_name)
 	DISPATCH_FUNCTION(WRITE_FILE,                  WriteFile,               write_file)
 	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,        WriteFileUnchecked,      write_file_unchecked)
@@ -703,9 +653,9 @@ enum object_type {
 	OBJECT_TYPE_PROGRAM
 }
 
-get_object_type(uint16_t object_id) -> uint8_t error_code, uint8_t object_type
-get_next_object_table_entry(uint8_t object_type) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-table
-rewind_object_table(uint8_t object_type) -> uint8_t error_code
+release_object              (uint16_t object_id)  -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
+get_next_object_table_entry (uint8_t object_type) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-table, adds a reference to the object, you need to call release_object() when done with it
+rewind_object_table         (uint8_t object_type) -> uint8_t error_code
 
 
 /*
@@ -717,11 +667,9 @@ struct string {
 	char *buffer;
 	uint32_t used;
 	uint32_t allocated;
-	int ref_count;
 }
 
-acquire_string    (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id
-release_string    (uint16_t string_id)                                   -> uint8_t error_code
+allocate_string   (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id // you need to call release_object() when done with it
 truncate_string   (uint16_t string_id, uint32_t length)                  -> uint8_t error_code
 get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
 set_string_chuck  (uint16_t string_id, uint32_t offset, char buffer[58]) -> uint8_t error_code
@@ -780,9 +728,8 @@ enum file_type {
 	FILE_TYPE_SOCKET
 }
 
-open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it
-close_file            (uint16_t file_id)                                              -> uint8_t error_code // unlocks and releases name
-get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_string() if done with name
+open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it, you need to call release_object() when done with it
+get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
 write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
 write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
 write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
@@ -812,17 +759,40 @@ struct directory {
 	DIR *dp;
 }
 
-open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id // adds a reference to the name and locks it
-close_directory          (uint16_t directory_id)   -> uint8_t error_code // unlocks and releases name
-get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_string() if done with name
-get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_string() if done with entry
+open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id // adds a reference to the name and locks it, you need to call release_object() when done with it
+get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
+get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
 create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code
 
 
 /*
- * program handling
+ * task handling
+ */
+
+enum task_signal {
+	TASK_SIGNAL_ABORT = 0,
+	TASK_SIGNAL_CONTINUE,
+	TASK_SIGNAL_HANGUP,
+	TASK_SIGNAL_INTERRUPT,
+	TASK_SIGNAL_KILL,
+	TASK_SIGNAL_QUIT,
+	TASK_SIGNAL_STOP,
+	TASK_SIGNAL_TERMINATE,
+	TASK_SIGNAL_USER1,
+	TASK_SIGNAL_USER2
+}
+
+execute_task     (uint16_t command_string_id)       -> uint8_t error_code, uint16_t task_id // adds a reference to the command and locks it, you need to call release_object() when done with it
+kill_task        (uint16_t task_id, uint8_t signal) -> uint8_t error_code
+get_task_command (uint16_t task_id)                 -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+
+callback: task_finished (uint16_t task_id, uint8_t error_code, uint8_t exit_code)
+
+
+/*
+ * (persistent) program configuration handling
  */
 
 struct program {
@@ -832,9 +802,11 @@ struct program {
 }
 
 define_program      (uint16_t name_string_id)                         -> uint8_t error_code, uint16_t program_id // adds a reference to the name and locks it
-undefine_program    (uint16_t program_id)                             -> uint8_t error_code // unlocks and releases name
+undefine_program    (uint16_t program_id)                             -> uint8_t error_code // unlocks and releases name and command
+get_program_name    (uint16_t program_id)                             -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
 set_program_command (uint16_t program_id, uint16_t command_string_id) -> uint8_t error_code // adds a reference to the command and locks it, unlocks and releases previous command, if any
-get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_string() if done with command
+get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+execute_program     (uint16_t program_id)                             -> uint8_t error_code, uint16_t task_id // adds a reference to the program and locks it, you need to call release_object() when done with it
 
 
 /*
@@ -843,10 +815,6 @@ get_program_command (uint16_t program_id)                             -> uint8_t
 
 remove (uint16_t name_string_id, bool recursive)                   -> uint8_t error_code
 rename (uint16_t source_string_id, uint16_t destination_string_id) -> uint8_t error_code
-
-execute (uint16_t command_string_id) -> uint8_t error_code, uint16_t execute_id // adds a reference to the command and locks it, unlocks and releases command after execution is done
-
-callback: execute_done (uint16_t execute_id, uint8_t error_code, uint8_t exit_code)
 
 // FIXME: timezone? DST? etc?
 get_system_time () -> uint8_t error_code, uint64_t system_time

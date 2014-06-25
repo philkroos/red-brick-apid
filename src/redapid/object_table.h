@@ -36,15 +36,21 @@ typedef enum {
 
 #define MAX_OBJECT_TYPES 5
 
+typedef enum {
+	OBJECT_REFERENCE_TYPE_INTERNAL = 0,
+	OBJECT_REFERENCE_TYPE_EXTERNAL
+} ObjectReferenceType;
+
 int object_table_init(void);
 void object_table_exit(void);
 
-APIE object_table_add_object(ObjectType type, void *data,
-                             FreeFunction function, ObjectID *id);
-APIE object_table_remove_object(ObjectType type, ObjectID id);
-
+APIE object_table_allocate_object(ObjectType type, void *data,
+                                  FreeFunction destroy, ObjectID *id);
 APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data);
-APIE object_table_get_object_type(ObjectID id, ObjectType *type);
+
+APIE object_table_acquire_object(ObjectType type, ObjectID id, ObjectReferenceType reference_type);
+APIE object_table_release_object(ObjectID id, ObjectReferenceType reference_type);
+
 APIE object_table_get_next_entry(ObjectType type, ObjectID *id);
 APIE object_table_rewind(ObjectType type);
 

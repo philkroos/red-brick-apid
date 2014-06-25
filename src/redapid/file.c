@@ -46,11 +46,19 @@ typedef struct {
 	uint64_t length_to_read_async; // > 0 means async read in progress
 } File;
 
-static void file_free(File *file) {
-	string_unlock(file->name_id);
-	string_release(file->name_id);
+static void file_destroy(File *file) {
+	if (file->length_to_read_async > 0) {
+		log_warn("Destroying file object (id: %u) while an asynchronous read for %"PRIu64" byte(s) is in progress",
+		         file->id, file->length_to_read_async);
+
+		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+	}
 
 	close(file->fd);
+
+	string_unlock(file->name_id);
+
+	object_table_release_object(file->name_id, OBJECT_REFERENCE_TYPE_INTERNAL);
 
 	free(file);
 }
@@ -220,8 +228,9 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 		open_mode |= S_IXOTH;
 	}
 
-	// acquire string ref
-	error_code = string_acquire_ref(name_id);
+	// acquire string internal reference
+	error_code = object_table_acquire_object(OBJECT_TYPE_STRING, name_id,
+	                                         OBJECT_REFERENCE_TYPE_INTERNAL);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
@@ -277,8 +286,9 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	file->fd = fd;
 	file->length_to_read_async = 0;
 
-	error_code = object_table_add_object(OBJECT_TYPE_FILE, file,
-	                                     (FreeFunction)file_free, &file->id);
+	error_code = object_table_allocate_object(OBJECT_TYPE_FILE, file,
+	                                          (FreeFunction)file_destroy,
+	                                          &file->id);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
@@ -303,31 +313,13 @@ cleanup:
 		string_unlock(name_id);
 
 	case 1:
-		string_release(name_id);
+		object_table_release_object(name_id, OBJECT_REFERENCE_TYPE_INTERNAL);
 
 	default:
 		break;
 	}
 
 	return phase == 5 ? API_E_OK : error_code;
-}
-
-APIE file_close(ObjectID id) {
-	File *file;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	if (file->length_to_read_async > 0) {
-		log_warn("Closing file object (id: %u) while an asynchronous read for %"PRIu64" byte(s) is in progress",
-		         file->id, file->length_to_read_async);
-
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
-	}
-
-	return object_table_remove_object(OBJECT_TYPE_FILE, id);
 }
 
 APIE file_get_name(ObjectID id, ObjectID *name_id) {
@@ -338,7 +330,8 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 		return error_code;
 	}
 
-	error_code = string_acquire_ref(file->name_id);
+	error_code = object_table_acquire_object(OBJECT_TYPE_STRING, file->name_id,
+	                                         OBJECT_REFERENCE_TYPE_EXTERNAL);
 
 	if (error_code != API_E_OK) {
 		return error_code;

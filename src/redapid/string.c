@@ -37,11 +37,10 @@ typedef struct {
 	char *buffer; // may not be NULL-terminated
 	uint32_t used; // <= INT32_MAX, does not include potential NULL-terminator
 	uint32_t allocated; // <= INT32_MAX
-	int ref_count;
 	int lock_count; // > 0 means string is write protected
 } String;
 
-static void string_free(String *string) {
+static void string_destroy(String *string) {
 	free(string->buffer);
 
 	free(string);
@@ -77,7 +76,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	return API_E_OK;
 }
 
-static APIE string_acquire(uint32_t reserve, String **string) {
+static APIE string_create(uint32_t reserve, String **string) {
 	APIE error_code;
 
 	*string = calloc(1, sizeof(String));
@@ -92,15 +91,14 @@ static APIE string_acquire(uint32_t reserve, String **string) {
 	(*string)->buffer = NULL;
 	(*string)->used = 0;
 	(*string)->allocated = 0;
-	(*string)->ref_count = 1;
 	(*string)->lock_count = 0;
 
-	error_code = object_table_add_object(OBJECT_TYPE_STRING, *string,
-	                                     (FreeFunction)string_free,
-	                                     &(*string)->id);
+	error_code = object_table_allocate_object(OBJECT_TYPE_STRING, *string,
+	                                          (FreeFunction)string_destroy,
+	                                          &(*string)->id);
 
 	if (error_code != API_E_OK) {
-		string_free(*string);
+		string_destroy(*string);
 
 		return error_code;
 	}
@@ -108,7 +106,7 @@ static APIE string_acquire(uint32_t reserve, String **string) {
 	error_code = string_reserve(*string, reserve);
 
 	if (error_code != API_E_OK) {
-		object_table_remove_object(OBJECT_TYPE_STRING, (*string)->id);
+		object_table_release_object((*string)->id, 0);
 
 		return error_code;
 	}
@@ -116,9 +114,9 @@ static APIE string_acquire(uint32_t reserve, String **string) {
 	return API_E_OK;
 }
 
-APIE string_acquire_external(uint32_t reserve, ObjectID *id) {
+APIE string_allocate(uint32_t reserve, ObjectID *id) {
 	String *string;
-	APIE error_code = string_acquire(reserve, &string);
+	APIE error_code = string_create(reserve, &string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -129,7 +127,7 @@ APIE string_acquire_external(uint32_t reserve, ObjectID *id) {
 	return API_E_OK;
 }
 
-APIE string_acquire_internal(char *buffer, ObjectID *id) {
+APIE string_wrap(char *buffer, ObjectID *id) {
 	String *string;
 	uint32_t length = strlen(buffer);
 	APIE error_code;
@@ -140,7 +138,7 @@ APIE string_acquire_internal(char *buffer, ObjectID *id) {
 		return API_E_INVALID_PARAMETER;
 	}
 
-	error_code = string_acquire(length, &string);
+	error_code = string_create(length, &string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -153,42 +151,6 @@ APIE string_acquire_internal(char *buffer, ObjectID *id) {
 	*id = string->id;
 
 	return error_code;
-}
-
-APIE string_acquire_ref(ObjectID id) {
-	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	++string->ref_count;
-
-	return API_E_OK;
-}
-
-APIE string_release(ObjectID id) {
-	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	--string->ref_count;
-
-	if (string->ref_count == 0) {
-		log_debug("Last reference to string object (id: %u) released", id);
-
-		error_code = object_table_remove_object(OBJECT_TYPE_STRING, id);
-
-		if (error_code != API_E_OK) {
-			return error_code;
-		}
-	}
-
-	return API_E_OK;
 }
 
 APIE string_truncate(ObjectID id, uint32_t length) {
