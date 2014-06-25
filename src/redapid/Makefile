@@ -67,6 +67,7 @@ SOURCES := ../daemonlib/array.c \
            api.c \
            brickd.c \
            config_options.c \
+           directory.c \
            file.c \
            main.c \
            network.c \

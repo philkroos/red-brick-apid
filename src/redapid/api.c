@@ -27,6 +27,7 @@
 
 #include "api.h"
 
+#include "directory.h"
 #include "file.h"
 #include "network.h"
 #include "object_table.h"
@@ -56,8 +57,13 @@ typedef enum {
 	FUNCTION_SET_FILE_POSITION,
 	FUNCTION_GET_FILE_POSITION,
 	CALLBACK_ASYNC_FILE_WRITE,
-	CALLBACK_ASYNC_FILE_READ
-} APIFunctionIDs;
+	CALLBACK_ASYNC_FILE_READ,
+
+	FUNCTION_OPEN_DIRECTORY,
+	FUNCTION_GET_DIRECTORY_NAME,
+	FUNCTION_GET_NEXT_DIRECTORY_ENTRY,
+	FUNCTION_REWIND_DIRECTORY
+} APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
 
@@ -284,6 +290,53 @@ typedef struct {
 	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
 	uint8_t length_read;
 } ATTRIBUTE_PACKED AsyncFileReadCallback;
+
+//
+// directory
+//
+
+typedef struct {
+	PacketHeader header;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED OpenDirectoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t directory_id;
+} ATTRIBUTE_PACKED OpenDirectoryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t directory_id;
+} ATTRIBUTE_PACKED GetDirectoryNameRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetDirectoryNameResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t directory_id;
+} ATTRIBUTE_PACKED GetNextDirectoryEntryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetNextDirectoryEntryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t directory_id;
+} ATTRIBUTE_PACKED RewindDirectoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RewindDirectoryResponse;
 
 #include <daemonlib/packed_end.h>
 
@@ -517,6 +570,50 @@ static void api_get_file_position(GetFilePositionRequest *request) {
 }
 
 //
+// directory
+//
+
+static void api_open_directory(OpenDirectoryRequest *request) {
+	OpenDirectoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = directory_open(request->name_string_id, &response.directory_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_directory_name(GetDirectoryNameRequest *request) {
+	GetDirectoryNameResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = directory_get_name(request->directory_id, &response.name_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_next_directory_entry(GetNextDirectoryEntryRequest *request) {
+	GetNextDirectoryEntryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = directory_get_next_entry(request->directory_id, &response.name_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_rewind_directory(RewindDirectoryRequest *request) {
+	RewindDirectoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = directory_rewind(request->directory_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+//
 // api
 //
 
@@ -589,6 +686,12 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(SET_FILE_POSITION,           SetFilePosition,         set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,           GetFilePosition,         get_file_position)
 
+	// directory
+	DISPATCH_FUNCTION(OPEN_DIRECTORY,              OpenDirectory,           open_directory)
+	DISPATCH_FUNCTION(GET_DIRECTORY_NAME,          GetDirectoryName,        get_directory_name)
+	DISPATCH_FUNCTION(GET_NEXT_DIRECTORY_ENTRY,    GetNextDirectoryEntry,   get_next_directory_entry)
+	DISPATCH_FUNCTION(REWIND_DIRECTORY,            RewindDirectory,         rewind_directory)
+
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
 
@@ -613,6 +716,7 @@ APIE api_get_error_code_from_errno(void) {
 	case EWOULDBLOCK: return API_E_WOULD_BLOCK;
 	case EOVERFLOW:   return API_E_OVERFLOW;
 	case EBADF:       return API_E_INVALID_FILE_DESCRIPTOR;
+	case ERANGE:      return API_E_OUT_OF_RANGE;
 	default:          return API_E_UNKNOWN_ERROR;
 	}
 }
@@ -761,7 +865,7 @@ struct directory {
 
 open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id // adds a reference to the name and locks it, you need to call release_object() when done with it
 get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
-get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t entry_name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
+get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
 create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code

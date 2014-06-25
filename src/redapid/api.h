@@ -43,7 +43,8 @@ typedef enum {
 	API_E_IS_DIRECTORY,            // EISDIR
 	API_E_WOULD_BLOCK,             // EWOULDBLOCK
 	API_E_OVERFLOW,                // EOVERFLOW
-	API_E_INVALID_FILE_DESCRIPTOR  // EBADF
+	API_E_INVALID_FILE_DESCRIPTOR, // EBADF
+	API_E_OUT_OF_RANGE             // ERANGE
 } APIE;
 
 int api_init(void);
