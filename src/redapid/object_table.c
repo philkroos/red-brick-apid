@@ -75,8 +75,8 @@ static const char *object_table_get_object_type_name(ObjectType type) {
 	case OBJECT_TYPE_DIRECTORY:
 		return "directory";
 
-	case OBJECT_TYPE_TASK:
-		return "task";
+	case OBJECT_TYPE_PROCESS:
+		return "process";
 
 	case OBJECT_TYPE_PROGRAM:
 		return "program";
@@ -91,7 +91,7 @@ static int object_table_is_object_type_valid(ObjectType type) {
 	case OBJECT_TYPE_STRING:
 	case OBJECT_TYPE_FILE:
 	case OBJECT_TYPE_DIRECTORY:
-	case OBJECT_TYPE_TASK:
+	case OBJECT_TYPE_PROCESS:
 	case OBJECT_TYPE_PROGRAM:
 		return 1;
 
@@ -152,8 +152,8 @@ int object_table_init(void) {
 
 	phase = 3;
 
-	if (array_create(&_objects[OBJECT_TYPE_TASK], 32, sizeof(Object), 1) < 0) {
-		log_error("Could not create task object array: %s (%d)",
+	if (array_create(&_objects[OBJECT_TYPE_PROCESS], 32, sizeof(Object), 1) < 0) {
+		log_error("Could not create process object array: %s (%d)",
 		          get_errno_name(errno), errno);
 
 		goto cleanup;
@@ -185,7 +185,7 @@ cleanup:
 		array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_destroy);
 
 	case 4:
-		array_destroy(&_objects[OBJECT_TYPE_TASK], (FreeFunction)object_destroy);
+		array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_destroy);
 
 	case 3:
 		array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_destroy);
@@ -208,7 +208,7 @@ void object_table_exit(void) {
 
 	// destroy all objects that could have references to string objects...
 	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_destroy);
-	array_destroy(&_objects[OBJECT_TYPE_TASK], (FreeFunction)object_destroy);
+	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_destroy);
 	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_destroy);
 	array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_destroy);
 

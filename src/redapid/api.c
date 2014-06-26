@@ -816,7 +816,7 @@ enum object_type {
 	OBJECT_TYPE_STRING = 0,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
-	OBJECT_TYPE_TASK,
+	OBJECT_TYPE_PROCESS,
 	OBJECT_TYPE_PROGRAM
 }
 
@@ -840,7 +840,7 @@ allocate_string   (uint32_t length_to_reserve)                           -> uint
 truncate_string   (uint16_t string_id, uint32_t length)                  -> uint8_t error_code
 get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
 set_string_chuck  (uint16_t string_id, uint32_t offset, char buffer[58]) -> uint8_t error_code
-get_string_chunk  (uint16_t string_id, uint32_t offset)                  -> uint8_t error_code, char buffer[64] // error_code == NO_MORE_DATA means end-of-string
+get_string_chunk  (uint16_t string_id, uint32_t offset)                  -> uint8_t error_code, char buffer[63] // error_code == NO_MORE_DATA means end-of-string
 
 
 /*
@@ -909,9 +909,9 @@ get_file_position     (uint16_t file_id)                                        
 set_file_events       (uint16_t file_id, uint8_t events)                              -> uint8_t error_code
 get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint8_t events
 
-callback: async_file_write (uint16_t file_id, uint8_t error_code, uint8_t length_written)
-callback: async_file_read  (uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read) // error_code == NO_MORE_DATA means end-of-file
-callback: file_ready       (uint16_t file_id, uint8_t events)
+callback: async_file_write -> uint16_t file_id, uint8_t error_code, uint8_t length_written
+callback: async_file_read  -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
+callback: file_event       -> uint16_t file_id, uint8_t events
 
 get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
 get_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
@@ -943,27 +943,46 @@ get_current_directory ()                                              -> uint8_t
 
 
 /*
- * task handling
+ * process handling
  */
 
-enum task_signal {
-	TASK_SIGNAL_ABORT = 0,
-	TASK_SIGNAL_CONTINUE,
-	TASK_SIGNAL_HANGUP,
-	TASK_SIGNAL_INTERRUPT,
-	TASK_SIGNAL_KILL,
-	TASK_SIGNAL_QUIT,
-	TASK_SIGNAL_STOP,
-	TASK_SIGNAL_TERMINATE,
-	TASK_SIGNAL_USER1,
-	TASK_SIGNAL_USER2
+enum process_signal {
+	PROCESS_SIGNAL_ABORT = 0,
+	PROCESS_SIGNAL_CONTINUE,
+	PROCESS_SIGNAL_HANGUP,
+	PROCESS_SIGNAL_INTERRUPT,
+	PROCESS_SIGNAL_KILL,
+	PROCESS_SIGNAL_QUIT,
+	PROCESS_SIGNAL_STOP,
+	PROCESS_SIGNAL_TERMINATE,
+	PROCESS_SIGNAL_USER1,
+	PROCESS_SIGNAL_USER2
 }
 
-execute_task     (uint16_t command_string_id)       -> uint8_t error_code, uint16_t task_id // adds a reference to the command and locks it, you need to call release_object() when done with it
-kill_task        (uint16_t task_id, uint8_t signal) -> uint8_t error_code
-get_task_command (uint16_t task_id)                 -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+enum process_state {
+	PROCESS_STATE_RUNNING = 0,
+	PROCESS_STATE_EXITED, // terminated normally
+	PROCESS_STATE_SIGNALED, // terminated by signal
+	PROCESS_STATE_STOPPED // stopped by signal
+}
 
-callback: task_finished (uint16_t task_id, uint8_t error_code, uint8_t exit_code)
+start_process           (uint16_t command_string_id,
+                         uint16_t argument_string_ids[20],
+                         uint8_t argument_count,
+                         uint16_t environment_string_ids[8],
+                         uint8_t environment_count,
+                         bool merge_stdout_and_stderr)        -> uint8_t error_code, uint16_t process_id // adds a reference to the command, arguments, environment and locks them, you need to call release_object() when done with it
+kill_process            (uint16_t process_id, uint8_t signal) -> uint8_t error_code
+get_process_command     (uint16_t process_id)                 -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+get_process_arguments   (uint16_t process_id)                 -> uint8_t error_code, uint16_t argument_string_ids[20], uint8_t argument_count // adds a reference to the arguments, you need to call release_object() when done with it
+get_process_environment (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_string_ids[8], uint8_t environment_count // adds a reference to the environment, you need to call release_object() when done with it
+get_process_state       (uint16_t process_id)                 -> uint8_t error_code, uint8_t state
+get_process_exit_code   (uint16_t process_id)                 -> uint8_t error_code, uint8_t exit_code
+get_process_stdin_file  (uint16_t process_id)                 -> uint8_t error_code, uint8_t stdin_file_id
+get_process_stdout_file (uint16_t process_id)                 -> uint8_t error_code, uint8_t stdout_file_id
+get_process_stderr_file (uint16_t process_id)                 -> uint8_t error_code, uint8_t stderr_file_id
+
+callback: process_state -> uint16_t process_id, uint8_t state
 
 
 /*
@@ -981,7 +1000,7 @@ undefine_program    (uint16_t program_id)                             -> uint8_t
 get_program_name    (uint16_t program_id)                             -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
 set_program_command (uint16_t program_id, uint16_t command_string_id) -> uint8_t error_code // adds a reference to the command and locks it, unlocks and releases previous command, if any
 get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
-execute_program     (uint16_t program_id)                             -> uint8_t error_code, uint16_t task_id // adds a reference to the program and locks it, you need to call release_object() when done with it
+execute_program     (uint16_t program_id)                             -> uint8_t error_code, uint16_t process_id // adds a reference to the program and locks it, you need to call release_object() when done with it
 
 
 /*
