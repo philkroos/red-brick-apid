@@ -31,6 +31,7 @@
 #include "directory.h"
 
 #include "api.h"
+#include "file.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -201,7 +202,7 @@ APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 	return API_E_OK;
 }
 
-APIE directory_get_next_entry(ObjectID id, ObjectID *name_id) {
+APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 	Directory *directory;
 	APIE error_code = object_table_get_object_data(OBJECT_TYPE_DIRECTORY, id, (void **)&directory);
 	struct dirent *dirent;
@@ -242,6 +243,18 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id) {
 		directory->buffer[directory->prefix_length] = '\0';
 
 		string_append(directory->buffer, dirent->d_name, sizeof(directory->buffer));
+
+		switch (dirent->d_type) {
+		case DT_REG:  *type = FILE_TYPE_REGULAR;   break;
+		case DT_DIR:  *type = FILE_TYPE_DIRECTORY; break;
+		case DT_CHR:  *type = FILE_TYPE_CHARACTER; break;
+		case DT_BLK:  *type = FILE_TYPE_BLOCK;     break;
+		case DT_FIFO: *type = FILE_TYPE_FIFO;      break;
+		case DT_LNK:  *type = FILE_TYPE_SYMLINK;   break;
+		case DT_SOCK: *type = FILE_TYPE_SOCKET;    break;
+
+		default:      *type = FILE_TYPE_UNKNOWN;   break;
+		}
 
 		return string_wrap(directory->buffer, name_id);
 	}

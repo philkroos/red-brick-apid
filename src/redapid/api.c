@@ -346,6 +346,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t name_string_id;
+	uint8_t type;
 } ATTRIBUTE_PACKED GetNextDirectoryEntryResponse;
 
 typedef struct {
@@ -633,7 +634,7 @@ static void api_get_next_directory_entry(GetNextDirectoryEntryRequest *request) 
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = directory_get_next_entry(request->directory_id, &response.name_string_id);
+	response.error_code = directory_get_next_entry(request->directory_id, &response.name_string_id, &response.type);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -741,19 +742,22 @@ void api_handle_request(Packet *request) {
 
 APIE api_get_error_code_from_errno(void) {
 	switch (errno) {
-	case EACCES:      return API_E_ACCESS_DENIED;
-	case EEXIST:      return API_E_ALREADY_EXISTS;
-	case EINTR:       return API_E_INTERRUPTED;
-	case EINVAL:      return API_E_INVALID_PARAMETER;
-	case EISDIR:      return API_E_IS_DIRECTORY;
-	case ENOENT:      return API_E_DOES_NOT_EXIST;
-	case ENOMEM:      return API_E_NO_FREE_MEMORY;
-	case ENOSPC:      return API_E_NO_FREE_SPACE;
-	case EWOULDBLOCK: return API_E_WOULD_BLOCK;
-	case EOVERFLOW:   return API_E_OVERFLOW;
-	case EBADF:       return API_E_INVALID_FILE_DESCRIPTOR;
-	case ERANGE:      return API_E_OUT_OF_RANGE;
-	default:          return API_E_UNKNOWN_ERROR;
+	case EINVAL:       return API_E_INVALID_PARAMETER;
+	case ENOMEM:       return API_E_NO_FREE_MEMORY;
+	case ENOSPC:       return API_E_NO_FREE_SPACE;
+	case EACCES:       return API_E_ACCESS_DENIED;
+	case EEXIST:       return API_E_ALREADY_EXISTS;
+	case ENOENT:       return API_E_DOES_NOT_EXIST;
+	case EINTR:        return API_E_INTERRUPTED;
+	case EISDIR:       return API_E_IS_DIRECTORY;
+	case ENOTDIR:      return API_E_NOT_A_DIRECTORY;
+	case EWOULDBLOCK:  return API_E_WOULD_BLOCK;
+	case EOVERFLOW:    return API_E_OVERFLOW;
+	case EBADF:        return API_E_INVALID_FILE_DESCRIPTOR;
+	case ERANGE:       return API_E_OUT_OF_RANGE;
+	case ENAMETOOLONG: return API_E_NAME_TOO_LONG;
+
+	default:           return API_E_UNKNOWN_ERROR;
 	}
 }
 
@@ -859,7 +863,8 @@ enum file_event { // bitmask
 }
 
 enum file_type {
-	FILE_TYPE_REGULAR = 0,
+	FILE_TYPE_UNKNOWN = 0,
+	FILE_TYPE_REGULAR,
 	FILE_TYPE_DIRECTORY,
 	FILE_TYPE_CHARACTER,
 	FILE_TYPE_BLOCK,
@@ -885,8 +890,13 @@ callback: async_file_write (uint16_t file_id, uint8_t error_code, uint8_t length
 callback: async_file_read  (uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read) // error_code == NO_MORE_DATA means end-of-file
 callback: file_ready       (uint16_t file_id, uint8_t events)
 
-get_file_info        (uint16_t name_string_id, bool follow_symlink) -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
-get_file_sha1_digest (uint16_t name_string_id)                      -> uint8_t error_code, uint8_t digest[20]
+get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
+get_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
+get_file_sha1_digest    (uint16_t name_string_id)                              -> uint8_t error_code, uint8_t digest[20]
+remove_file             (uint16_t name_string_id, bool recursive)              -> uint8_t error_code
+rename_file             (uint16_t source_string_id, uint16_t target_string_id) -> uint8_t error_code
+create_symlink          (uint16_t target_string_id, uint16_t name_string_id)   -> uint8_t error_code
+get_symlink_target      (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t target_string_id
 
 
 /*
@@ -901,10 +911,10 @@ struct directory {
 
 open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id // adds a reference to the name and locks it, you need to call release_object() when done with it
 get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
-get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
+get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-create_directory (uint16_t name_string_id, uint32_t mode) -> uint8_t error_code
+create_directory (uint16_t name_string_id, uint16_t permissions) -> uint8_t error_code
 
 
 /*
@@ -952,9 +962,6 @@ execute_program     (uint16_t program_id)                             -> uint8_t
 /*
  * misc stuff
  */
-
-remove (uint16_t name_string_id, bool recursive)                   -> uint8_t error_code
-rename (uint16_t source_string_id, uint16_t destination_string_id) -> uint8_t error_code
 
 // FIXME: timezone? DST? etc?
 get_system_time () -> uint8_t error_code, uint64_t system_time
