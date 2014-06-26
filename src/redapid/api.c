@@ -809,7 +809,7 @@ void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
 #if 0
 
 /*
- * object handling
+ * object
  */
 
 enum object_type {
@@ -826,7 +826,7 @@ rewind_object_table         (uint8_t object_type) -> uint8_t error_code
 
 
 /*
- * string handling
+ * string
  */
 
 struct string {
@@ -844,7 +844,7 @@ get_string_chunk  (uint16_t string_id, uint32_t offset)                  -> uint
 
 
 /*
- * file handling (always non-blocking)
+ * file (always non-blocking)
  */
 
 struct file {
@@ -923,7 +923,7 @@ get_symlink_target      (uint16_t name_string_id, bool canonicalize)           -
 
 
 /*
- * directory handling
+ * directory
  */
 
 struct directory {
@@ -943,7 +943,7 @@ get_current_directory ()                                              -> uint8_t
 
 
 /*
- * process handling
+ * process
  */
 
 enum process_signal {
@@ -986,7 +986,7 @@ callback: process_state -> uint16_t process_id, uint8_t state
 
 
 /*
- * (persistent) program configuration handling
+ * (persistent) program configuration
  */
 
 struct program {
@@ -1004,7 +1004,7 @@ execute_program     (uint16_t program_id)                             -> uint8_t
 
 
 /*
- * misc stuff
+ * misc
  */
 
 // FIXME: timezone? DST? etc?
