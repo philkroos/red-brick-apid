@@ -59,6 +59,7 @@ typedef enum {
 	CALLBACK_ASYNC_FILE_WRITE,
 	CALLBACK_ASYNC_FILE_READ,
 	FUNCTION_GET_FILE_INFO,
+	FUNCTION_GET_SYMLINK_TARGET,
 
 	FUNCTION_OPEN_DIRECTORY,
 	FUNCTION_GET_DIRECTORY_NAME,
@@ -295,6 +296,18 @@ typedef struct {
 	uint64_t modification_time;
 	uint64_t status_change_time;
 } ATTRIBUTE_PACKED GetFileInfoResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t name_string_id;
+	bool canonicalize;
+} ATTRIBUTE_PACKED GetSymlinkTargetRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t target_string_id;
+} ATTRIBUTE_PACKED GetSymlinkTargetResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -604,6 +617,15 @@ static void api_get_file_info(GetFileInfoRequest *request) {
 
 	network_dispatch_response((Packet *)&response);
 }
+static void api_get_symlink_target(GetSymlinkTargetRequest *request) {
+	GetSymlinkTargetResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = symlink_get_target(request->name_string_id, request->canonicalize, &response.target_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
 
 //
 // directory
@@ -722,6 +744,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(SET_FILE_POSITION,           SetFilePosition,         set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,           GetFilePosition,         get_file_position)
 	DISPATCH_FUNCTION(GET_FILE_INFO,               GetFileInfo,             get_file_info)
+	DISPATCH_FUNCTION(GET_SYMLINK_TARGET,          GetSymlinkTarget,        get_symlink_target)
 
 	// directory
 	DISPATCH_FUNCTION(OPEN_DIRECTORY,              OpenDirectory,           open_directory)
@@ -896,7 +919,7 @@ get_file_sha1_digest    (uint16_t name_string_id)                              -
 remove_file             (uint16_t name_string_id, bool recursive)              -> uint8_t error_code
 rename_file             (uint16_t source_string_id, uint16_t target_string_id) -> uint8_t error_code
 create_symlink          (uint16_t target_string_id, uint16_t name_string_id)   -> uint8_t error_code
-get_symlink_target      (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t target_string_id
+get_symlink_target      (uint16_t name_string_id, bool canonicalize)           -> uint8_t error_code, uint16_t target_string_id
 
 
 /*
@@ -914,7 +937,9 @@ get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16
 get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-create_directory (uint16_t name_string_id, uint16_t permissions) -> uint8_t error_code
+create_directory      (uint16_t name_string_id, uint16_t permissions) -> uint8_t error_code
+set_current_directory (uint16_t name_string_id)                       -> uint8_t error_code
+get_current_directory ()                                              -> uint8_t error_code, uint16_t name_string_id
 
 
 /*

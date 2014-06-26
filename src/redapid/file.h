@@ -111,4 +111,6 @@ APIE file_get_info(uint16_t name_id, bool follow_symlink,
                    uint32_t *group_id, uint64_t *length, uint64_t *access_time,
                    uint64_t *modification_time, uint64_t *status_change_time);
 
+APIE symlink_get_target(uint16_t name_id, bool canonicalize, uint16_t *target_id);
+
 #endif // REDAPID_FILE_H

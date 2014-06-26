@@ -676,3 +676,50 @@ APIE file_get_info(uint16_t name_id, bool follow_symlink,
 
 	return API_E_OK;
 }
+
+APIE symlink_get_target(uint16_t name_id, bool canonicalize, uint16_t *target_id) {
+	const char *name;
+	APIE error_code = string_get_null_terminated_buffer(name_id, &name);
+	char *target;
+	char buffer[1024 + 1];
+	ssize_t rc;
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (canonicalize) {
+		target = realpath(name, NULL);
+
+		if (target == NULL) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not get target of symlink (name-id: %u): %s (%d)",
+			         name_id, get_errno_name(errno), errno);
+
+			return error_code;
+		}
+	} else {
+		rc = readlink(name, buffer, sizeof(buffer) - 1);
+
+		if (rc < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not get target of symlink (name-id: %u): %s (%d)",
+			         name_id, get_errno_name(errno), errno);
+
+			return error_code;
+		}
+
+		buffer[rc] = '\0';
+		target = buffer;
+	}
+
+	error_code = string_wrap(target, target_id);
+
+	if (canonicalize) {
+		free(target);
+	}
+
+	return error_code;
+}
