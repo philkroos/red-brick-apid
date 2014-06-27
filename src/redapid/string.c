@@ -98,7 +98,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	                                          &(*string)->id);
 
 	if (error_code != API_E_OK) {
-		string_destroy(*string);
+		free(*string);
 
 		return error_code;
 	}
