@@ -147,7 +147,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	}
 
 	error_code = object_table_allocate_object(OBJECT_TYPE_DIRECTORY, directory,
-	                                          (FreeFunction)directory_destroy,
+	                                          (FreeFunction)directory_destroy, 0,
 	                                          &directory->id);
 
 	if (error_code != API_E_OK) {

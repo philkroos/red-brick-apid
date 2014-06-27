@@ -220,7 +220,8 @@ void object_table_exit(void) {
 }
 
 APIE object_table_allocate_object(ObjectType type, void *data,
-                                  FreeFunction destroy, ObjectID *id) {
+                                  FreeFunction destroy, bool with_internal_ref,
+                                  ObjectID *id) {
 	Object *object;
 	APIE error_code;
 	int last;
@@ -269,7 +270,7 @@ APIE object_table_allocate_object(ObjectType type, void *data,
 	object->type = type;
 	object->data = data;
 	object->destroy = destroy;
-	object->internal_ref_count = 0;
+	object->internal_ref_count = with_internal_ref ? 1 : 0;
 	object->external_ref_count = 1;
 
 	log_debug("Allocated %s object (id: %u)",

@@ -94,7 +94,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	(*string)->lock_count = 0;
 
 	error_code = object_table_allocate_object(OBJECT_TYPE_STRING, *string,
-	                                          (FreeFunction)string_destroy,
+	                                          (FreeFunction)string_destroy, 0,
 	                                          &(*string)->id);
 
 	if (error_code != API_E_OK) {

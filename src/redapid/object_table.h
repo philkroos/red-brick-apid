@@ -45,7 +45,8 @@ int object_table_init(void);
 void object_table_exit(void);
 
 APIE object_table_allocate_object(ObjectType type, void *data,
-                                  FreeFunction destroy, ObjectID *id);
+                                  FreeFunction destroy, bool with_internal_ref,
+                                  ObjectID *id);
 APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data);
 
 APIE object_table_acquire_object(ObjectType type, ObjectID id, ObjectReferenceType reference_type);

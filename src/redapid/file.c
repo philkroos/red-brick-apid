@@ -287,7 +287,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	file->length_to_read_async = 0;
 
 	error_code = object_table_allocate_object(OBJECT_TYPE_FILE, file,
-	                                          (FreeFunction)file_destroy,
+	                                          (FreeFunction)file_destroy, 0,
 	                                          &file->id);
 
 	if (error_code != API_E_OK) {
