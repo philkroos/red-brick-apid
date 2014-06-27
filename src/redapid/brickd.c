@@ -161,7 +161,7 @@ int brickd_create(BrickDaemon *brickd, Socket *socket) {
 void brickd_destroy(BrickDaemon *brickd) {
 	writer_destroy(&brickd->response_writer);
 
-	event_remove_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+	event_remove_source(brickd->socket->base.handle, EVENT_SOURCE_TYPE_GENERIC);
 	socket_destroy(brickd->socket);
 	free(brickd->socket);
 }

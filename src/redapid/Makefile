@@ -51,7 +51,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/daemon.c \
            ../daemonlib/config.c \
            ../daemonlib/event.c \
-           ../daemonlib/event_posix.c \
+           ../daemonlib/event_linux.c \
            ../daemonlib/io.c \
            ../daemonlib/log.c \
            ../daemonlib/log_posix.c \

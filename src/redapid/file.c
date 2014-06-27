@@ -51,7 +51,7 @@ static void file_destroy(File *file) {
 		log_warn("Destroying file object (id: %u) while an asynchronous read for %"PRIu64" byte(s) is in progress",
 		         file->id, file->length_to_read_async);
 
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
 	close(file->fd);
@@ -91,7 +91,7 @@ static void file_handle_async_read(void *opaque) {
 			log_warn("Could not read from file object (id: %u) asynchronously, giving up: %s (%d)",
 			         file->id, get_errno_name(errno), errno);
 
-			event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+			event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
 
 			file->length_to_read_async = 0;
 
@@ -105,7 +105,7 @@ static void file_handle_async_read(void *opaque) {
 		log_debug("Reading from file object (id: %u) asynchronously reached end-of-file",
 		          file->id);
 
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
 
 		file->length_to_read_async = 0;
 
@@ -120,7 +120,7 @@ static void file_handle_async_read(void *opaque) {
 	          (int)length_read, file->id, file->length_to_read_async);
 
 	if (file->length_to_read_async == 0) {
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
 	api_send_async_file_read_callback(file->fd, API_E_OK, buffer, length_read);
@@ -528,7 +528,7 @@ APIE file_abort_async_read(ObjectID id) {
 		return API_E_OK;
 	}
 
-	event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+	event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
 
 	file->length_to_read_async = 0;
 

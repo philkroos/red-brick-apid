@@ -164,7 +164,7 @@ void network_exit(void) {
 		brickd_destroy(&_brickd);
 	}
 
-	event_remove_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ);
+	event_remove_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC);
 	socket_destroy(&_server_socket);
 
 	unlink(_uds_filename);
