@@ -106,7 +106,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	error_code = string_reserve(*string, reserve);
 
 	if (error_code != API_E_OK) {
-		object_table_release_object((*string)->id, 0);
+		object_table_release_object((*string)->id, OBJECT_REFERENCE_TYPE_EXTERNAL);
 
 		return error_code;
 	}
