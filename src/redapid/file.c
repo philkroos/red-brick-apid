@@ -65,7 +65,7 @@ static void file_destroy(File *file) {
 
 static void file_handle_async_read(void *opaque) {
 	File *file = opaque;
-	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 	uint8_t length_to_read = sizeof(buffer);
 	ssize_t length_read;
 	APIE error_code;
@@ -228,7 +228,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 		open_mode |= S_IXOTH;
 	}
 
-	// acquire string internal reference
+	// acquire internal reference to name string
 	error_code = object_table_acquire_object(OBJECT_TYPE_STRING, name_id,
 	                                         OBJECT_REFERENCE_TYPE_INTERNAL);
 
@@ -238,7 +238,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	phase = 1;
 
-	// lock string
+	// lock name string
 	error_code = string_lock(name_id);
 
 	if (error_code != API_E_OK) {
@@ -247,7 +247,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	phase = 2;
 
-	// get string as NULL-terminated buffer
+	// get name string as NULL-terminated buffer
 	error_code = string_get_null_terminated_buffer(name_id, &name);
 
 	if (error_code != API_E_OK) {
@@ -351,7 +351,7 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 		return error_code;
 	}
 
-	if (length_to_write > FILE_WRITE_BUFFER_LENGTH) {
+	if (length_to_write > FILE_MAX_WRITE_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file write buffer",
 		         length_to_write);
 
@@ -384,7 +384,7 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
-	if (length_to_write > FILE_WRITE_UNCHECKED_BUFFER_LENGTH) {
+	if (length_to_write > FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file unchecked write buffer",
 		         length_to_write);
 
@@ -416,7 +416,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		}
 	}
 
-	if (length_to_write > FILE_WRITE_ASYNC_BUFFER_LENGTH) {
+	if (length_to_write > FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file async write buffer",
 		         length_to_write);
 
@@ -452,7 +452,7 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 		return error_code;
 	}
 
-	if (length_to_read > FILE_READ_BUFFER_LENGTH) {
+	if (length_to_read > FILE_MAX_READ_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file read buffer",
 		         length_to_read);
 
@@ -517,7 +517,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 APIE file_abort_async_read(ObjectID id) {
 	File *file;
 	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
-	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 
 	if (error_code != API_E_OK) {
 		return error_code;

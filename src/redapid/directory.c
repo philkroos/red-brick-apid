@@ -65,7 +65,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	DIR *dp;
 	Directory *directory;
 
-	// check string length
+	// check name string length
 	error_code = string_get_length(name_id, &name_length);
 
 	if (error_code != API_E_OK) {
@@ -80,7 +80,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	// acquire string internal reference
+	// acquire internal reference to name string
 	error_code = object_table_acquire_object(OBJECT_TYPE_STRING, name_id,
 	                                         OBJECT_REFERENCE_TYPE_INTERNAL);
 
@@ -90,7 +90,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 
 	phase = 1;
 
-	// lock string
+	// lock name string
 	error_code = string_lock(name_id);
 
 	if (error_code != API_E_OK) {
@@ -99,7 +99,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 
 	phase = 2;
 
-	// get string as NULL-terminated buffer
+	// get name string as NULL-terminated buffer
 	error_code = string_get_null_terminated_buffer(name_id, &name);
 
 	if (error_code != API_E_OK) {

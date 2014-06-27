@@ -197,7 +197,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 		return error_code;
 	}
 
-	length = strnlen(buffer, STRING_SET_CHUNK_BUFFER_LENGTH);
+	length = strnlen(buffer, STRING_MAX_SET_CHUNK_BUFFER_LENGTH);
 
 	if (string->lock_count > 0) {
 		log_warn("Cannot change a locked string object (id: %u)", id);
@@ -253,7 +253,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	uint32_t length;
 
 	if (error_code != API_E_OK) {
-		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
+		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
 		return error_code;
 	}
@@ -265,7 +265,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	if (offset > string->used) {
-		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
+		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
 		log_warn("Offset of %u byte(s) exceeds string object (id: %u) length of %u byte(s)",
 		         offset, id, string->used);
@@ -276,18 +276,18 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	length = string->used - offset;
 
 	if (length == 0) {
-		memset(buffer, 0, STRING_GET_CHUNK_BUFFER_LENGTH);
+		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
 		return API_E_OK;
 	}
 
-	if (length > STRING_GET_CHUNK_BUFFER_LENGTH) {
-		length = STRING_GET_CHUNK_BUFFER_LENGTH;
+	if (length > STRING_MAX_GET_CHUNK_BUFFER_LENGTH) {
+		length = STRING_MAX_GET_CHUNK_BUFFER_LENGTH;
 	}
 
 	memcpy(buffer, string->buffer + offset, length);
 
-	if (length < STRING_GET_CHUNK_BUFFER_LENGTH) {
+	if (length < STRING_MAX_GET_CHUNK_BUFFER_LENGTH) {
 		buffer[length] = '\0';
 	}
 

@@ -145,7 +145,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t string_id;
 	uint32_t offset;
-	char buffer[STRING_SET_CHUNK_BUFFER_LENGTH];
+	char buffer[STRING_MAX_SET_CHUNK_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED SetStringChunkRequest;
 
 typedef struct {
@@ -162,7 +162,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	char buffer[STRING_GET_CHUNK_BUFFER_LENGTH];
+	char buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED GetStringChunkResponse;
 
 //
@@ -196,7 +196,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-	uint8_t buffer[FILE_WRITE_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_WRITE_BUFFER_LENGTH];
 	uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileRequest;
 
@@ -209,14 +209,14 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-	uint8_t buffer[FILE_WRITE_UNCHECKED_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH];
 	uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileUncheckedRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-	uint8_t buffer[FILE_WRITE_ASYNC_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH];
 	uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileAsyncRequest;
 
@@ -229,7 +229,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t buffer[FILE_READ_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_READ_BUFFER_LENGTH];
 	uint8_t length_read;
 } ATTRIBUTE_PACKED ReadFileResponse;
 
@@ -320,7 +320,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t buffer[FILE_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 	uint8_t length_read;
 } ATTRIBUTE_PACKED AsyncFileReadCallback;
 
