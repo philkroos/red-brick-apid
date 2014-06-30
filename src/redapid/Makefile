@@ -59,6 +59,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/pid_file.c \
            ../daemonlib/pipe_posix.c \
            ../daemonlib/queue.c \
+           ../daemonlib/signal.c \
            ../daemonlib/socket.c \
            ../daemonlib/socket_posix.c \
            ../daemonlib/threads_posix.c \

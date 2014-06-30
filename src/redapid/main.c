@@ -34,6 +34,7 @@
 #include <daemonlib/event.h>
 #include <daemonlib/log.h>
 #include <daemonlib/pid_file.h>
+#include <daemonlib/signal.h>
 #include <daemonlib/utils.h>
 
 #include "api.h"
@@ -210,8 +211,12 @@ int main(int argc, char **argv) {
 		          _config_filename);
 	}
 
-	if (event_init(NULL) < 0) {
+	if (event_init() < 0) {
 		goto error_event;
+	}
+
+	if (signal_init(NULL) < 0) {
+		goto error_signal;
 	}
 
 	if (object_table_init() < 0) {
@@ -242,6 +247,9 @@ error_api:
 	object_table_exit();
 
 error_object_table:
+	signal_exit();
+
+error_signal:
 	event_exit();
 
 error_event:
