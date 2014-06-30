@@ -30,6 +30,7 @@
 
 #include <daemonlib/event.h>
 #include <daemonlib/log.h>
+#include <daemonlib/pipe.h>
 #include <daemonlib/utils.h>
 
 #include "file.h"
@@ -43,6 +44,9 @@ typedef struct {
 	ObjectID id;
 	ObjectID name_id; // String
 	int fd;
+	bool regular;
+	IOHandle async_read_handle; // set to async_read_pipe.read_end if regular file, otherwise set to fd
+	Pipe async_read_pipe; // only created for regular file
 	uint64_t length_to_read_async; // > 0 means async read in progress
 } File;
 
@@ -51,7 +55,11 @@ static void file_destroy(File *file) {
 		log_warn("Destroying file object (id: %u) while an asynchronous read for %"PRIu64" byte(s) is in progress",
 		         file->id, file->length_to_read_async);
 
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+	}
+
+	if (file->regular) {
+		pipe_destroy(&file->async_read_pipe);
 	}
 
 	close(file->fd);
@@ -91,7 +99,7 @@ static void file_handle_async_read(void *opaque) {
 			log_warn("Could not read from file object (id: %u) asynchronously, giving up: %s (%d)",
 			         file->id, get_errno_name(errno), errno);
 
-			event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
+			event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
 			file->length_to_read_async = 0;
 
@@ -105,7 +113,7 @@ static void file_handle_async_read(void *opaque) {
 		log_debug("Reading from file object (id: %u) asynchronously reached end-of-file",
 		          file->id);
 
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
 		file->length_to_read_async = 0;
 
@@ -120,7 +128,7 @@ static void file_handle_async_read(void *opaque) {
 	          (int)length_read, file->id, file->length_to_read_async);
 
 	if (file->length_to_read_async == 0) {
-		event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
 	api_send_async_file_read_callback(file->fd, API_E_OK, buffer, length_read);
@@ -139,6 +147,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	mode_t open_mode = 0;
 	int fd;
 	File *file;
+	struct stat buffer;
+	uint8_t byte = 0;
 
 	// check parameters
 	if ((flags & ~FILE_FLAG_ALL) != 0) {
@@ -268,7 +278,16 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	phase = 3;
 
-	// create file object
+	if (fstat(fd, &buffer) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_warn("Could not get information for file '%s' (name-id: %u): %s (%d)",
+		         name, name_id, get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	// allocate file object
 	file = calloc(1, sizeof(File));
 
 	if (file == NULL) {
@@ -282,6 +301,38 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	phase = 4;
 
+	// create async read pipe for regular files
+	file->regular = S_ISREG(buffer.st_mode);
+
+	if (file->regular) {
+		// (e)poll doesn't supported regular files. use a pipe with one byte in
+		// it to trigger read events for reading regular files asynchronously
+		if (pipe_create(&file->async_read_pipe) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not create asynchronous read pipe: %s (%d)",
+			          get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		if (pipe_write(&file->async_read_pipe, &byte, sizeof(byte)) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not write to asynchronous read pipe: %s (%d)",
+			          get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		file->async_read_handle = file->async_read_pipe.read_end;
+	} else {
+		file->async_read_handle = fd;
+	}
+
+	phase = 5;
+
+	// create file object
 	file->name_id = name_id;
 	file->fd = fd;
 	file->length_to_read_async = 0;
@@ -296,13 +347,18 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	*id = file->id;
 
-	log_debug("Opened file object (id: %u) at '%s' (flags: 0x%04X, permissions: 0o%04o)",
-	          file->id, name, flags, permissions);
+	log_debug("Opened file object (id: %u) at '%s' (flags: 0x%04X, permissions: 0o%04o, handle: %d)",
+	          file->id, name, flags, permissions, fd);
 
-	phase = 5;
+	phase = 6;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 5:
+		if (file->regular) {
+			pipe_destroy(&file->async_read_pipe);
+		}
+
 	case 4:
 		free(file);
 
@@ -319,7 +375,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 5 ? API_E_OK : error_code;
+	return phase == 6 ? API_E_OK : error_code;
 }
 
 APIE file_get_name(ObjectID id, ObjectID *name_id) {
@@ -503,8 +559,12 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 
 	file->length_to_read_async = length_to_read;
 
-	if (event_add_source(file->fd, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ,
-	                     file_handle_async_read, file) < 0) {
+	// reading the whole file and generating the callbacks here could block
+	// the event loop too long. instead poll the file (or a pipe instead for
+	// regular files) for readability. when done reading asynchronously then
+	// remove the file or pipe from the event loop again
+	if (event_add_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC,
+	                     EVENT_READ, file_handle_async_read, file) < 0) {
 		return API_E_INTERNAL_ERROR;
 	}
 
@@ -528,7 +588,7 @@ APIE file_abort_async_read(ObjectID id) {
 		return API_E_OK;
 	}
 
-	event_remove_source(file->fd, EVENT_SOURCE_TYPE_GENERIC);
+	event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
 	file->length_to_read_async = 0;
 
@@ -545,6 +605,13 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 
 	if (error_code != API_E_OK) {
 		return error_code;
+	}
+
+	if (file->length_to_read_async > 0) {
+		log_warn("Cannot set file position while reading %"PRIu64" byte(s) from file object (id: %u) asynchronously",
+		         file->length_to_read_async, id);
+
+		return API_E_INVALID_OPERATION;
 	}
 
 	switch (origin) {
