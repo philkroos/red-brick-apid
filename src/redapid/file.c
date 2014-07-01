@@ -534,6 +534,7 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	File *file;
 	APIE error_code = object_table_get_object_data(OBJECT_TYPE_FILE, id, (void **)&file);
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -554,6 +555,8 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	}
 
 	if (length_to_read == 0) {
+		api_send_async_file_read_callback(file->id, API_E_OK, buffer, 0);
+
 		return API_E_OK;
 	}
 
