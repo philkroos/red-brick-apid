@@ -424,7 +424,8 @@ static void api_release_object(ReleaseObjectRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = object_table_release_object(request->object_id, OBJECT_REFERENCE_TYPE_EXTERNAL);
+	response.error_code = object_table_release_object(request->object_id,
+	                                                  OBJECT_REFERENCE_TYPE_EXTERNAL);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -512,7 +513,8 @@ static void api_open_file(OpenFileRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = file_open(request->name_string_id, request->flags, request->permissions, &response.file_id);
+	response.error_code = file_open(request->name_string_id, request->flags,
+	                                request->permissions, &response.file_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -532,7 +534,8 @@ static void api_write_file(WriteFileRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = file_write(request->file_id, request->buffer, request->length_to_write, &response.length_written);
+	response.error_code = file_write(request->file_id, request->buffer,
+	                                 request->length_to_write, &response.length_written);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -622,7 +625,8 @@ static void api_get_symlink_target(GetSymlinkTargetRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = symlink_get_target(request->name_string_id, request->canonicalize, &response.target_string_id);
+	response.error_code = symlink_get_target(request->name_string_id, request->canonicalize,
+	                                         &response.target_string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -656,7 +660,8 @@ static void api_get_next_directory_entry(GetNextDirectoryEntryRequest *request) 
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = directory_get_next_entry(request->directory_id, &response.name_string_id, &response.type);
+	response.error_code = directory_get_next_entry(request->directory_id,
+	                                               &response.name_string_id, &response.type);
 
 	network_dispatch_response((Packet *)&response);
 }
