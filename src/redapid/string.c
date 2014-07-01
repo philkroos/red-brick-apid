@@ -286,10 +286,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	memcpy(buffer, string->buffer + offset, length);
-
-	if (length < STRING_MAX_GET_CHUNK_BUFFER_LENGTH) {
-		buffer[length] = '\0';
-	}
+	memset(buffer + length, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH - length);
 
 	log_debug("Getting %u byte(s) at offset %u of string object (id: %u)",
 	          length, offset, id);
