@@ -41,6 +41,11 @@ typedef struct {
 } String;
 
 static void string_destroy(String *string) {
+	if (string->lock_count > 0) {
+		log_error("Destroying locked string object (id: %u, lock-count: %d)",
+		          string->id, string->lock_count);
+	}
+
 	free(string->buffer);
 
 	free(string);
