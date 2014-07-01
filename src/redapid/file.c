@@ -42,7 +42,8 @@
 
 typedef struct {
 	ObjectID id;
-	ObjectID name_id; // String
+	ObjectID name_id; // string
+	const char *name; // content of the locked name string object
 	int fd;
 	bool regular;
 	IOHandle async_read_handle; // set to async_read_pipe.read_end if regular file, otherwise set to fd
@@ -52,8 +53,8 @@ typedef struct {
 
 static void file_destroy(File *file) {
 	if (file->length_to_read_async > 0) {
-		log_warn("Destroying file object (id: %u) while an asynchronous read for %"PRIu64" byte(s) is in progress",
-		         file->id, file->length_to_read_async);
+		log_warn("Destroying file object (id: %u, name: %s) while an asynchronous read for %"PRIu64" byte(s) is in progress",
+		         file->id, file->name, file->length_to_read_async);
 
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
@@ -88,16 +89,16 @@ static void file_handle_async_read(void *opaque) {
 
 	if (length_read < 0) {
 		if (errno_interrupted()) {
-			log_debug("Reading from file object (id: %u) asynchronously was interrupted, retrying",
-			          file->id);
+			log_debug("Reading from file object (id: %u, name: %s) asynchronously was interrupted, retrying",
+			          file->id, file->name);
 		} else if (errno_would_block()) {
-			log_debug("Reading from file object (id: %u) asynchronously would block, retrying",
-			          file->id);
+			log_debug("Reading from file object (id: %u, name: %s) asynchronously would block, retrying",
+			          file->id, file->name);
 		} else {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not read from file object (id: %u) asynchronously, giving up: %s (%d)",
-			         file->id, get_errno_name(errno), errno);
+			log_warn("Could not read from file object (id: %u, name: %s) asynchronously, giving up: %s (%d)",
+			         file->id, file->name, get_errno_name(errno), errno);
 
 			event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
@@ -110,8 +111,8 @@ static void file_handle_async_read(void *opaque) {
 	}
 
 	if (length_read == 0) {
-		log_debug("Reading from file object (id: %u) asynchronously reached end-of-file",
-		          file->id);
+		log_debug("Reading from file object (id: %u, name: %s) asynchronously reached end-of-file",
+		          file->id, file->name);
 
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
@@ -124,8 +125,8 @@ static void file_handle_async_read(void *opaque) {
 
 	file->length_to_read_async -= length_read;
 
-	log_debug("Read %d byte(s) from file object (id: %u) asynchronously, %"PRIu64" byte(s) left to read",
-	          (int)length_read, file->id, file->length_to_read_async);
+	log_debug("Read %d byte(s) from file object (id: %u, name: %s) asynchronously, %"PRIu64" byte(s) left to read",
+	          (int)length_read, file->id, file->name, file->length_to_read_async);
 
 	if (file->length_to_read_async == 0) {
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
@@ -134,8 +135,8 @@ static void file_handle_async_read(void *opaque) {
 	api_send_async_file_read_callback(file->id, API_E_OK, buffer, length_read);
 
 	if (file->length_to_read_async == 0) {
-		log_debug("Finished asynchronous reading from file object (id: %u)",
-		          file->id);
+		log_debug("Finished asynchronous reading from file object (id: %u, name: %s)",
+		          file->id, file->name);
 	}
 }
 
@@ -270,8 +271,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	if (fd < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not open file '%s' (name-id: %u): %s (%d)",
-		         name, name_id, get_errno_name(errno), errno);
+		log_warn("Could not open file (name: %s): %s (%d)",
+		         name, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -281,8 +282,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	if (fstat(fd, &buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not get information for file '%s' (name-id: %u): %s (%d)",
-		         name, name_id, get_errno_name(errno), errno);
+		log_warn("Could not get information for file (name: %s): %s (%d)",
+		         name, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -334,6 +335,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	// create file object
 	file->name_id = name_id;
+	file->name = name;
 	file->fd = fd;
 	file->length_to_read_async = 0;
 
@@ -347,8 +349,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	*id = file->id;
 
-	log_debug("Opened file object (id: %u) at '%s' (flags: 0x%04X, permissions: 0o%04o, handle: %d)",
-	          file->id, name, flags, permissions, fd);
+	log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: 0o%04o, handle: %d)",
+	          file->id, file->name, flags, permissions, fd);
 
 	phase = 6;
 
@@ -419,8 +421,8 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not write to file object (id: %u): %s (%d)",
-		         id, get_errno_name(errno), errno);
+		log_warn("Could not write to file object (id: %u, name: %s): %s (%d)",
+		         id, file->name, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -448,8 +450,8 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 	}
 
 	if (write(file->fd, buffer, length_to_write) < 0) {
-		log_warn("Could not write to file object (id: %u): %s (%d)",
-		         id, get_errno_name(errno), errno);
+		log_warn("Could not write to file object (id: %u, name: %s): %s (%d)",
+		         id, file->name, get_errno_name(errno), errno);
 
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
@@ -486,8 +488,8 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 	if (length_written < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not write to file object (id: %u): %s (%d)",
-		         id, get_errno_name(errno), errno);
+		log_warn("Could not write to file object (id: %u, name: %s): %s (%d)",
+		         id, file->name, get_errno_name(errno), errno);
 
 		api_send_async_file_write_callback(id, error_code, 0);
 
@@ -520,8 +522,8 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not read from file object (id: %u): %s (%d)",
-		         id, get_errno_name(errno), errno);
+		log_warn("Could not read from file object (id: %u, name: %s): %s (%d)",
+		         id, file->name, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -541,8 +543,8 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	}
 
 	if (file->length_to_read_async > 0) {
-		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u) asynchronously",
-		         file->length_to_read_async, id);
+		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         file->length_to_read_async, id, file->name);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -571,8 +573,8 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 		return API_E_INTERNAL_ERROR;
 	}
 
-	log_debug("Started asynchronous reading of %"PRIu64" byte(s) from file object (id: %u)",
-	          length_to_read, id);
+	log_debug("Started asynchronous reading of %"PRIu64" byte(s) from file object (id: %u, name: %s)",
+	          length_to_read, id, file->name);
 
 	return API_E_OK;
 }
@@ -611,8 +613,8 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 	}
 
 	if (file->length_to_read_async > 0) {
-		log_warn("Cannot set file position while reading %"PRIu64" byte(s) from file object (id: %u) asynchronously",
-		         file->length_to_read_async, id);
+		log_warn("Cannot set file position while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         file->length_to_read_async, id, file->name);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -633,8 +635,8 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 	if (rc == (off_t)-1) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not set position (offset %"PRIi64", origin: %d) of file object (id: %u): %s (%d)",
-		         offset, origin, id, get_errno_name(errno), errno);
+		log_warn("Could not set position (offset %"PRIi64", origin: %d) of file object (id: %u, name: %s): %s (%d)",
+		         offset, origin, id, file->name, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -658,8 +660,8 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 	if (rc == (off_t)-1) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not get position of file object (id: %u): %s (%d)",
-		         id, get_errno_name(errno), errno);
+		log_warn("Could not get position of file object (id: %u, name: %s): %s (%d)",
+		         id, file->name, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -691,8 +693,8 @@ APIE file_get_info(uint16_t name_id, bool follow_symlink,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not get information for file (name-id: %u): %s (%d)",
-		         name_id, get_errno_name(errno), errno);
+		log_warn("Could not get information for file (name: %s): %s (%d)",
+		         name, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -764,8 +766,8 @@ APIE symlink_get_target(uint16_t name_id, bool canonicalize, uint16_t *target_id
 		if (target == NULL) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not get target of symlink (name-id: %u): %s (%d)",
-			         name_id, get_errno_name(errno), errno);
+			log_warn("Could not get target of symlink (name: %s): %s (%d)",
+			         name, get_errno_name(errno), errno);
 
 			return error_code;
 		}
@@ -775,8 +777,8 @@ APIE symlink_get_target(uint16_t name_id, bool canonicalize, uint16_t *target_id
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not get target of symlink (name-id: %u): %s (%d)",
-			         name_id, get_errno_name(errno), errno);
+			log_warn("Could not get target of symlink (name: %s): %s (%d)",
+			         name, get_errno_name(errno), errno);
 
 			return error_code;
 		}
