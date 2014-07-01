@@ -103,7 +103,7 @@ static void file_handle_async_read(void *opaque) {
 
 			file->length_to_read_async = 0;
 
-			api_send_async_file_read_callback(file->fd, error_code, buffer, 0);
+			api_send_async_file_read_callback(file->id, error_code, buffer, 0);
 		}
 
 		return;
@@ -117,7 +117,7 @@ static void file_handle_async_read(void *opaque) {
 
 		file->length_to_read_async = 0;
 
-		api_send_async_file_read_callback(file->fd, API_E_NO_MORE_DATA, buffer, 0);
+		api_send_async_file_read_callback(file->id, API_E_NO_MORE_DATA, buffer, 0);
 
 		return;
 	}
@@ -131,7 +131,7 @@ static void file_handle_async_read(void *opaque) {
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
-	api_send_async_file_read_callback(file->fd, API_E_OK, buffer, length_read);
+	api_send_async_file_read_callback(file->id, API_E_OK, buffer, length_read);
 
 	if (file->length_to_read_async == 0) {
 		log_debug("Finished asynchronous reading from file object (id: %u)",
@@ -592,7 +592,7 @@ APIE file_abort_async_read(ObjectID id) {
 
 	file->length_to_read_async = 0;
 
-	api_send_async_file_read_callback(file->fd, API_E_OPERATION_ABORTED, buffer, 0);
+	api_send_async_file_read_callback(file->id, API_E_OPERATION_ABORTED, buffer, 0);
 
 	return API_E_OK;
 }
