@@ -70,6 +70,7 @@ SOURCES := ../daemonlib/array.c \
            config_options.c \
            directory.c \
            file.c \
+           list.c \
            main.c \
            network.c \
            object.c \

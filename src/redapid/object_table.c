@@ -49,7 +49,7 @@
 static int _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
 static Array _free_ids;
-static int _next_entry_index[MAX_OBJECT_TYPES] = { 0, 0, 0, 0, 0 };
+static int _next_entry_index[MAX_OBJECT_TYPES] = { 0, 0, 0, 0, 0, 0 };
 
 static void object_table_destroy_object(Object **object) {
 	object_destroy(*object);
@@ -94,6 +94,7 @@ void object_table_exit(void) {
 	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_table_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_table_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_LIST], (FreeFunction)object_table_destroy_object);
 
 	// ...before destroying the remaining string objects...
 	array_destroy(&_objects[OBJECT_TYPE_STRING], (FreeFunction)object_table_destroy_object);

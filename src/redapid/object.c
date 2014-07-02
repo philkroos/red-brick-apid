@@ -64,6 +64,9 @@ const char *object_get_type_name(ObjectType type) {
 	case OBJECT_TYPE_STRING:
 		return "string";
 
+	case OBJECT_TYPE_LIST:
+		return "list";
+
 	case OBJECT_TYPE_FILE:
 		return "file";
 
@@ -84,6 +87,7 @@ const char *object_get_type_name(ObjectType type) {
 bool object_is_type_valid(ObjectType type) {
 	switch (type) {
 	case OBJECT_TYPE_STRING:
+	case OBJECT_TYPE_LIST:
 	case OBJECT_TYPE_FILE:
 	case OBJECT_TYPE_DIRECTORY:
 	case OBJECT_TYPE_PROCESS:

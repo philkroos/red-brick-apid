@@ -29,6 +29,7 @@
 
 #include "directory.h"
 #include "file.h"
+#include "list.h"
 #include "network.h"
 #include "object_table.h"
 #include "string.h"
@@ -45,6 +46,12 @@ typedef enum {
 	FUNCTION_GET_STRING_LENGTH,
 	FUNCTION_SET_STRING_CHUNK,
 	FUNCTION_GET_STRING_CHUNK,
+
+	FUNCTION_ALLOCATE_LIST,
+	FUNCTION_GET_LIST_LENGTH,
+	FUNCTION_GET_LIST_ITEM,
+	FUNCTION_APPEND_TO_LIST,
+	FUNCTION_REMOVE_FROM_LIST,
 
 	FUNCTION_OPEN_FILE,
 	FUNCTION_GET_FILE_NAME,
@@ -164,6 +171,66 @@ typedef struct {
 	uint8_t error_code;
 	char buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED GetStringChunkResponse;
+
+//
+// list
+//
+
+typedef struct {
+	PacketHeader header;
+	uint16_t length_to_reserve;
+} ATTRIBUTE_PACKED AllocateListRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t list_id;
+} ATTRIBUTE_PACKED AllocateListResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t list_id;
+} ATTRIBUTE_PACKED GetListLengthRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t length;
+} ATTRIBUTE_PACKED GetListLengthResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t list_id;
+	uint16_t item_object_id;
+} ATTRIBUTE_PACKED AppendToListRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED AppendToListResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t list_id;
+	uint16_t index;
+} ATTRIBUTE_PACKED RemoveFromListRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RemoveFromListResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t list_id;
+	uint16_t index;
+} ATTRIBUTE_PACKED GetListItemRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t item_object_id;
+} ATTRIBUTE_PACKED GetListItemResponse;
 
 //
 // file
@@ -504,6 +571,60 @@ static void api_get_string_chunk(GetStringChunkRequest *request) {
 }
 
 //
+// list
+//
+
+static void api_allocate_list(AllocateListRequest *request) {
+	AllocateListResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = list_allocate(request->length_to_reserve, &response.list_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_list_length(GetListLengthRequest *request) {
+	GetListLengthResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = list_get_length(request->list_id, &response.length);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_list_item(GetListItemRequest *request) {
+	GetListItemResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = list_get_item(request->list_id, request->index, &response.item_object_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_append_to_list(AppendToListRequest *request) {
+	AppendToListResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = list_append_to(request->list_id, request->item_object_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_remove_from_list(RemoveFromListRequest *request) {
+	RemoveFromListResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = list_remove_from(request->list_id, request->index);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+//
 // file
 //
 
@@ -736,6 +857,13 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(SET_STRING_CHUNK,            SetStringChunk,          set_string_chunk)
 	DISPATCH_FUNCTION(GET_STRING_CHUNK,            GetStringChunk,          get_string_chunk)
 
+	// list
+	DISPATCH_FUNCTION(ALLOCATE_LIST,               AllocateList,            allocate_list)
+	DISPATCH_FUNCTION(GET_LIST_LENGTH,             GetListLength,           get_list_length)
+	DISPATCH_FUNCTION(GET_LIST_ITEM,               GetListItem,             get_list_item)
+	DISPATCH_FUNCTION(APPEND_TO_LIST,              AppendToList,            append_to_list)
+	DISPATCH_FUNCTION(REMOVE_FROM_LIST,            RemoveFromList,          remove_from_list)
+
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                   OpenFile,                open_file)
 	DISPATCH_FUNCTION(GET_FILE_NAME,               GetFileName,             get_file_name)
@@ -818,6 +946,7 @@ void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
 
 enum object_type {
 	OBJECT_TYPE_STRING = 0,
+	OBJECT_TYPE_LIST,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
 	OBJECT_TYPE_PROCESS,
@@ -845,6 +974,22 @@ truncate_string   (uint16_t string_id, uint32_t length)                  -> uint
 get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
 set_string_chuck  (uint16_t string_id, uint32_t offset, char buffer[58]) -> uint8_t error_code
 get_string_chunk  (uint16_t string_id, uint32_t offset)                  -> uint8_t error_code, char buffer[63] // error_code == NO_MORE_DATA means end-of-string
+
+
+/*
+ * list (of objects)
+ */
+
+struct list {
+	uint16_t list_id;
+	Array items;
+}
+
+allocate_list    (uint16_t length_to_reserve)                -> uint8_t error_code, uint16_t list_id // you need to call release_object() when done with it
+get_list_length  (uint16_t list_id)                          -> uint8_t error_code, uint16_t length
+get_list_item    (uint16_t list_id, uint16_t index)          -> uint8_t error_code, uint16_t item_object_id // adds a reference to the item, you need to call release_object() when done with it
+append_to_list   (uint16_t list_id, uint16_t item_object_id) -> uint8_t error_code
+remove_from_list (uint16_t list_id, uint16_t index)          -> uint8_t error_code
 
 
 /*
