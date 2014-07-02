@@ -206,7 +206,8 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 	}
 
 	if (list->items.count == UINT16_MAX) {
-		log_warn("Cannot append to full list object (id: %u)", id);
+		log_warn("Cannot append item (id: %u) to full list object (id: %u)",
+		         item_id, id);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -249,7 +250,8 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 	}
 
 	if (list->base.lock_count > 0) {
-		log_warn("Cannot change a locked list object (id: %u)", id);
+		log_warn("Cannot remove item (index: %u) from locked list object (id: %u)",
+		         index, id);
 
 		return API_E_INVALID_OPERATION;
 	}

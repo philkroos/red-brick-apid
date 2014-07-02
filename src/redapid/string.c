@@ -47,7 +47,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	}
 
 	if (reserve > INT32_MAX) {
-		log_warn("Cannot reserve %u bytes, exceeds maximum length of a string object", reserve);
+		log_warn("Cannot reserve %u bytes, exceeds maximum length of string object", reserve);
 
 		return API_E_OUT_OF_RANGE;
 	}
@@ -125,7 +125,7 @@ APIE string_wrap(char *buffer, ObjectID *id) {
 	String *string;
 
 	if (length > INT32_MAX) {
-		log_warn("Length of %u bytes exceeds maximum length of a string object", length);
+		log_warn("Length of %u bytes exceeds maximum length of string object", length);
 
 		return API_E_OUT_OF_RANGE;
 	}
@@ -155,7 +155,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 	}
 
 	if (string->base.lock_count > 0) {
-		log_warn("Cannot truncate a locked string object (id: %u)", id);
+		log_warn("Cannot truncate locked string object (id: %u)", id);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -193,13 +193,13 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	if (string->base.lock_count > 0) {
-		log_warn("Cannot change a locked string object (id: %u)", id);
+		log_warn("Cannot change locked string object (id: %u)", id);
 
 		return API_E_INVALID_OPERATION;
 	}
 
 	if (offset > INT32_MAX) {
-		log_warn("Offset of %u byte(s) exceeds maximum length of a string object", offset);
+		log_warn("Offset of %u byte(s) exceeds maximum length of string object", offset);
 
 		return API_E_OUT_OF_RANGE;
 	}
@@ -207,7 +207,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	length = strnlen(buffer, STRING_MAX_SET_CHUNK_BUFFER_LENGTH);
 
 	if (offset + length > INT32_MAX) {
-		log_warn("Offset + length of %u byte(s) exceeds maximum length of a string object",
+		log_warn("Offset + length of %u byte(s) exceeds maximum length of string object",
 		         offset + length);
 
 		return API_E_OUT_OF_RANGE;
@@ -256,7 +256,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	if (offset > INT32_MAX) {
-		log_warn("Offset of %u byte(s) exceeds maximum length of a string object", offset);
+		log_warn("Offset of %u byte(s) exceeds maximum length of string object", offset);
 
 		return API_E_OUT_OF_RANGE;
 	}
