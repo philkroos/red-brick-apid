@@ -44,7 +44,7 @@
 
 #include "object_table.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
+#define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
 static int _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];

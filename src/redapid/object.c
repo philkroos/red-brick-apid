@@ -27,7 +27,7 @@
 
 #include "object_table.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
+#define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
 static void object_acquire(Object *object, int *ref_count,
                            const char *ref_count_name) {
