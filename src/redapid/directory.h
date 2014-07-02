@@ -22,7 +22,7 @@
 #ifndef REDAPID_DIRECTORY_H
 #define REDAPID_DIRECTORY_H
 
-#include "object_table.h"
+#include "object.h"
 
 APIE directory_open(ObjectID name_id, ObjectID *id);
 

@@ -72,6 +72,7 @@ SOURCES := ../daemonlib/array.c \
            file.c \
            main.c \
            network.c \
+           object.c \
            object_table.c \
            string.c
 

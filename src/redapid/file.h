@@ -22,7 +22,7 @@
 #ifndef REDAPID_FILE_H
 #define REDAPID_FILE_H
 
-#include "object_table.h"
+#include "object.h"
 
 typedef enum { // bitmask
 	FILE_FLAG_READ_ONLY  = 0x0001,
@@ -106,11 +106,11 @@ APIE file_abort_async_read(ObjectID id);
 APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position);
 APIE file_get_position(ObjectID id, uint64_t *position);
 
-APIE file_get_info(uint16_t name_id, bool follow_symlink,
+APIE file_get_info(ObjectID name_id, bool follow_symlink,
                    uint8_t *type, uint16_t *permissions, uint32_t *user_id,
                    uint32_t *group_id, uint64_t *length, uint64_t *access_time,
                    uint64_t *modification_time, uint64_t *status_change_time);
 
-APIE symlink_get_target(uint16_t name_id, bool canonicalize, uint16_t *target_id);
+APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id);
 
 #endif // REDAPID_FILE_H

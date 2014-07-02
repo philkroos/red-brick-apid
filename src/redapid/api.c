@@ -424,8 +424,7 @@ static void api_release_object(ReleaseObjectRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = object_table_release_object(request->object_id,
-	                                                  OBJECT_REFERENCE_TYPE_EXTERNAL);
+	response.error_code = object_table_release_object(request->object_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -814,7 +813,7 @@ void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
 #if 0
 
 /*
- * object
+ * object table
  */
 
 enum object_type {
@@ -1013,7 +1012,7 @@ execute_program     (uint16_t program_id)                             -> uint8_t
  */
 
 // FIXME: timezone? DST? etc?
-get_system_time () -> uint8_t error_code, uint64_t system_time
+get_system_time ()                     -> uint8_t error_code, uint64_t system_time
 set_system_time (uint64_t system_time) -> uint8_t error_code
 
 #endif

@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * object_table.c: Table of Objects
+ * object_table.c: Table of objects
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,207 +44,80 @@
 
 #include "object_table.h"
 
-#include "api.h"
-
 #define LOG_CATEGORY LOG_CATEGORY_API
-
-#define OBJECT_ID_MAX UINT16_MAX
-
-typedef struct {
-	ObjectID id;
-	ObjectType type;
-	void *data;
-	FreeFunction destroy;
-	int internal_ref_count;
-	int external_ref_count;
-} Object;
 
 static int _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
 static Array _free_ids;
 static int _next_entry_index[MAX_OBJECT_TYPES] = { 0, 0, 0, 0, 0 };
 
-static const char *object_table_get_object_type_name(ObjectType type) {
-	switch (type) {
-	case OBJECT_TYPE_STRING:
-		return "string";
-
-	case OBJECT_TYPE_FILE:
-		return "file";
-
-	case OBJECT_TYPE_DIRECTORY:
-		return "directory";
-
-	case OBJECT_TYPE_PROCESS:
-		return "process";
-
-	case OBJECT_TYPE_PROGRAM:
-		return "program";
-
-	default:
-		return "<unknown>";
-	}
-}
-
-static int object_table_is_object_type_valid(ObjectType type) {
-	switch (type) {
-	case OBJECT_TYPE_STRING:
-	case OBJECT_TYPE_FILE:
-	case OBJECT_TYPE_DIRECTORY:
-	case OBJECT_TYPE_PROCESS:
-	case OBJECT_TYPE_PROGRAM:
-		return 1;
-
-	default:
-		return 0;
-	}
-}
-
-static const char *object_table_get_object_reference_type_name(ObjectReferenceType type) {
-	switch (type) {
-	case OBJECT_REFERENCE_TYPE_INTERNAL:
-		return "internal";
-
-	case OBJECT_REFERENCE_TYPE_EXTERNAL:
-		return "external";
-
-	default:
-		return "<unknown>";
-	}
-}
-
-static void object_destroy(Object *object) {
-	if (object->destroy != NULL) {
-		object->destroy(object->data);
-	}
+static void object_table_destroy_object(Object **object) {
+	object_destroy(*object);
 }
 
 int object_table_init(void) {
-	int phase = 0;
+	int type;
 
-	log_debug("Initializing Object subsystem");
-
-	// allocate object arrays
-	if (array_create(&_objects[OBJECT_TYPE_STRING], 32, sizeof(Object), 1) < 0) {
-		log_error("Could not create string object array: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	phase = 1;
-
-	if (array_create(&_objects[OBJECT_TYPE_FILE], 32, sizeof(Object), 1) < 0) {
-		log_error("Could not create file object array: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	phase = 2;
-
-	if (array_create(&_objects[OBJECT_TYPE_DIRECTORY], 32, sizeof(Object), 1) < 0) {
-		log_error("Could not create directory object array: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	phase = 3;
-
-	if (array_create(&_objects[OBJECT_TYPE_PROCESS], 32, sizeof(Object), 1) < 0) {
-		log_error("Could not create process object array: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	phase = 4;
-
-	if (array_create(&_objects[OBJECT_TYPE_PROGRAM], 32, sizeof(Object), 1) < 0) {
-		log_error("Could not create program object array: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	phase = 5;
+	log_debug("Initializing object subsystem");
 
 	if (array_create(&_free_ids, 32, sizeof(ObjectID), 1) < 0) {
 		log_error("Could not create free object ID array: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		goto cleanup;
+		return -1;
 	}
 
-	phase = 6;
+	// allocate object arrays
+	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
+		if (array_create(&_objects[type], 32, sizeof(Object *), 1) < 0) {
+			log_error("Could not create %s object array: %s (%d)",
+			          object_get_type_name(type), get_errno_name(errno), errno);
 
-cleanup:
-	switch (phase) { // no breaks, all cases fall through intentionally
-	case 5:
-		array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_destroy);
+			for (--type; type >= OBJECT_TYPE_STRING; --type) {
+				array_destroy(&_objects[type], (FreeFunction)object_table_destroy_object);
+			}
 
-	case 4:
-		array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_destroy);
+			array_destroy(&_free_ids, NULL);
 
-	case 3:
-		array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_destroy);
-
-	case 2:
-		array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_destroy);
-
-	case 1:
-		array_destroy(&_objects[OBJECT_TYPE_STRING], (FreeFunction)object_destroy);
-
-	default:
-		break;
+			return -1;
+		}
 	}
 
-	return phase == 6 ? 0 : -1;
+	return 0;
 }
 
 void object_table_exit(void) {
-	log_debug("Shutting down Object subsystem");
+	log_debug("Shutting down object subsystem");
 
 	// destroy all objects that could have references to string objects...
-	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_destroy);
-	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_destroy);
-	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_destroy);
-	array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_destroy);
+	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_table_destroy_object);
 
 	// ...before destroying the remaining string objects...
-	array_destroy(&_objects[OBJECT_TYPE_STRING], (FreeFunction)object_destroy);
+	array_destroy(&_objects[OBJECT_TYPE_STRING], (FreeFunction)object_table_destroy_object);
 
 	// ...before destroying the free IDs array
 	array_destroy(&_free_ids, NULL);
 }
 
-APIE object_table_allocate_object(ObjectType type, void *data,
-                                  FreeFunction destroy, bool with_internal_ref,
-                                  ObjectID *id) {
-	Object *object;
+APIE object_table_add_object(Object *object) {
+	Object **object_ptr;
 	APIE error_code;
 	int last;
 
-	if (!object_table_is_object_type_valid(type)) {
-		log_warn("Invalid object type %d", type);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	log_debug("Allocating %s object",
-	          object_table_get_object_type_name(type));
-
 	if (_free_ids.count == 0 && _next_id > OBJECT_ID_MAX) {
 		// all valid object IDs are acquired
-		log_warn("All object IDs are in use");
+		log_warn("All object IDs are in use, cannot add new %s object",
+		         object_get_type_name(object->type));
 
 		return API_E_NO_FREE_OBJECT_ID;
 	}
 
-	object = (Object *)array_append(&_objects[type]);
+	object_ptr = array_append(&_objects[object->type]);
 
-	if (object == NULL) {
+	if (object_ptr == NULL) {
 		if (errno == ENOMEM) {
 			error_code = API_E_NO_FREE_MEMORY;
 		} else {
@@ -252,11 +125,13 @@ APIE object_table_allocate_object(ObjectType type, void *data,
 		}
 
 		log_error("Could not append to %s object array: %s (%d)",
-		          object_table_get_object_type_name(type),
+		          object_get_type_name(object->type),
 		          get_errno_name(errno), errno);
 
 		return error_code;
 	}
+
+	*object_ptr = object;
 
 	if (_free_ids.count > 0) {
 		last = _free_ids.count - 1;
@@ -267,141 +142,111 @@ APIE object_table_allocate_object(ObjectType type, void *data,
 		object->id = _next_id++;
 	}
 
-	object->type = type;
-	object->data = data;
-	object->destroy = destroy;
-	object->internal_ref_count = with_internal_ref ? 1 : 0;
-	object->external_ref_count = 1;
-
-	log_debug("Allocated %s object (id: %u)",
-	          object_table_get_object_type_name(type), object->id);
-
-	*id = object->id;
+	log_debug("Added %s object (id: %u)",
+	          object_get_type_name(object->type), object->id);
 
 	return API_E_OK;
 }
 
-APIE object_table_get_object_data(ObjectType type, ObjectID id, void **data) {
+void object_table_remove_object(Object *object) {
 	int i;
-	Object *object;
-
-	if (!object_table_is_object_type_valid(type)) {
-		log_warn("Invalid object type %d for object ID %u", type, id);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	for (i = 0; i < _objects[type].count; ++i) {
-		object = (Object *)array_get(&_objects[type], i);
-
-		if (object->id == id) {
-			*data = object->data;
-
-			return API_E_OK;
-		}
-	}
-
-	log_warn("Could not get data for unknown %s object (id: %u)",
-	         object_table_get_object_type_name(type), id);
-
-	return API_E_UNKNOWN_OBJECT_ID;
-}
-
-APIE object_table_acquire_object(ObjectType type, ObjectID id, ObjectReferenceType reference_type) {
-	int i;
-	Object *object;
-
-	if (!object_table_is_object_type_valid(type)) {
-		log_warn("Invalid object type %d for object ID %u", type, id);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	log_debug("Acquiring an %s %s object (id: %u) reference",
-	          object_table_get_object_reference_type_name(reference_type),
-	          object_table_get_object_type_name(type), id);
-
-	for (i = 0; i < _objects[type].count; ++i) {
-		object = (Object *)array_get(&_objects[type], i);
-
-		if (object->id == id) {
-			++object->internal_ref_count;
-
-			return API_E_OK;
-		}
-	}
-
-	log_warn("Could not acquire unknown %s object (id: %u)",
-	         object_table_get_object_type_name(type), id);
-
-	return API_E_UNKNOWN_OBJECT_ID;
-}
-
-APIE object_table_release_object(ObjectID id, ObjectReferenceType reference_type) {
-	ObjectType type;
-	int i;
-	Object *object;
+	Object **candidate;
 	ObjectID *free_id;
 
-	log_debug("Releasing an %s object (id: %u) reference",
-	          object_table_get_object_reference_type_name(reference_type), id);
+	for (i = 0; i < _objects[object->type].count; ++i) {
+		candidate = array_get(&_objects[object->type], i);
 
-	// find object
+		if (*candidate != object) {
+			continue;
+		}
+
+		// adjust next-object-ID or add it to the array of free object IDs
+		if (_next_id < OBJECT_ID_MAX && object->id == _next_id - 1) {
+			--_next_id;
+		} else {
+			free_id = array_append(&_free_ids);
+
+			if (free_id == NULL) {
+				log_error("Could not append to free object ID array: %s (%d)",
+				          get_errno_name(errno), errno);
+
+				return;
+			}
+
+			*free_id = object->id;
+		}
+
+		// adjust next-entry-index
+		if (_next_entry_index[object->type] > i) {
+			--_next_entry_index[object->type];
+		}
+
+		log_debug("Removing %s object (id: %u)",
+		          object_get_type_name(object->type), object->id);
+
+		// remove object from array
+		array_remove(&_objects[object->type], i, (FreeFunction)object_table_destroy_object);
+
+		return;
+	}
+
+	log_error("Could not find %s object (id: %u) to remove it",
+	          object_get_type_name(object->type), object->id);
+}
+
+APIE object_table_get_object(ObjectID id, Object **object) {
+	int type;
+	int i;
+	Object **candidate;
+
 	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
 		for (i = 0; i < _objects[type].count; ++i) {
-			object = (Object *)array_get(&_objects[type], i);
+			candidate = array_get(&_objects[type], i);
 
-			if (object->id == id) {
-				if (reference_type == OBJECT_REFERENCE_TYPE_INTERNAL) {
-					if (object->internal_ref_count == 0) {
-						log_warn("Could not release %s object (id: %u), internal reference count is already zero",
-						          object_table_get_object_type_name(type), id);
-
-						return API_E_INVALID_OPERATION;
-					}
-
-					--object->internal_ref_count;
-				} else {
-					if (object->external_ref_count == 0) {
-						log_warn("Could not release %s object (id: %u), external reference count is already zero",
-						          object_table_get_object_type_name(type), id);
-
-						return API_E_INVALID_OPERATION;
-					}
-
-					--object->external_ref_count;
-				}
-
-				// destroy object if last reference was released
-				if (object->internal_ref_count == 0 && object->external_ref_count == 0) {
-					array_remove(&_objects[type], i, (FreeFunction)object_destroy);
-
-					// adjust next-object-ID or add it to the array of free object IDs
-					if (_next_id < OBJECT_ID_MAX && id == _next_id - 1) {
-						--_next_id;
-					} else {
-						free_id = (ObjectID *)array_append(&_free_ids);
-
-						if (free_id == NULL) {
-							log_error("Could not append to free object ID array: %s (%d)",
-							          get_errno_name(errno), errno);
-
-							return API_E_NO_FREE_MEMORY;
-						}
-
-						*free_id = id;
-					}
-
-					// adjust next-entry-index
-					if (_next_entry_index[type] > i) {
-						--_next_entry_index[type];
-					}
-
-					log_debug("Destroyed %s object (id: %u)",
-					          object_table_get_object_type_name(type), id);
-				}
+			if ((*candidate)->id == id) {
+				*object = *candidate;
 
 				return API_E_OK;
+			}
+		}
+	}
+
+	log_warn("Could not find object (id: %u)", id);
+
+	return API_E_UNKNOWN_OBJECT_ID;
+}
+
+APIE object_table_get_typed_object(ObjectType type, ObjectID id, Object **object) {
+	int i;
+	Object **candidate;
+
+	for (i = 0; i < _objects[type].count; ++i) {
+		candidate = array_get(&_objects[type], i);
+
+		if ((*candidate)->id == id) {
+			*object = *candidate;
+
+			return API_E_OK;
+		}
+	}
+
+	log_warn("Could not find %s object (id: %u)", object_get_type_name(type), id);
+
+	return API_E_UNKNOWN_OBJECT_ID;
+}
+
+// public API
+APIE object_table_release_object(ObjectID id) {
+	int type;
+	int i;
+	Object **candidate;
+
+	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
+		for (i = 0; i < _objects[type].count; ++i) {
+			candidate = array_get(&_objects[type], i);
+
+			if ((*candidate)->id == id) {
+				return object_release_external(*candidate);
 			}
 		}
 	}
@@ -411,33 +256,34 @@ APIE object_table_release_object(ObjectID id, ObjectReferenceType reference_type
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
+// public API
 APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
-	Object *object;
+	Object **object;
 
-	if (!object_table_is_object_type_valid(type)) {
+	if (!object_is_type_valid(type)) {
 		log_warn("Invalid object type %d", type);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
 	if (_next_entry_index[type] >= _objects[type].count) {
-		log_debug("Reached end of %s object table",
-		          object_table_get_object_type_name(type));
+		log_debug("Reached end of %s object table", object_get_type_name(type));
 
 		return API_E_NO_MORE_DATA;
 	}
 
-	object = (Object *)array_get(&_objects[type], _next_entry_index[type]++);
+	object = array_get(&_objects[type], _next_entry_index[type]++);
 
-	++object->external_ref_count;
+	object_acquire_external(*object);
 
-	*id = object->id;
+	*id = (*object)->id;
 
 	return API_E_OK;
 }
 
+// public API
 APIE object_table_rewind(ObjectType type) {
-	if (!object_table_is_object_type_valid(type)) {
+	if (!object_is_type_valid(type)) {
 		log_warn("Invalid object type %d", type);
 
 		return API_E_INVALID_PARAMETER;

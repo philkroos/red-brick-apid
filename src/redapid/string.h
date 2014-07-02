@@ -22,10 +22,18 @@
 #ifndef REDAPID_STRING_H
 #define REDAPID_STRING_H
 
-#include "object_table.h"
+#include "object.h"
 
 #define STRING_MAX_SET_CHUNK_BUFFER_LENGTH 58
 #define STRING_MAX_GET_CHUNK_BUFFER_LENGTH 63
+
+typedef struct {
+	Object base;
+
+	char *buffer; // may not be NULL-terminated
+	uint32_t length; // <= INT32_MAX, does not include potential NULL-terminator
+	uint32_t allocated; // <= INT32_MAX
+} String;
 
 APIE string_allocate(uint32_t reserve, ObjectID *id);
 APIE string_wrap(char *buffer, ObjectID *id);
@@ -36,9 +44,6 @@ APIE string_get_length(ObjectID id, uint32_t *length);
 APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer);
 APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer);
 
-APIE string_lock(ObjectID id);
-APIE string_unlock(ObjectID id);
-
-APIE string_get_null_terminated_buffer(ObjectID id, const char **buffer);
+APIE string_null_terminate_buffer(String *string);
 
 #endif // REDAPID_STRING_H

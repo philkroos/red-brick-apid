@@ -32,47 +32,48 @@
 
 #include "api.h"
 #include "file.h"
+#include "object_table.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-#define MAX_PREFIX_LENGTH 1024
+#define MAX_NAME_LENGTH 1024
 #define MAX_ENTRY_LENGTH 1024
 
 typedef struct {
-	ObjectID id;
-	ObjectID name_id; // String
+	Object base;
+
+	String *name;
 	DIR *dp;
-	uint32_t prefix_length;
-	char buffer[MAX_PREFIX_LENGTH + 1 /* for / */ + MAX_ENTRY_LENGTH + 1 /* for \0 */];
+	char buffer[MAX_NAME_LENGTH + 1 /* for / */ + MAX_ENTRY_LENGTH + 1 /* for \0 */];
 } Directory;
 
 static void directory_destroy(Directory *directory) {
 	closedir(directory->dp);
 
-	string_unlock(directory->name_id);
-
-	object_table_release_object(directory->name_id, OBJECT_REFERENCE_TYPE_INTERNAL);
+	object_unlock(&directory->name->base);
+	object_release_internal(&directory->name->base);
 
 	free(directory);
 }
 
+// public API
 APIE directory_open(ObjectID name_id, ObjectID *id) {
 	int phase = 0;
-	uint32_t name_length;
 	APIE error_code;
-	const char *name;
+	String *name;
 	DIR *dp;
 	Directory *directory;
 
-	// check name string length
-	error_code = string_get_length(name_id, &name_length);
+	// get name string object
+	error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
-	if (name_length > MAX_PREFIX_LENGTH) {
+	// check name string length
+	if (name->length > MAX_NAME_LENGTH) {
 		error_code = API_E_OUT_OF_RANGE;
 
 		log_warn("Directory name string object (id: %u) is too long", name_id);
@@ -80,45 +81,32 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	// acquire internal reference to name string
-	error_code = object_table_acquire_object(OBJECT_TYPE_STRING, name_id,
-	                                         OBJECT_REFERENCE_TYPE_INTERNAL);
-
-	if (error_code != API_E_OK) {
-		goto cleanup;
-	}
+	// acquire internal reference to name string and lock it
+	object_acquire_internal(&name->base);
+	object_lock(&name->base);
 
 	phase = 1;
 
-	// lock name string
-	error_code = string_lock(name_id);
-
-	if (error_code != API_E_OK) {
-		goto cleanup;
-	}
-
-	phase = 2;
-
-	// get name string as NULL-terminated buffer
-	error_code = string_get_null_terminated_buffer(name_id, &name);
+	// ensure name string is NULL-terminated
+	error_code = string_null_terminate_buffer(name);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
 	// open directory
-	dp = opendir(name);
+	dp = opendir(name->buffer);
 
 	if (dp == NULL) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not open directory '%s' (name-id: %u): %s (%d)",
-		         name, name_id, get_errno_name(errno), errno);
+		log_warn("Could not open directory (name: %s): %s (%d)",
+		         name->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
 
-	phase = 3;
+	phase = 2;
 
 	// create directory object
 	directory = calloc(1, sizeof(Directory));
@@ -132,79 +120,73 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 3;
 
-	directory->name_id = name_id;
+	directory->name = name;
 	directory->dp = dp;
-	directory->prefix_length = name_length;
 
-	string_copy(directory->buffer, name, sizeof(directory->buffer));
+	string_copy(directory->buffer, name->buffer, sizeof(directory->buffer));
 
-	if (directory->buffer[directory->prefix_length - 1] != '/') {
+	if (directory->buffer[directory->name->length - 1] != '/') {
 		string_append(directory->buffer, "/", sizeof(directory->buffer));
 
-		++directory->prefix_length;
+		++directory->name->length;
 	}
 
-	error_code = object_table_allocate_object(OBJECT_TYPE_DIRECTORY, directory,
-	                                          (FreeFunction)directory_destroy, 0,
-	                                          &directory->id);
+	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY, 0,
+	                           (ObjectDestroyFunction)directory_destroy,
+	                           NULL, NULL);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
-	*id = directory->id;
+	*id = directory->base.id;
 
-	log_debug("Opened directory object (id: %u) at '%s'",
-	          directory->id, name);
+	log_debug("Opened directory object (id: %u, name: %s)",
+	          directory->base.id, name->buffer);
 
-	phase = 5;
+	phase = 4;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 4:
+	case 3:
 		free(directory);
 
-	case 3:
+	case 2:
 		closedir(dp);
 
-	case 2:
-		string_unlock(name_id);
-
 	case 1:
-		object_table_release_object(name_id, OBJECT_REFERENCE_TYPE_INTERNAL);
+		object_unlock(&name->base);
+		object_release_internal(&name->base);
 
 	default:
 		break;
 	}
 
-	return phase == 5 ? API_E_OK : error_code;
+	return phase == 4 ? API_E_OK : error_code;
 }
 
+// public API
 APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 	Directory *directory;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_DIRECTORY, id, (void **)&directory);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 
 	if (error_code != API_E_OK) {
 		return error_code;
 	}
 
-	error_code = object_table_acquire_object(OBJECT_TYPE_STRING, directory->name_id,
-	                                         OBJECT_REFERENCE_TYPE_EXTERNAL);
+	object_acquire_external(&directory->name->base);
 
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	*name_id = directory->name_id;
+	*name_id = directory->name->base.id;
 
 	return API_E_OK;
 }
 
+// public API
 APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 	Directory *directory;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_DIRECTORY, id, (void **)&directory);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 	struct dirent *dirent;
 
 	if (error_code != API_E_OK) {
@@ -240,7 +222,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 			return API_E_OUT_OF_RANGE;
 		}
 
-		directory->buffer[directory->prefix_length] = '\0';
+		directory->buffer[directory->name->length] = '\0';
 
 		string_append(directory->buffer, dirent->d_name, sizeof(directory->buffer));
 
@@ -260,9 +242,10 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 	}
 }
 
+// public API
 APIE directory_rewind(ObjectID id) {
 	Directory *directory;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_DIRECTORY, id, (void **)&directory);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 
 	if (error_code != API_E_OK) {
 		return error_code;

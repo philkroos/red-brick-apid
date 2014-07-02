@@ -28,24 +28,11 @@
 
 #include "string.h"
 
-#include "api.h"
+#include "object_table.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-typedef struct {
-	ObjectID id;
-	char *buffer; // may not be NULL-terminated
-	uint32_t used; // <= INT32_MAX, does not include potential NULL-terminator
-	uint32_t allocated; // <= INT32_MAX
-	int lock_count; // > 0 means string is write protected
-} String;
-
 static void string_destroy(String *string) {
-	if (string->lock_count > 0) {
-		log_error("Destroying locked string object (id: %u, lock-count: %d)",
-		          string->id, string->lock_count);
-	}
-
 	free(string->buffer);
 
 	free(string);
@@ -62,7 +49,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	if (reserve > INT32_MAX) {
 		log_warn("Cannot reserve %u bytes, exceeds maximum length of a string object", reserve);
 
-		return API_E_INVALID_PARAMETER;
+		return API_E_OUT_OF_RANGE;
 	}
 
 	allocated = GROW_ALLOCATION(reserve);
@@ -70,7 +57,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 
 	if (buffer == NULL) {
 		log_error("Could not reallocate string object (id: %u) buffer to %u bytes: %s (%d)",
-		          string->id, allocated, get_errno_name(ENOMEM), ENOMEM);
+		          string->base.id, allocated, get_errno_name(ENOMEM), ENOMEM);
 
 		return API_E_NO_FREE_MEMORY;
 	}
@@ -94,13 +81,12 @@ static APIE string_create(uint32_t reserve, String **string) {
 	}
 
 	(*string)->buffer = NULL;
-	(*string)->used = 0;
+	(*string)->length = 0;
 	(*string)->allocated = 0;
-	(*string)->lock_count = 0;
 
-	error_code = object_table_allocate_object(OBJECT_TYPE_STRING, *string,
-	                                          (FreeFunction)string_destroy, 0,
-	                                          &(*string)->id);
+	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, 0,
+	                           (ObjectDestroyFunction)string_destroy,
+	                           NULL, NULL);
 
 	if (error_code != API_E_OK) {
 		free(*string);
@@ -111,7 +97,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	error_code = string_reserve(*string, reserve);
 
 	if (error_code != API_E_OK) {
-		object_table_release_object((*string)->id, OBJECT_REFERENCE_TYPE_EXTERNAL);
+		object_release_external(&(*string)->base);
 
 		return error_code;
 	}
@@ -119,6 +105,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	return API_E_OK;
 }
 
+// public API
 APIE string_allocate(uint32_t reserve, ObjectID *id) {
 	String *string;
 	APIE error_code = string_create(reserve, &string);
@@ -127,20 +114,20 @@ APIE string_allocate(uint32_t reserve, ObjectID *id) {
 		return error_code;
 	}
 
-	*id = string->id;
+	*id = string->base.id;
 
 	return API_E_OK;
 }
 
 APIE string_wrap(char *buffer, ObjectID *id) {
-	String *string;
 	uint32_t length = strlen(buffer);
 	APIE error_code;
+	String *string;
 
 	if (length > INT32_MAX) {
 		log_warn("Length of %u bytes exceeds maximum length of a string object", length);
 
-		return API_E_INVALID_PARAMETER;
+		return API_E_OUT_OF_RANGE;
 	}
 
 	error_code = string_create(length, &string);
@@ -151,50 +138,53 @@ APIE string_wrap(char *buffer, ObjectID *id) {
 
 	memcpy(string->buffer, buffer, length);
 
-	string->used = length;
+	string->length = length;
 
-	*id = string->id;
+	*id = string->base.id;
 
 	return error_code;
 }
 
+// public API
 APIE string_truncate(ObjectID id, uint32_t length) {
 	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
 	}
 
-	if (string->lock_count > 0) {
+	if (string->base.lock_count > 0) {
 		log_warn("Cannot truncate a locked string object (id: %u)", id);
 
 		return API_E_INVALID_OPERATION;
 	}
 
-	if (length < string->used) {
-		string->used = length;
+	if (length < string->length) {
+		string->length = length;
 	}
 
 	return API_E_OK;
 }
 
+// public API
 APIE string_get_length(ObjectID id, uint32_t *length) {
 	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
 	}
 
-	*length = string->used;
+	*length = string->length;
 
 	return API_E_OK;
 }
 
+// public API
 APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 	uint32_t length;
 	uint32_t i;
 
@@ -202,7 +192,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 		return error_code;
 	}
 
-	if (string->lock_count > 0) {
+	if (string->base.lock_count > 0) {
 		log_warn("Cannot change a locked string object (id: %u)", id);
 
 		return API_E_INVALID_OPERATION;
@@ -211,7 +201,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	if (offset > INT32_MAX) {
 		log_warn("Offset of %u byte(s) exceeds maximum length of a string object", offset);
 
-		return API_E_INVALID_PARAMETER;
+		return API_E_OUT_OF_RANGE;
 	}
 
 	length = strnlen(buffer, STRING_MAX_SET_CHUNK_BUFFER_LENGTH);
@@ -220,7 +210,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 		log_warn("Offset + length of %u byte(s) exceeds maximum length of a string object",
 		         offset + length);
 
-		return API_E_INVALID_PARAMETER;
+		return API_E_OUT_OF_RANGE;
 	}
 
 	if (length == 0) {
@@ -237,14 +227,14 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	// fill gap between old buffer end and offset with whitespace
-	for (i = string->used; i < offset; ++i) {
+	for (i = string->length; i < offset; ++i) {
 		string->buffer[i] = ' ';
 	}
 
 	memcpy(string->buffer + offset, buffer, length);
 
-	if (offset + length > string->used) {
-		string->used = offset + length;
+	if (offset + length > string->length) {
+		string->length = offset + length;
 	}
 
 	log_debug("Setting %u byte(s) at offset %u of string object (id: %u)",
@@ -253,9 +243,10 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	return API_E_OK;
 }
 
+// public API
 APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 	uint32_t length;
 
 	if (error_code != API_E_OK) {
@@ -267,19 +258,19 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	if (offset > INT32_MAX) {
 		log_warn("Offset of %u byte(s) exceeds maximum length of a string object", offset);
 
-		return API_E_INVALID_PARAMETER;
+		return API_E_OUT_OF_RANGE;
 	}
 
-	if (offset > string->used) {
+	if (offset > string->length) {
 		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
 		log_warn("Offset of %u byte(s) exceeds string object (id: %u) length of %u byte(s)",
-		         offset, id, string->used);
+		         offset, id, string->length);
 
-		return API_E_INVALID_PARAMETER;
+		return API_E_OUT_OF_RANGE;
 	}
 
-	length = string->used - offset;
+	length = string->length - offset;
 
 	if (length == 0) {
 		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
@@ -300,61 +291,14 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	return API_E_OK;
 }
 
-APIE string_lock(ObjectID id) {
-	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
+APIE string_null_terminate_buffer(String *string) {
+	APIE error_code = string_reserve(string, string->length + 1);
 
 	if (error_code != API_E_OK) {
 		return error_code;
 	}
 
-	log_debug("Locking string object (id: %u, lock-count: %d +1)",
-	          id, string->lock_count);
-
-	++string->lock_count;
-
-	return API_E_OK;
-}
-
-APIE string_unlock(ObjectID id) {
-	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	if (string->lock_count == 0) {
-		log_warn("Cannot unlock already unlocked string object (id: %u)", id);
-
-		return API_E_INVALID_OPERATION;
-	}
-
-	log_debug("Unlocking string object (id: %u, lock-count: %d -1)",
-	          id, string->lock_count);
-
-	--string->lock_count;
-
-	return API_E_OK;
-}
-
-APIE string_get_null_terminated_buffer(ObjectID id, const char **buffer) {
-	String *string;
-	APIE error_code = object_table_get_object_data(OBJECT_TYPE_STRING, id, (void **)&string);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	error_code = string_reserve(string, string->used + 1);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	string->buffer[string->used] = '\0';
-
-	*buffer = string->buffer;
+	string->buffer[string->length] = '\0';
 
 	return API_E_OK;
 }
