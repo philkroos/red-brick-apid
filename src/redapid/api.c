@@ -93,7 +93,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint8_t object_type;
+	uint8_t type;
 } ATTRIBUTE_PACKED GetNextObjectTableEntryRequest;
 
 typedef struct {
@@ -104,7 +104,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint8_t object_type;
+	uint8_t type;
 } ATTRIBUTE_PACKED RewindObjectTableRequest;
 
 typedef struct {
@@ -513,7 +513,7 @@ static void api_get_next_object_table_entry(GetNextObjectTableEntryRequest *requ
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = object_table_get_next_entry(request->object_type, &response.object_id);
+	response.error_code = object_table_get_next_entry(request->type, &response.object_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -523,7 +523,7 @@ static void api_rewind_object_table(RewindObjectTableRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = object_table_rewind(request->object_type);
+	response.error_code = object_table_rewind(request->type);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -977,8 +977,8 @@ enum object_type {
 }
 
 release_object              (uint16_t object_id)  -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
-get_next_object_table_entry (uint8_t object_type) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-table, adds a reference to the object, you need to call release_object() when done with it
-rewind_object_table         (uint8_t object_type) -> uint8_t error_code
+get_next_object_table_entry (uint8_t type)        -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-table, adds a reference to the object, you need to call release_object() when done with it
+rewind_object_table         (uint8_t type)        -> uint8_t error_code
 
 
 /*
