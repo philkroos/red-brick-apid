@@ -94,6 +94,7 @@ typedef enum {
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID *id);
 
 APIE file_get_name(ObjectID id, ObjectID *name_id);
+APIE file_get_type(ObjectID id, uint8_t *type);
 
 APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written);
 ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);

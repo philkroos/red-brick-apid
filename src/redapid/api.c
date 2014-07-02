@@ -55,6 +55,7 @@ typedef enum {
 
 	FUNCTION_OPEN_FILE,
 	FUNCTION_GET_FILE_NAME,
+	FUNCTION_GET_FILE_TYPE,
 	FUNCTION_WRITE_FILE,
 	FUNCTION_WRITE_FILE_UNCHECKED,
 	FUNCTION_WRITE_FILE_ASYNC,
@@ -259,6 +260,17 @@ typedef struct {
 	uint8_t error_code;
 	uint16_t name_string_id;
 } ATTRIBUTE_PACKED GetFileNameResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED GetFileTypeRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t type;
+} ATTRIBUTE_PACKED GetFileTypeResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -649,6 +661,16 @@ static void api_get_file_name(GetFileNameRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_get_file_type(GetFileTypeRequest *request) {
+	GetFileTypeResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_get_type(request->file_id, &response.type);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 static void api_write_file(WriteFileRequest *request) {
 	WriteFileResponse response;
 
@@ -867,6 +889,7 @@ void api_handle_request(Packet *request) {
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                   OpenFile,                open_file)
 	DISPATCH_FUNCTION(GET_FILE_NAME,               GetFileName,             get_file_name)
+	DISPATCH_FUNCTION(GET_FILE_TYPE,               GetFileType,             get_file_type)
 	DISPATCH_FUNCTION(WRITE_FILE,                  WriteFile,               write_file)
 	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,        WriteFileUnchecked,      write_file_unchecked)
 	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,            WriteFileAsync,          write_file_async)
@@ -1047,6 +1070,7 @@ enum file_type {
 
 open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it, you need to call release_object() when done with it
 get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
+get_file_type         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type
 write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
 write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
 write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response

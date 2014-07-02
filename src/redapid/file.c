@@ -45,12 +45,32 @@ typedef struct {
 	Object base;
 
 	String *name;
+	FileType type;
 	int fd;
-	bool regular;
-	IOHandle async_read_handle; // set to async_read_pipe.read_end if regular file, otherwise set to fd
-	Pipe async_read_pipe; // only created for regular file
+	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR, otherwise set to fd
+	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
 	uint64_t length_to_read_async; // > 0 means async read in progress
 } File;
+
+static FileType file_get_type_from_stat_mode(mode_t mode) {
+	if (S_ISREG(mode)) {
+		return FILE_TYPE_REGULAR;
+	} else if (S_ISDIR(mode)) {
+		return FILE_TYPE_DIRECTORY;
+	} else if (S_ISCHR(mode)) {
+		return FILE_TYPE_CHARACTER;
+	} else if (S_ISBLK(mode)) {
+		return FILE_TYPE_BLOCK;
+	} else if (S_ISFIFO(mode)) {
+		return FILE_TYPE_FIFO;
+	} else if (S_ISLNK(mode)) {
+		return FILE_TYPE_SYMLINK;
+	} else if (S_ISSOCK(mode)) {
+		return FILE_TYPE_SOCKET;
+	} else {
+		return FILE_TYPE_UNKNOWN;
+	}
+}
 
 static void file_destroy(File *file) {
 	if (file->length_to_read_async > 0) {
@@ -60,7 +80,7 @@ static void file_destroy(File *file) {
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
-	if (file->regular) {
+	if (file->type == FILE_TYPE_REGULAR) {
 		pipe_destroy(&file->async_read_pipe);
 	}
 
@@ -298,9 +318,9 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	phase = 3;
 
 	// create async read pipe for regular files
-	file->regular = S_ISREG(buffer.st_mode);
+	file->type = file_get_type_from_stat_mode(buffer.st_mode);
 
-	if (file->regular) {
+	if (file->type == FILE_TYPE_REGULAR) {
 		// (e)poll doesn't supported regular files. use a pipe with one byte in
 		// it to trigger read events for reading regular files asynchronously
 		if (pipe_create(&file->async_read_pipe) < 0) {
@@ -351,7 +371,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 4:
-		if (file->regular) {
+		if (file->type == FILE_TYPE_REGULAR) {
 			pipe_destroy(&file->async_read_pipe);
 		}
 
@@ -384,6 +404,20 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 	object_acquire_external(&file->name->base);
 
 	*name_id = file->name->base.id;
+
+	return API_E_OK;
+}
+
+// public API
+APIE file_get_type(ObjectID id, uint8_t *type) {
+	File *file;
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	*type = file->type;
 
 	return API_E_OK;
 }
@@ -702,24 +736,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 		return error_code;
 	}
 
-	if (S_ISREG(buffer.st_mode)) {
-		*type = FILE_TYPE_REGULAR;
-	} else if (S_ISDIR(buffer.st_mode)) {
-		*type = FILE_TYPE_DIRECTORY;
-	} else if (S_ISCHR(buffer.st_mode)) {
-		*type = FILE_TYPE_CHARACTER;
-	} else if (S_ISBLK(buffer.st_mode)) {
-		*type = FILE_TYPE_BLOCK;
-	} else if (S_ISFIFO(buffer.st_mode)) {
-		*type = FILE_TYPE_FIFO;
-	} else if (S_ISLNK(buffer.st_mode)) {
-		*type = FILE_TYPE_SYMLINK;
-	} else if (S_ISSOCK(buffer.st_mode)) {
-		*type = FILE_TYPE_SOCKET;
-	} else {
-		*type = FILE_TYPE_UNKNOWN;
-	}
-
+	*type = file_get_type_from_stat_mode(buffer.st_mode);
 	*permissions = 0;
 
 	if ((buffer.st_mode & S_IRUSR) != 0) {
