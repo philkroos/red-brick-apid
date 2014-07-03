@@ -200,9 +200,10 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 	}
 
 	if (list->base.lock_count > 0) {
-		log_warn("Cannot change a locked list object (id: %u)", id);
+		log_warn("Cannot append item (id: %u) to locked list object (id: %u)",
+		         item_id, id);
 
-		return API_E_INVALID_OPERATION;
+		return API_E_OBJECT_IS_LOCKED;
 	}
 
 	if (list->items.count == UINT16_MAX) {
@@ -253,7 +254,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 		log_warn("Cannot remove item (index: %u) from locked list object (id: %u)",
 		         index, id);
 
-		return API_E_INVALID_OPERATION;
+		return API_E_OBJECT_IS_LOCKED;
 	}
 
 	if (index >= list->items.count) {
