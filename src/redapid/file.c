@@ -30,27 +30,14 @@
 
 #include <daemonlib/event.h>
 #include <daemonlib/log.h>
-#include <daemonlib/pipe.h>
 #include <daemonlib/utils.h>
 
 #include "file.h"
 
 #include "api.h"
 #include "object_table.h"
-#include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
-
-typedef struct {
-	Object base;
-
-	String *name;
-	FileType type;
-	int fd;
-	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR, otherwise set to fd
-	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
-	uint64_t length_to_read_async; // > 0 means async read in progress
-} File;
 
 static FileType file_get_type_from_stat_mode(mode_t mode) {
 	if (S_ISREG(mode)) {
@@ -86,8 +73,7 @@ static void file_destroy(File *file) {
 
 	close(file->fd);
 
-	object_unlock(&file->name->base);
-	object_release_internal(&file->name->base);
+	string_unoccupy(file->name);
 
 	free(file);
 }
@@ -260,25 +246,14 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 		open_mode |= S_IXOTH;
 	}
 
-	// get name string object
-	error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
+	// occupy name string object
+	error_code = string_occupy(name_id, &name);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
-
-	// acquire internal reference to name string and lock it
-	object_acquire_internal(&name->base);
-	object_lock(&name->base);
 
 	phase = 1;
-
-	// ensure name string is NULL-terminated
-	error_code = string_null_terminate_buffer(name);
-
-	if (error_code != API_E_OK) {
-		goto cleanup;
-	}
 
 	// open file
 	fd = open(name->buffer, open_flags | O_NONBLOCK, open_mode);
@@ -382,8 +357,7 @@ cleanup:
 		close(fd);
 
 	case 1:
-		object_unlock(&name->base);
-		object_release_internal(&name->base);
+		string_unoccupy(name);
 
 	default:
 		break;
@@ -699,6 +673,24 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 	*position = rc;
 
 	return API_E_OK;
+}
+
+APIE file_occupy(ObjectID id, File **file) {
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_acquire_internal(&(*file)->base);
+	object_lock(&(*file)->base);
+
+	return API_E_OK;
+}
+
+void file_unoccupy(File *file) {
+	object_unlock(&file->base);
+	object_release_internal(&file->base);
 }
 
 // public API

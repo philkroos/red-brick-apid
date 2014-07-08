@@ -22,7 +22,15 @@
 #ifndef REDAPID_LIST_H
 #define REDAPID_LIST_H
 
+#include <daemonlib/array.h>
+
 #include "object.h"
+
+typedef struct {
+	Object base;
+
+	Array items;
+} List;
 
 APIE list_allocate(uint16_t reserve, ObjectID *id);
 
@@ -33,5 +41,8 @@ APIE list_append_to(ObjectID id, ObjectID item_id);
 APIE list_remove_from(ObjectID id, uint16_t index);
 
 APIE list_ensure_item_type(List *list, ObjectType type);
+
+APIE list_occupy(ObjectID id, ObjectType item_type, List **list);
+void list_unoccupy(List *list);
 
 #endif // REDAPID_LIST_H

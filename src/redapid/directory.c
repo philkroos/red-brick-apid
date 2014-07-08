@@ -51,8 +51,7 @@ typedef struct {
 static void directory_destroy(Directory *directory) {
 	closedir(directory->dp);
 
-	object_unlock(&directory->name->base);
-	object_release_internal(&directory->name->base);
+	string_unoccupy(directory->name);
 
 	free(directory);
 }
@@ -65,12 +64,14 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	DIR *dp;
 	Directory *directory;
 
-	// get name string object
-	error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
+	// occupy name string object
+	error_code = string_occupy(name_id, &name);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
+
+	phase = 1;
 
 	// check name string length
 	if (name->length > MAX_NAME_LENGTH) {
@@ -78,19 +79,6 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 
 		log_warn("Directory name string object (id: %u) is too long", name_id);
 
-		goto cleanup;
-	}
-
-	// acquire internal reference to name string and lock it
-	object_acquire_internal(&name->base);
-	object_lock(&name->base);
-
-	phase = 1;
-
-	// ensure name string is NULL-terminated
-	error_code = string_null_terminate_buffer(name);
-
-	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
@@ -157,8 +145,7 @@ cleanup:
 		closedir(dp);
 
 	case 1:
-		object_unlock(&name->base);
-		object_release_internal(&name->base);
+		string_unoccupy(name);
 
 	default:
 		break;

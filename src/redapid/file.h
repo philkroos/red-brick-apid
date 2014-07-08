@@ -22,7 +22,11 @@
 #ifndef REDAPID_FILE_H
 #define REDAPID_FILE_H
 
+#include <daemonlib/io.h>
+#include <daemonlib/pipe.h>
+
 #include "object.h"
+#include "string.h"
 
 typedef enum { // bitmask
 	FILE_FLAG_READ_ONLY  = 0x0001,
@@ -91,6 +95,17 @@ typedef enum {
 #define FILE_MAX_READ_BUFFER_LENGTH 62
 #define FILE_MAX_ASYNC_READ_BUFFER_LENGTH 60
 
+typedef struct {
+	Object base;
+
+	String *name;
+	FileType type;
+	int fd;
+	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR, otherwise set to fd
+	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
+	uint64_t length_to_read_async; // > 0 means async read in progress
+} File;
+
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID *id);
 
 APIE file_get_name(ObjectID id, ObjectID *name_id);
@@ -106,6 +121,9 @@ APIE file_abort_async_read(ObjectID id);
 
 APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position);
 APIE file_get_position(ObjectID id, uint64_t *position);
+
+APIE file_occupy(ObjectID id, File **file);
+void file_unoccupy(File *file);
 
 APIE file_get_info(ObjectID name_id, bool follow_symlink,
                    uint8_t *type, uint16_t *permissions, uint32_t *user_id,

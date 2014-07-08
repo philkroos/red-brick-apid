@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <daemonlib/array.h>
 #include <daemonlib/log.h>
 #include <daemonlib/utils.h>
 
@@ -33,12 +32,6 @@
 #include "object_table.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
-
-typedef struct {
-	Object base;
-
-	Array items;
-} List;
 
 static void list_release_item(Object **item) {
 	object_release_internal(*item);
@@ -286,4 +279,28 @@ APIE list_ensure_item_type(List *list, ObjectType type) {
 	}
 
 	return API_E_OK;
+}
+
+APIE list_occupy(ObjectID id, ObjectType item_type, List **list) {
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	error_code = list_ensure_item_type(*list, item_type);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_acquire_internal(&(*list)->base);
+	object_lock(&(*list)->base);
+
+	return API_E_OK;
+}
+
+void list_unoccupy(List *list) {
+	object_unlock(&list->base);
+	object_release_internal(&list->base);
 }

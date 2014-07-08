@@ -302,3 +302,27 @@ APIE string_null_terminate_buffer(String *string) {
 
 	return API_E_OK;
 }
+
+APIE string_occupy(ObjectID id, String **string) {
+	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	error_code = string_null_terminate_buffer(*string);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_acquire_internal(&(*string)->base);
+	object_lock(&(*string)->base);
+
+	return API_E_OK;
+}
+
+void string_unoccupy(String *string) {
+	object_unlock(&string->base);
+	object_release_internal(&string->base);
+}
