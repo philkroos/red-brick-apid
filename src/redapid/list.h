@@ -32,4 +32,6 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id);
 APIE list_append_to(ObjectID id, ObjectID item_id);
 APIE list_remove_from(ObjectID id, uint16_t index);
 
+APIE list_ensure_item_type(List *list, ObjectType type);
+
 #endif // REDAPID_LIST_H

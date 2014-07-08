@@ -268,3 +268,22 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 
 	return API_E_OK;
 }
+
+APIE list_ensure_item_type(List *list, ObjectType type) {
+	int i;
+	Object **object;
+
+	for (i = 0; i < list->items.count; ++i) {
+		object = array_get(&list->items, i);
+
+		if ((*object)->type != type) {
+			log_warn("List object (id: %u) should contain only %s items, but found %s item (index: %u)",
+			         list->base.id, object_get_type_name(type),
+			         object_get_type_name((*object)->type), i);
+
+			return API_E_WRONG_LIST_ITEM_TYPE;
+		}
+	}
+
+	return API_E_OK;
+}
