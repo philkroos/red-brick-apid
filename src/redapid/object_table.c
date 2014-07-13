@@ -74,7 +74,7 @@ int object_table_init(void) {
 			          object_get_type_name(type), get_errno_name(errno), errno);
 
 			for (--type; type >= OBJECT_TYPE_STRING; --type) {
-				array_destroy(&_objects[type], (FreeFunction)object_table_destroy_object);
+				array_destroy(&_objects[type], (ItemDestroyFunction)object_table_destroy_object);
 			}
 
 			array_destroy(&_free_ids, NULL);
@@ -90,14 +90,14 @@ void object_table_exit(void) {
 	log_debug("Shutting down object subsystem");
 
 	// destroy all objects that could have references to string objects...
-	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (FreeFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (FreeFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (FreeFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_FILE], (FreeFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_LIST], (FreeFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (ItemDestroyFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (ItemDestroyFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (ItemDestroyFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_FILE], (ItemDestroyFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_LIST], (ItemDestroyFunction)object_table_destroy_object);
 
 	// ...before destroying the remaining string objects...
-	array_destroy(&_objects[OBJECT_TYPE_STRING], (FreeFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_STRING], (ItemDestroyFunction)object_table_destroy_object);
 
 	// ...before destroying the free IDs array
 	array_destroy(&_free_ids, NULL);
@@ -186,7 +186,7 @@ void object_table_remove_object(Object *object) {
 		          object_get_type_name(object->type), object->id);
 
 		// remove object from array
-		array_remove(&_objects[object->type], i, (FreeFunction)object_table_destroy_object);
+		array_remove(&_objects[object->type], i, (ItemDestroyFunction)object_table_destroy_object);
 
 		return;
 	}

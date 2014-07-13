@@ -45,7 +45,7 @@ static void list_release_item(Object **item) {
 }
 
 static void list_destroy(List *list) {
-	array_destroy(&list->items, (FreeFunction)list_release_item);
+	array_destroy(&list->items, (ItemDestroyFunction)list_release_item);
 
 	free(list);
 }
@@ -130,7 +130,7 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 2:
-		array_destroy(&list->items, (FreeFunction)list_release_item);
+		array_destroy(&list->items, (ItemDestroyFunction)list_release_item);
 
 	case 1:
 		free(list);
@@ -264,7 +264,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 		return API_E_OUT_OF_RANGE;
 	}
 
-	array_remove(&list->items, index, (FreeFunction)list_release_item);
+	array_remove(&list->items, index, (ItemDestroyFunction)list_release_item);
 
 	return API_E_OK;
 }
