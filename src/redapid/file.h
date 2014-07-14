@@ -34,7 +34,8 @@ typedef enum { // bitmask
 	FILE_FLAG_READ_WRITE = 0x0004,
 	FILE_FLAG_APPEND     = 0x0008,
 	FILE_FLAG_CREATE     = 0x0010,
-	FILE_FLAG_TRUNCATE   = 0x0020
+	FILE_FLAG_EXCLUSIVE  = 0x0020, // can only be used in combination with FILE_FLAG_CREATE
+	FILE_FLAG_TRUNCATE   = 0x0040
 } FileFlag;
 
 #define FILE_FLAG_ALL (FILE_FLAG_READ_ONLY | \
@@ -106,7 +107,8 @@ typedef struct {
 	uint64_t length_to_read_async; // > 0 means async read in progress
 } File;
 
-APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID *id);
+APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
+               uint32_t user_id, uint32_t group_id, ObjectID *id);
 
 APIE file_get_name(ObjectID id, ObjectID *name_id);
 APIE file_get_type(ObjectID id, uint8_t *type);

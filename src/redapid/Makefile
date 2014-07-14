@@ -75,6 +75,7 @@ SOURCES := ../daemonlib/array.c \
            network.c \
            object.c \
            object_table.c \
+           process.c \
            string.c
 
 OBJECTS := ${SOURCES:.c=.o}

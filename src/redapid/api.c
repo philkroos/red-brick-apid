@@ -242,6 +242,8 @@ typedef struct {
 	uint16_t name_string_id;
 	uint16_t flags;
 	uint16_t permissions;
+	uint32_t user_id;
+	uint32_t group_id;
 } ATTRIBUTE_PACKED OpenFileRequest;
 
 typedef struct {
@@ -646,7 +648,8 @@ static void api_open_file(OpenFileRequest *request) {
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
 	response.error_code = file_open(request->name_string_id, request->flags,
-	                                request->permissions, &response.file_id);
+	                                request->permissions, request->user_id,
+	                                request->group_id, &response.file_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -1031,7 +1034,8 @@ enum file_flag { // bitmask
 	FILE_FLAG_READ_WRITE = 0x0004,
 	FILE_FLAG_APPEND = 0x0008,
 	FILE_FLAG_CREATE = 0x0010,
-	FILE_FLAG_TRUNCATE = 0x0020
+	FILE_FLAG_EXCLUSIVE = 0x0020,
+	FILE_FLAG_TRUNCATE = 0x0040
 }
 
 enum file_permission { // bitmask
@@ -1068,7 +1072,9 @@ enum file_type {
 	FILE_TYPE_SOCKET
 }
 
-open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions) -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it, you need to call release_object() when done with it
+open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions,
+                       uint32_t user_id, uint32_t group_id)                           -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it, you need to call release_object() when done with it
+create_pipe           ()                                                              -> uint8_t error_code, uint16_t file_id // you need to call release_object() when done with it
 get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
 get_file_type         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type
 write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
@@ -1110,9 +1116,7 @@ get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16
 get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-create_directory      (uint16_t name_string_id, uint16_t permissions) -> uint8_t error_code
-set_current_directory (uint16_t name_string_id)                       -> uint8_t error_code
-get_current_directory ()                                              -> uint8_t error_code, uint16_t name_string_id
+create_directory (uint16_t name_string_id, uint16_t permissions) -> uint8_t error_code
 
 
 /*
@@ -1139,21 +1143,36 @@ enum process_state {
 	PROCESS_STATE_STOPPED // stopped by signal
 }
 
-start_process           (uint16_t command_string_id,
-                         uint16_t argument_string_ids[20],
-                         uint8_t argument_count,
-                         uint16_t environment_string_ids[8],
-                         uint8_t environment_count,
-                         bool merge_stdout_and_stderr)        -> uint8_t error_code, uint16_t process_id // adds a reference to the command, arguments, environment and locks them, you need to call release_object() when done with it
-kill_process            (uint16_t process_id, uint8_t signal) -> uint8_t error_code
-get_process_command     (uint16_t process_id)                 -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
-get_process_arguments   (uint16_t process_id)                 -> uint8_t error_code, uint16_t argument_string_ids[20], uint8_t argument_count // adds a reference to the arguments, you need to call release_object() when done with it
-get_process_environment (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_string_ids[8], uint8_t environment_count // adds a reference to the environment, you need to call release_object() when done with it
-get_process_state       (uint16_t process_id)                 -> uint8_t error_code, uint8_t state
-get_process_exit_code   (uint16_t process_id)                 -> uint8_t error_code, uint8_t exit_code
-get_process_stdin_file  (uint16_t process_id)                 -> uint8_t error_code, uint8_t stdin_file_id
-get_process_stdout_file (uint16_t process_id)                 -> uint8_t error_code, uint8_t stdout_file_id
-get_process_stderr_file (uint16_t process_id)                 -> uint8_t error_code, uint8_t stderr_file_id
+struct process {
+	uint16_t process_id;
+	uint16_t command_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
+	uint16_t stdin_file_id;
+	uint16_t stdout_file_id;
+	uint16_t stderr_file_id;
+}
+
+start_process                 (uint16_t command_string_id,
+                               uint16_t arguments_list_id,
+                               uint16_t environment_list_id,
+                               uint16_t working_directory_string_id,
+                               uint32_t user_id,
+                               uint32_t group_id,
+                               uint16_t stdin_file_id,
+                               uint16_t stdout_file_id,
+                               uint16_t stderr_file_id)             -> uint8_t error_code, uint16_t process_id // adds a reference to the command, argument list, environment list and locks them, you need to call release_object() when done with it
+kill_process                  (uint16_t process_id, uint8_t signal) -> uint8_t error_code
+get_process_command           (uint16_t process_id)                 -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+get_process_arguments         (uint16_t process_id)                 -> uint8_t error_code, uint16_t arguments_list_id // adds a reference to the argument list, you need to call release_object() when done with it
+get_process_environment       (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_list_id // adds a reference to the environment list, you need to call release_object() when done with it
+get_process_working_directory (uint16_t process_id)                 -> uint8_t error_code, uint16_t working_directory_string_id // adds a reference to the working directory string, you need to call release_object() when done with it
+get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state
+get_process_exit_code         (uint16_t process_id)                 -> uint8_t error_code, uint8_t exit_code
+get_process_stdin_file        (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
+get_process_stdout_file       (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
+get_process_stderr_file       (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
 
 callback: process_state -> uint16_t process_id, uint8_t state
 
@@ -1166,14 +1185,27 @@ struct program {
 	uint16_t program_id;
 	uint16_t name_string_id;
 	uint16_t command_string_id;
+	uint16_t argument_list_id;
+	uint16_t environment_list_id;
+	bool merged_output;
 }
 
-define_program      (uint16_t name_string_id)                         -> uint8_t error_code, uint16_t program_id // adds a reference to the name and locks it
-undefine_program    (uint16_t program_id)                             -> uint8_t error_code // unlocks and releases name and command
-get_program_name    (uint16_t program_id)                             -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
-set_program_command (uint16_t program_id, uint16_t command_string_id) -> uint8_t error_code // adds a reference to the command and locks it, unlocks and releases previous command, if any
-get_program_command (uint16_t program_id)                             -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
-execute_program     (uint16_t program_id)                             -> uint8_t error_code, uint16_t process_id // adds a reference to the program and locks it, you need to call release_object() when done with it
+define_program            (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id // adds a reference to the name and locks it
+undefine_program          (uint16_t program_id)          -> uint8_t error_code
+get_program_name          (uint16_t program_id)          -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
+set_program_command       (uint16_t program_id,
+                           uint16_t command_string_id)   -> uint8_t error_code // adds a reference to the command and locks it, unlocks and releases previous command, if any
+get_program_command       (uint16_t program_id)          -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+set_program_arguments     (uint16_t program_id,
+                           uint16_t arguments_list_id    -> uint8_t error_code // adds a reference to the argument list and locks it, unlocks and releases previous arguments, if any
+get_program_arguments     (uint16_t program_id)          -> uint8_t error_code, uint16_t arguments_list_id // adds a reference to the argument list, you need to call release_object() when done with it
+set_program_environment   (uint16_t program_id,
+                           uint16_t environment_list_id) -> uint8_t error_code // adds a reference to the environment list and locks it, unlocks and releases previous environment, if any
+get_program_environment   (uint16_t program_id)          -> uint8_t error_code, uint16_t environment_list_id // adds a reference to the environment list, you need to call release_object() when done with it
+merge_program_output      (uint16_t program_id,
+                           bool merge_output)            -> uint8_t error_code
+has_program_merged_output (uint16_t program_id)          -> uint8_t error_code, bool merged_output
+execute_program           (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id // adds a reference to the program and locks it, you need to call release_object() when done with it
 
 
 /*

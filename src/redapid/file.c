@@ -20,12 +20,14 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <daemonlib/event.h>
@@ -36,8 +38,71 @@
 
 #include "api.h"
 #include "object_table.h"
+#include "process.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
+
+static int sendfd(int socket_handle, int fd) {
+	uint8_t buffer[1] = { 0 };
+	struct iovec iovec;
+	struct msghdr msghdr;
+	struct cmsghdr *cmsghdr;
+	uint8_t control[CMSG_SPACE(sizeof(int))];
+
+	iovec.iov_base = buffer;
+	iovec.iov_len = sizeof(buffer);
+
+	memset(&msghdr, 0, sizeof (msghdr));
+
+	msghdr.msg_iov = &iovec;
+	msghdr.msg_iovlen = 1;
+	msghdr.msg_control = (caddr_t)control;
+	msghdr.msg_controllen = CMSG_LEN(sizeof(int));
+
+	cmsghdr = CMSG_FIRSTHDR(&msghdr);
+	cmsghdr->cmsg_len = CMSG_LEN(sizeof(int));
+	cmsghdr->cmsg_level = SOL_SOCKET;
+	cmsghdr->cmsg_type = SCM_RIGHTS;
+
+	memmove(CMSG_DATA(cmsghdr), &fd, sizeof(int));
+
+	if (sendmsg(socket_handle, &msghdr, 0) != (int)iovec.iov_len) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static int recvfd(int socket_handle) {
+	uint8_t buffer[1] = { 0 };
+	struct iovec iovec;
+	struct msghdr msghdr;
+	struct cmsghdr *cmsghdr;
+	uint8_t control[CMSG_SPACE(sizeof(int))];
+	int fd;
+
+	iovec.iov_base = buffer;
+	iovec.iov_len = sizeof(buffer);
+
+	memset(&msghdr, 0, sizeof (msghdr));
+
+	msghdr.msg_name = 0;
+	msghdr.msg_namelen = 0;
+	msghdr.msg_iov = &iovec;
+	msghdr.msg_iovlen = 1;
+	msghdr.msg_control = (caddr_t)control;
+	msghdr.msg_controllen = sizeof(control);
+
+	if (recvmsg(socket_handle, &msghdr, 0) <= 0) {
+		return -1;
+	}
+
+	cmsghdr = CMSG_FIRSTHDR(&msghdr);
+
+	memmove(&fd, CMSG_DATA(cmsghdr), sizeof(int));
+
+	return fd;
+}
 
 static FileType file_get_type_from_stat_mode(mode_t mode) {
 	if (S_ISREG(mode)) {
@@ -146,8 +211,166 @@ static void file_handle_async_read(void *opaque) {
 	}
 }
 
+static APIE file_open_as(const char *name, int flags, mode_t mode,
+                         uint32_t user_id, uint32_t group_id, int *fd_) {
+	APIE error_code;
+	int pair[2];
+	pid_t pid;
+	int fd;
+	int rc;
+	int status;
+
+	// create socket pair to pass fd from child to parent
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create socket pair for opening file (name: %s): %s (%d)",
+		          name, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	error_code = process_fork(&pid);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (pid == 0) { // child
+		// close read end
+		close(pair[0]);
+
+		// change group
+		if (setregid(group_id, group_id) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could change to %u group for opening file (name: %s): %s (%d)",
+			          group_id, name, get_errno_name(errno), errno);
+
+			goto child_cleanup;
+		}
+
+		// change user
+		if (setreuid(user_id, user_id) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could change to %u user for opening file (name: %s): %s (%d)",
+			          user_id, name, get_errno_name(errno), errno);
+
+			goto child_cleanup;
+		}
+
+		// open file
+		fd = open(name, flags | O_NONBLOCK, mode);
+
+		if (fd < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not open file (name: %s) as %u:%u: %s (%d)",
+			         name, user_id, group_id, get_errno_name(errno), errno);
+
+			goto child_cleanup;
+		}
+
+		// send fd to parent
+		do {
+			rc = sendfd(pair[1], fd);
+		} while (rc < 0 && errno == EINTR);
+
+		if (rc < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not send to parent for file (name: %s): %s (%d)",
+			          name, get_errno_name(errno), errno);
+
+			close(fd);
+
+			goto child_cleanup;
+		}
+
+		error_code = API_E_OK;
+
+	child_cleanup:
+		// close write end
+		close(pair[1]);
+
+		// tell parent how it went
+		_exit(error_code);
+	}
+
+	// close write end
+	close(pair[1]);
+
+	// receive fd from child
+	do {
+		fd = recvfd(pair[0]);
+	} while (fd < 0 && errno == EINTR);
+
+	// if recvfd returns < 0 and errno == ENOENT then the child closed the
+	// socketpair before sending a fd. in this case the child is going to
+	// report an error code in its exit status. if errno != ENOENT another
+	// error occurred, the child is (probably) not going to send an error
+	// code in its exit status. report this and wait for the child to exit.
+	if (fd < 0 && errno != ENOENT) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not receive from child opening file (name: %s) as %u:%u: %s (%d)",
+		          name, user_id, group_id, get_errno_name(errno), errno);
+
+		// close read end
+		close(pair[0]);
+
+		// wait for child to exit
+		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR);
+
+		return error_code;
+	}
+
+	// close read end
+	close(pair[0]);
+
+	// wait for child to exit
+	do {
+		rc = waitpid(pid, &status, 0);
+	} while (rc < 0 && errno == EINTR);
+
+	if (rc < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not wait for child opening file (name: %s) as %u:%u: %s (%d)",
+		          name, user_id, group_id, get_errno_name(errno), errno);
+
+		close(fd);
+
+		return error_code;
+	}
+
+	if (!WIFEXITED(status)) {
+		log_error("Child opening file (name: %s) as %u:%u did not exit properly",
+		          name, user_id, group_id);
+
+		close(fd);
+
+		return API_E_INTERNAL_ERROR;
+	}
+
+	error_code = WEXITSTATUS(status);
+
+	if (error_code != API_E_OK) {
+		close(fd);
+
+		return error_code;
+	}
+
+	*fd_ = fd;
+
+	return API_E_OK;
+}
+
+
 // public API
-APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID *id) {
+APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
+               uint32_t user_id, uint32_t group_id, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -205,6 +428,10 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 		open_flags |= O_CREAT;
 	}
 
+	if ((flags & FILE_FLAG_EXCLUSIVE) != 0) {
+		open_flags |= O_EXCL;
+	}
+
 	if ((flags & FILE_FLAG_TRUNCATE) != 0) {
 		open_flags |= O_TRUNC;
 	}
@@ -256,15 +483,24 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	phase = 1;
 
 	// open file
-	fd = open(name->buffer, open_flags | O_NONBLOCK, open_mode);
+	if (geteuid() == user_id && getegid() == group_id) {
+		fd = open(name->buffer, open_flags | O_NONBLOCK, open_mode);
 
-	if (fd < 0) {
-		error_code = api_get_error_code_from_errno();
+		if (fd < 0) {
+			error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not open file (name: %s): %s (%d)",
-		         name->buffer, get_errno_name(errno), errno);
+			log_warn("Could not open file (name: %s) as %u:%u: %s (%d)",
+			         name->buffer, user_id, group_id, get_errno_name(errno), errno);
 
-		goto cleanup;
+			goto cleanup;
+		}
+	} else {
+		error_code = file_open_as(name->buffer, open_flags, open_mode,
+		                          user_id, group_id, &fd);
+
+		if (error_code != API_E_OK) {
+			goto cleanup;
+		}
 	}
 
 	phase = 2;
@@ -272,8 +508,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 	if (fstat(fd, &buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not get information for file (name: %s): %s (%d)",
-		         name->buffer, get_errno_name(errno), errno);
+		log_error("Could not get information for file (name: %s): %s (%d)",
+		          name->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -338,8 +574,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions, ObjectID 
 
 	*id = file->base.id;
 
-	log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: 0o%04o, handle: %d)",
-	          file->base.id, file->name->buffer, flags, permissions, fd);
+	log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: 0o%04o, user-id: %u, group-id: %u, handle: %d)",
+	          file->base.id, file->name->buffer, flags, permissions, user_id, group_id, fd);
 
 	phase = 5;
 
