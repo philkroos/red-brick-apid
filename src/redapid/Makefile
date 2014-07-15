@@ -7,6 +7,7 @@
 CC ?= gcc
 
 WITH_LOGGING ?= yes
+WITH_DEBUG ?= no
 
 ## RULES ######################################################################
 
@@ -83,8 +84,13 @@ DEPENDS := ${SOURCES:.c=.p}
 
 TARGET := redapid
 
-CFLAGS += -O2 -Wall -Wextra -I.. -D_FILE_OFFSET_BITS=64
-#CFLAGS += -O0 -g -ggdb
+CFLAGS += -Wall -Wextra -I.. -D_FILE_OFFSET_BITS=64
+
+ifeq ($(WITH_DEBUG),yes)
+	CFLAGS += -O0 -g -ggdb
+else
+	CFLAGS += -O2
+endif
 
 CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DLOCALSTATEDIR="\"$(localstatedir)\""
 LDFLAGS += -pthread
