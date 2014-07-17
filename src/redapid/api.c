@@ -36,6 +36,10 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
+// ensure that bool values in the packet definitions follow the TFP definition
+// of a bool and don't rely on stdbool.h to fulfill this
+typedef uint8_t tfpbool;
+
 typedef enum {
 	FUNCTION_RELEASE_OBJECT = 1,
 	FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY,
@@ -362,7 +366,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	bool follow_symlink;
+	tfpbool follow_symlink;
 } ATTRIBUTE_PACKED GetFileInfoRequest;
 
 typedef struct {
@@ -381,7 +385,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	bool canonicalize;
+	tfpbool canonicalize;
 } ATTRIBUTE_PACKED GetSymlinkTargetRequest;
 
 typedef struct {

@@ -121,7 +121,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 		++directory->name->length;
 	}
 
-	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY, 0,
+	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY, false,
 	                           (ObjectDestroyFunction)directory_destroy,
 	                           NULL, NULL);
 

@@ -60,7 +60,7 @@ int object_table_init(void) {
 
 	log_debug("Initializing object subsystem");
 
-	if (array_create(&_free_ids, 32, sizeof(ObjectID), 1) < 0) {
+	if (array_create(&_free_ids, 32, sizeof(ObjectID), true) < 0) {
 		log_error("Could not create free object ID array: %s (%d)",
 		          get_errno_name(errno), errno);
 
@@ -69,7 +69,7 @@ int object_table_init(void) {
 
 	// allocate object arrays
 	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
-		if (array_create(&_objects[type], 32, sizeof(Object *), 1) < 0) {
+		if (array_create(&_objects[type], 32, sizeof(Object *), true) < 0) {
 			log_error("Could not create %s object array: %s (%d)",
 			          object_get_type_name(type), get_errno_name(errno), errno);
 

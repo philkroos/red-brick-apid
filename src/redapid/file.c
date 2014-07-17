@@ -564,7 +564,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->fd = fd;
 	file->length_to_read_async = 0;
 
-	error_code = object_create(&file->base, OBJECT_TYPE_FILE, 0,
+	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
 	                           (ObjectDestroyFunction)file_destroy,
 	                           NULL, NULL);
 

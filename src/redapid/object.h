@@ -22,6 +22,7 @@
 #ifndef REDAPID_OBJECT_H
 #define REDAPID_OBJECT_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "api.h"

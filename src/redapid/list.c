@@ -96,7 +96,7 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 
 	phase = 1;
 
-	if (array_create(&list->items, reserve, sizeof(Object *), 1) < 0) {
+	if (array_create(&list->items, reserve, sizeof(Object *), true) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not create list object item array: %s (%d)",
@@ -107,7 +107,7 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 
 	phase = 2;
 
-	error_code = object_create(&list->base, OBJECT_TYPE_LIST, 0,
+	error_code = object_create(&list->base, OBJECT_TYPE_LIST, false,
 	                           (ObjectDestroyFunction)list_destroy,
 	                           (ObjectLockFunction)list_lock,
 	                           (ObjectUnlockFunction)list_unlock);

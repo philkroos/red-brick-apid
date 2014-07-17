@@ -51,8 +51,6 @@ typedef enum {
 	API_E_NAME_TOO_LONG            // ENAMETOOLONG
 } APIE;
 
-typedef uint8_t bool;
-
 int api_init(void);
 void api_exit(void);
 

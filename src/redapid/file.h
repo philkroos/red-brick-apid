@@ -22,6 +22,8 @@
 #ifndef REDAPID_FILE_H
 #define REDAPID_FILE_H
 
+#include <stdbool.h>
+
 #include <daemonlib/io.h>
 #include <daemonlib/pipe.h>
 

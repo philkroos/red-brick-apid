@@ -84,7 +84,12 @@ DEPENDS := ${SOURCES:.c=.p}
 
 TARGET := redapid
 
-CFLAGS += -Wall -Wextra -I.. -D_FILE_OFFSET_BITS=64
+# tell GCC to use C99, but actually write C89 code plus stdint.h and stdbool.h.
+# in brickd this is done to be able to compile it with MSVC/WDK which supports
+# C89 only. redapid is not compiled with MSVC/WDK but the code is written in
+# the same style as brickd to avoid a style break between redapid and daemonlib
+# which is shared with brickd
+CFLAGS += -std=gnu99 -Wall -Wextra -I.. -D_FILE_OFFSET_BITS=64
 
 ifeq ($(WITH_DEBUG),yes)
 	CFLAGS += -O0 -g -ggdb

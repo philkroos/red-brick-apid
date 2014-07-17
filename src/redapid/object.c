@@ -92,10 +92,10 @@ bool object_is_type_valid(ObjectType type) {
 	case OBJECT_TYPE_DIRECTORY:
 	case OBJECT_TYPE_PROCESS:
 	case OBJECT_TYPE_PROGRAM:
-		return 1;
+		return true;
 
 	default:
-		return 0;
+		return false;
 	}
 }
 

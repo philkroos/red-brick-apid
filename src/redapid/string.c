@@ -84,7 +84,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	(*string)->length = 0;
 	(*string)->allocated = 0;
 
-	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, 0,
+	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, false,
 	                           (ObjectDestroyFunction)string_destroy,
 	                           NULL, NULL);
 
