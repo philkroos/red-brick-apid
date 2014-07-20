@@ -22,6 +22,8 @@
 #ifndef REDAPID_BRICKD_H
 #define REDAPID_BRICKD_H
 
+#include <stdbool.h>
+
 #include <daemonlib/packet.h>
 #include <daemonlib/queue.h>
 #include <daemonlib/socket.h>
@@ -29,10 +31,10 @@
 
 typedef struct {
 	Socket *socket;
-	int disconnected;
+	bool disconnected;
 	Packet request;
 	int request_used;
-	int request_header_checked;
+	bool request_header_checked;
 	Writer response_writer;
 } BrickDaemon;
 

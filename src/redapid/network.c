@@ -20,6 +20,7 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +44,7 @@
 static const char *_uds_filename;
 static Socket _server_socket;
 static BrickDaemon _brickd;
-static int _brickd_connected = 0;
+static bool _brickd_connected = false;
 
 static void network_handle_accept(void *opaque) {
 	Socket *client_socket;
@@ -78,7 +79,7 @@ static void network_handle_accept(void *opaque) {
 		return;
 	}
 
-	_brickd_connected = 1;
+	_brickd_connected = true;
 
 	log_info("Brick Daemon connected");
 }
@@ -176,7 +177,7 @@ void network_cleanup_brickd(void) {
 
 		brickd_destroy(&_brickd);
 
-		_brickd_connected = 0;
+		_brickd_connected = false;
 	}
 }
 

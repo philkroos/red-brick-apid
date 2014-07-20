@@ -46,7 +46,7 @@ static void brickd_handle_read(void *opaque) {
 	if (length == 0) {
 		log_info("Brick Daemon disconnected by peer");
 
-		brickd->disconnected = 1;
+		brickd->disconnected = true;
 
 		return;
 	}
@@ -62,7 +62,7 @@ static void brickd_handle_read(void *opaque) {
 			log_error("Could not receive from Brick Daemon, disconnecting brickd: %s (%d)",
 			          get_errno_name(errno), errno);
 
-			brickd->disconnected = 1;
+			brickd->disconnected = true;
 		}
 
 		return;
@@ -82,12 +82,12 @@ static void brickd_handle_read(void *opaque) {
 				          packet_get_request_signature(packet_signature, &brickd->request),
 				          message);
 
-				brickd->disconnected = 1;
+				brickd->disconnected = true;
 
 				return;
 			}
 
-			brickd->request_header_checked = 1;
+			brickd->request_header_checked = true;
 		}
 
 		length = brickd->request.header.length;
@@ -108,11 +108,11 @@ static void brickd_handle_read(void *opaque) {
 		        brickd->request_used - length);
 
 		brickd->request_used -= length;
-		brickd->request_header_checked = 0;
+		brickd->request_header_checked = false;
 	}
 }
 
-static char *brickd_get_recipient_signature(char *signature, int upper, void *opaque) {
+static char *brickd_get_recipient_signature(char *signature, bool upper, void *opaque) {
 	(void)upper;
 	(void)opaque;
 
@@ -125,16 +125,16 @@ static char *brickd_get_recipient_signature(char *signature, int upper, void *op
 static void brickd_recipient_disconnect(void *opaque) {
 	BrickDaemon *brickd = opaque;
 
-	brickd->disconnected = 1;
+	brickd->disconnected = true;
 }
 
 int brickd_create(BrickDaemon *brickd, Socket *socket) {
 	log_debug("Creating Brick Daemon from UNIX domain socket (handle: %d)", socket->base.handle);
 
 	brickd->socket = socket;
-	brickd->disconnected = 0;
+	brickd->disconnected = false;
 	brickd->request_used = 0;
-	brickd->request_header_checked = 0;
+	brickd->request_header_checked = false;
 
 	// create response writer
 	if (writer_create(&brickd->response_writer, &brickd->socket->base,

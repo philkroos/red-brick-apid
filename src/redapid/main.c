@@ -20,6 +20,7 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -128,24 +129,24 @@ static void print_usage(void) {
 int main(int argc, char **argv) {
 	int exit_code = EXIT_FAILURE;
 	int i;
-	int help = 0;
-	int version = 0;
-	int check_config = 0;
-	int daemon = 0;
-	int debug = 0;
+	bool help = false;
+	bool version = false;
+	bool check_config = false;
+	bool daemon = false;
+	bool debug = false;
 	int pid_fd = -1;
 
 	for (i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--help") == 0) {
-			help = 1;
+			help = true;
 		} else if (strcmp(argv[i], "--version") == 0) {
-			version = 1;
+			version = true;
 		} else if (strcmp(argv[i], "--check-config") == 0) {
-			check_config = 1;
+			check_config = true;
 		} else if (strcmp(argv[i], "--daemon") == 0) {
-			daemon = 1;
+			daemon = true;
 		} else if (strcmp(argv[i], "--debug") == 0) {
-			debug = 1;
+			debug = true;
 		} else {
 			fprintf(stderr, "Unknown option '%s'\n\n", argv[i]);
 			print_usage();

@@ -472,7 +472,7 @@ static void api_prepare_response(Packet *request, Packet *response, uint8_t leng
 
 	packet_header_set_sequence_number(&response->header,
 	                                  packet_header_get_sequence_number(&request->header));
-	packet_header_set_response_expected(&response->header, 1);
+	packet_header_set_response_expected(&response->header, true);
 }
 
 void api_prepare_callback(Packet *callback, uint8_t length, uint8_t function_id) {
@@ -483,7 +483,7 @@ void api_prepare_callback(Packet *callback, uint8_t length, uint8_t function_id)
 	callback->header.function_id = function_id;
 
 	packet_header_set_sequence_number(&callback->header, 0);
-	packet_header_set_response_expected(&callback->header, 1);
+	packet_header_set_response_expected(&callback->header, true);
 }
 
 static void api_send_response_if_expected(Packet *request, ErrorCode error_code) {
