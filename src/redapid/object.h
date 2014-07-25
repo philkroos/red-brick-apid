@@ -42,13 +42,13 @@ typedef enum {
 
 #define MAX_OBJECT_TYPES 6
 
-typedef struct Object_ Object;
+typedef struct _Object Object;
 
 typedef void (*ObjectDestroyFunction)(Object *object);
 typedef void (*ObjectLockFunction)(Object *object);
 typedef APIE (*ObjectUnlockFunction)(Object *object);
 
-struct Object_ {
+struct _Object {
 	ObjectID id;
 	ObjectType type;
 	ObjectDestroyFunction destroy;

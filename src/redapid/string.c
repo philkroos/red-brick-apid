@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <daemonlib/log.h>
+#include <daemonlib/macros.h>
 #include <daemonlib/utils.h>
 
 #include "string.h"
