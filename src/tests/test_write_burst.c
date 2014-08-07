@@ -52,7 +52,8 @@ void write_burst(void) {
 
 	printf("write_burst k %d\n", k);
 
-	for (int i = 0; i < 30000; ++i) {
+	int i;
+	for (i = 0; i < 30000; ++i) {
 		rc = red_write_file_unchecked(&red, fid, buffer, 61);
 		if (rc < 0) {
 			printf("red_write_file_unchecked -> rc %d\n", rc);
@@ -105,16 +106,6 @@ int main() {
 		return -1;
 	}
 
-	uint32_t length;
-	rc = red_get_string_length(&red, sid, &ec, &length);
-	if (rc < 0) {
-		printf("red_get_string_length -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_get_string_length -> ec %u\n", ec);
-	}
-	printf("red_get_string_length -> length %u\n", length);
-
 	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 1000, 1000, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
@@ -155,4 +146,6 @@ cleanup_open_file:
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);
+
+	return 0;
 }

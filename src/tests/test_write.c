@@ -22,6 +22,9 @@ uint64_t microseconds(void) {
 }
 
 int main() {
+	uint8_t ec;
+	int rc;
+
 	// Create IP connection
 	IPConnection ipcon;
 	ipcon_create(&ipcon);
@@ -38,74 +41,77 @@ int main() {
 	// Don't use device before ipcon is connected
 
 	uint16_t sid;
-	if (red_acquire_string(&red, 20, &sid) < 0) {
-		printf("red_acquire_string failed\n");
+	rc = red_allocate_string(&red, 20, &ec, &sid);
+	if (rc < 0) {
+		printf("red_allocate_string -> rc %d\n", rc);
 	}
-	printf("red_acquire_string -> sid %u\n", sid);
-	bool success;
-	int rc = red_set_string_chunk(&red, sid, 0, "/tmp/foobar3", &success);
+	if (ec != 0) {
+		printf("red_allocate_string -> ec %u\n", ec);
+	}
+	printf("red_allocate_string -> sid %u\n", sid);
 
+	rc = red_set_string_chunk(&red, sid, 0, "/tmp/foobar", &ec);
 	if (rc < 0) {
 		printf("red_set_string_chunk -> rc %d\n", rc);
 	}
-	if (!success) {
-		printf("red_set_string_chunk -> success false\n");
+	if (ec != 0) {
+		printf("red_set_string_chunk -> ec %u\n", ec);
 	}
-
-	int32_t length;
-	if (red_get_string_length(&red, sid, &length)< 0) {
-		printf("red_set_string_length failed\n");
-	}
-	printf("red_set_string_length -> length %d\n", length);
 
 	uint16_t fid;
-	if (red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &fid) < 0) {
-		printf("red_open_file failed\n");
+	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &ec, &fid);
+	if (rc < 0) {
+		printf("red_open_file -> rc %d\n", rc);
+	}
+	if (ec != 0) {
+		printf("red_open_file -> ec %u\n", ec);
 	}
 	printf("red_open_file -> fid %u\n", fid);
 
-	uint32_t ec;
-	if (red_get_last_error(&red, &ec) < 0) {
-		printf("red_get_last_error failed\n");
-	}
-	printf("red_get_last_error -> ec %u\n", ec);
-
 	uint8_t buffer[61];
-	int8_t length_written;
+	uint8_t length_written;
 	uint64_t st = microseconds();
 
 	memcpy(buffer, "foobar x1\nfoobar y2\nfoobar z3\nfoobar u4\nfoobar v5\nfoobar w6\n\n", 61);
 
-	for (int i = 0; i < 30000; ++i) {
-		rc = red_write_file(&red, fid, buffer, 61, &length_written);
-
+	int i;
+	for (i = 0; i < 30000; ++i) {
+		rc = red_write_file(&red, fid, buffer, 61, &ec, &length_written);
 		if (rc < 0) {
-			printf("red_write_file -> rc %d\n", rc);
+			printf("red_write_file %d -> rc %d\n", i, rc);
+		}
+		if (ec != 0) {
+			printf("red_write_file %d -> ec %u\n", i, ec);
 		}
 
 		if (length_written != 61) {
-			printf("red_write_file -> length_written %d\n", length_written);
+			printf("red_write_file %d -> length_written %u\n", i, length_written);
 		}
 	}
 
 	uint64_t et = microseconds();
+	float dur = (et - st) / 1000000.0;
 
-	printf("30000x red_write_file in %f sec\n", (et - st) / 1000000.0);
+	printf("30000x red_write_file in %f sec, %f kB/s\n", dur, 30000 * 61 / dur / 1024);
 
-	if (red_close_file(&red, fid, &success) < 0) {
-		printf("red_close_file failed\n");
+	rc = red_release_object(&red, fid, &ec);
+	if (rc < 0) {
+		printf("red_release_object/file -> rc %d\n", rc);
 	}
-	if (!success) {
-		printf("red_close_file -> success false\n");
+	if (ec != 0) {
+		printf("red_release_object/file -> ec %u\n", ec);
 	}
 
-	if (red_release_string(&red, sid, &success) < 0) {
-		printf("red_release_string failed\n");
+	rc = red_release_object(&red, sid, &ec);
+	if (rc < 0) {
+		printf("red_release_object/string -> rc %d\n", rc);
 	}
-	if (!success) {
-		printf("red_release_string -> success false\n");
+	if (ec != 0) {
+		printf("red_release_object/string -> ec %u\n", ec);
 	}
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);
+
+	return 0;
 }

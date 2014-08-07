@@ -21,8 +21,6 @@ uint64_t microseconds(void) {
 	}
 }
 
-RED red;
-
 int main() {
 	uint8_t ec;
 	int rc;
@@ -32,6 +30,7 @@ int main() {
 	ipcon_create(&ipcon);
 
 	// Create device object
+	RED red;
 	red_create(&red, UID, &ipcon);
 
 	// Connect to brickd
@@ -96,8 +95,8 @@ int main() {
 		printf("red_release_object/string -> ec %u\n", ec);
 	}
 
-	//printf("red_destroy...\n");
 	red_destroy(&red);
-	//printf("ipcon_destroy...\n");
 	ipcon_destroy(&ipcon);
+
+	return 0;
 }

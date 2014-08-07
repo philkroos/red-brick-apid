@@ -21,8 +21,6 @@ uint64_t microseconds(void) {
 	}
 }
 
-RED red;
-
 int main() {
 	uint8_t ec;
 	int rc;
@@ -32,6 +30,7 @@ int main() {
 	ipcon_create(&ipcon);
 
 	// Create device object
+	RED red;
 	red_create(&red, UID, &ipcon);
 
 	// Connect to brickd
@@ -44,12 +43,12 @@ int main() {
 	uint16_t sid;
 	rc = red_allocate_string(&red, 20, &ec, &sid);
 	if (rc < 0) {
-		printf("red_acquire_string -> rc %d\n", rc);
+		printf("red_allocate_string -> rc %d\n", rc);
 	}
 	if (ec != 0) {
-		printf("red_acquire_string -> ec %u\n", ec);
+		printf("red_allocate_string -> ec %u\n", ec);
 	}
-	printf("red_acquire_string -> sid %u\n", sid);
+	printf("red_allocate_string -> sid %u\n", sid);
 
 	rc = red_set_string_chunk(&red, sid, 0, "/lib/", &ec);
 	if (rc < 0) {
@@ -58,16 +57,6 @@ int main() {
 	if (ec != 0) {
 		printf("red_set_string_chunk -> ec %u\n", ec);
 	}
-
-	uint32_t length;
-	rc = red_get_string_length(&red, sid, &ec, &length);
-	if (rc < 0) {
-		printf("red_get_string_length -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_get_string_length -> ec %u\n", ec);
-	}
-	printf("red_get_string_length -> length %u\n", length);
 
 	uint16_t did;
 	rc = red_open_directory(&red, sid, &ec, &did);
@@ -84,6 +73,7 @@ int main() {
 	while (1) {
 		uint16_t nid;
 		uint8_t type;
+
 		rc = red_get_next_directory_entry(&red, did, &ec, &nid, &type);
 		if (rc < 0) {
 			printf("red_get_next_directory_entry -> rc %d\n", rc);
@@ -109,6 +99,7 @@ int main() {
 
 		if (type == RED_FILE_TYPE_SYMLINK) {
 			uint16_t tid;
+
 			rc = red_get_symlink_target(&red, nid, false, &ec, &tid);
 			if (rc < 0) {
 				printf("red_get_symlink_target -> rc %d\n", rc);
@@ -186,8 +177,8 @@ int main() {
 		printf("red_release_object/string -> ec %u\n", ec);
 	}
 
-	//printf("red_destroy...\n");
 	red_destroy(&red);
-	//printf("ipcon_destroy...\n");
 	ipcon_destroy(&ipcon);
+
+	return 0;
 }

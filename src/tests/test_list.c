@@ -115,16 +115,16 @@ int main() {
 	}
 	printf("red_get_list_length -> length %u\n", length);
 
-	/*rc = red_release_object(&red, lid, &ec);
+	rc = red_release_object(&red, lid, &ec);
 	if (rc < 0) {
 		printf("red_release_object/list -> rc %d\n", rc);
 	}
 	if (ec != 0) {
 		printf("red_release_object/list -> ec %u\n", ec);
-	}*/
+	}
 
-	//printf("red_destroy...\n");
 	red_destroy(&red);
-	//printf("ipcon_destroy...\n");
 	ipcon_destroy(&ipcon);
+
+	return 0;
 }

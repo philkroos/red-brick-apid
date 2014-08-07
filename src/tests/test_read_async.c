@@ -110,16 +110,6 @@ int main() {
 		printf("red_set_string_chunk -> ec %u\n", ec);
 	}
 
-	uint32_t length;
-	rc = red_get_string_length(&red, sid, &ec, &length);
-	if (rc < 0) {
-		printf("red_get_string_length -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_get_string_length -> ec %u\n", ec);
-	}
-	printf("red_get_string_length -> length %u\n", length);
-
 	rc = red_open_file(&red, sid, RED_FILE_FLAG_READ_ONLY, 0, 0, 0, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
@@ -181,7 +171,6 @@ int main() {
 	}
 	printf("red_get_file_position -> position %lu\n", position);
 
-	//printf("red_close_file...\n");
 	rc = red_release_object(&red, fid, &ec);
 	if (rc < 0) {
 		printf("red_release_object/file -> rc %d\n", rc);
@@ -190,7 +179,6 @@ int main() {
 		printf("red_release_object/file -> ec %u\n", ec);
 	}
 
-	//printf("red_release_string...\n");
 	rc = red_release_object(&red, sid, &ec);
 	if (rc < 0) {
 		printf("red_release_object/string -> rc %d\n", rc);
@@ -199,11 +187,11 @@ int main() {
 		printf("red_release_object/string -> ec %u\n", ec);
 	}
 
-	//printf("red_destroy...\n");
 	red_destroy(&red);
-	//printf("ipcon_destroy...\n");
 	ipcon_destroy(&ipcon);
 
 	printf("fclose...\n");
 	fclose(fp);
+
+	return 0;
 }
