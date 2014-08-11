@@ -367,7 +367,6 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	return API_E_OK;
 }
 
-
 // public API
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t user_id, uint32_t group_id, ObjectID *id) {
@@ -649,13 +648,20 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 		return API_E_OUT_OF_RANGE;
 	}
 
+	if (file->length_to_read_async > 0) {
+		log_warn("Could not write %u byte(s) while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         length_to_write, file->length_to_read_async, id, file->name->buffer);
+
+		return API_E_INVALID_OPERATION;
+	}
+
 	rc = write(file->fd, buffer, length_to_write);
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not write to file object (id: %u, name: %s): %s (%d)",
-		         id, file->name->buffer, get_errno_name(errno), errno);
+		log_warn("Could not write %u byte(s) to file object (id: %u, name: %s): %s (%d)",
+		         length_to_write, id, file->name->buffer, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -683,9 +689,16 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 		return ERROR_CODE_INVALID_PARAMETER;
 	}
 
+	if (file->length_to_read_async > 0) {
+		log_warn("Could not write %u byte(s) unchecked while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         length_to_write, file->length_to_read_async, id, file->name->buffer);
+
+		return ERROR_CODE_UNKNOWN_ERROR;
+	}
+
 	if (write(file->fd, buffer, length_to_write) < 0) {
-		log_warn("Could not write to file object (id: %u, name: %s): %s (%d)",
-		         id, file->name->buffer, get_errno_name(errno), errno);
+		log_warn("Could not write %u byte(s) to file object (id: %u, name: %s) unchecked: %s (%d)",
+		         length_to_write, id, file->name->buffer, get_errno_name(errno), errno);
 
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
@@ -718,13 +731,22 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		return ERROR_CODE_INVALID_PARAMETER;
 	}
 
+	if (file->length_to_read_async > 0) {
+		log_warn("Could not write %u byte(s) asynchronously while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         length_to_write, file->length_to_read_async, id, file->name->buffer);
+
+		api_send_async_file_write_callback(id, API_E_INVALID_OPERATION, 0);
+
+		return ERROR_CODE_UNKNOWN_ERROR;
+	}
+
 	length_written = write(file->fd, buffer, length_to_write);
 
 	if (length_written < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not write to file object (id: %u, name: %s): %s (%d)",
-		         id, file->name->buffer, get_errno_name(errno), errno);
+		log_warn("Could not write %u byte(s) to file object (id: %u, name: %s) asynchronously: %s (%d)",
+		         length_to_write, id, file->name->buffer, get_errno_name(errno), errno);
 
 		api_send_async_file_write_callback(id, error_code, 0);
 
@@ -753,13 +775,20 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 		return API_E_OUT_OF_RANGE;
 	}
 
+	if (file->length_to_read_async > 0) {
+		log_warn("Could not read %u byte(s) synchronously while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         length_to_read, file->length_to_read_async, id, file->name->buffer);
+
+		return API_E_INVALID_OPERATION;
+	}
+
 	rc = read(file->fd, buffer, length_to_read);
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not read from file object (id: %u, name: %s): %s (%d)",
-		         id, file->name->buffer, get_errno_name(errno), errno);
+		log_warn("Could not read %u byte(s) from file object (id: %u, name: %s): %s (%d)",
+		         length_to_read, id, file->name->buffer, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -779,18 +808,18 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 		return error_code;
 	}
 
-	if (file->length_to_read_async > 0) {
-		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
-		         file->length_to_read_async, id, file->name->buffer);
-
-		return API_E_INVALID_OPERATION;
-	}
-
 	if (length_to_read > INT64_MAX) {
 		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
 		         length_to_read);
 
 		return API_E_OUT_OF_RANGE;
+	}
+
+	if (file->length_to_read_async > 0) {
+		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         file->length_to_read_async, id, file->name->buffer);
+
+		return API_E_INVALID_OPERATION;
 	}
 
 	if (length_to_read == 0) {
@@ -810,7 +839,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 		return API_E_INTERNAL_ERROR;
 	}
 
-	log_debug("Started asynchronous reading of %"PRIu64" byte(s) from file object (id: %u, name: %s)",
+	log_debug("Started reading of %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
 	          length_to_read, id, file->name->buffer);
 
 	return API_E_OK;
@@ -851,13 +880,6 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 		return error_code;
 	}
 
-	if (file->length_to_read_async > 0) {
-		log_warn("Cannot set file position while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
-		         file->length_to_read_async, id, file->name->buffer);
-
-		return API_E_INVALID_OPERATION;
-	}
-
 	switch (origin) {
 	case FILE_ORIGIN_SET:     whence = SEEK_SET; break;
 	case FILE_ORIGIN_CURRENT: whence = SEEK_CUR; break;
@@ -867,6 +889,13 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 		log_warn("Invalid file origin %d", origin);
 
 		return API_E_INVALID_PARAMETER;
+	}
+
+	if (file->length_to_read_async > 0) {
+		log_warn("Could not set position (offset %"PRIi64", origin: %d) while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
+		         offset, origin, file->length_to_read_async, id, file->name->buffer);
+
+		return API_E_INVALID_OPERATION;
 	}
 
 	rc = lseek(file->fd, offset, whence);
