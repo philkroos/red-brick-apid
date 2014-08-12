@@ -237,7 +237,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	}
 
 	if (pid == 0) { // child
-		// close read end
+		// close socket pair read end in child
 		close(pair[0]);
 
 		// change group
@@ -291,25 +291,25 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		error_code = API_E_OK;
 
 	child_cleanup:
-		// close write end
+		// close socket pair write end in child
 		close(pair[1]);
 
-		// tell parent how it went
+		// report error code as exit status
 		_exit(error_code);
 	}
 
-	// close write end
+	// close socket pair write end in parent
 	close(pair[1]);
 
-	// receive fd from child
+	// receive FD from child
 	do {
 		fd = recvfd(pair[0]);
 	} while (fd < 0 && errno == EINTR);
 
 	// if recvfd returns < 0 and errno == ENOENT then the child closed the
-	// socketpair before sending a fd. in this case the child is going to
+	// socket pair before sending a FD. in this case the child is going to
 	// report an error code in its exit status. if errno != ENOENT another
-	// error occurred, the child is (probably) not going to send an error
+	// error occurred and the child is (probably) not going to send an error
 	// code in its exit status. report this and wait for the child to exit.
 	if (fd < 0 && errno != ENOENT) {
 		error_code = api_get_error_code_from_errno();
@@ -317,7 +317,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		log_error("Could not receive from child opening file (name: %s) as %u:%u: %s (%d)",
 		          name, user_id, group_id, get_errno_name(errno), errno);
 
-		// close read end
+		// close socket pair read end in parent
 		close(pair[0]);
 
 		// wait for child to exit
@@ -326,7 +326,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		return error_code;
 	}
 
-	// close read end
+	// close socket pair read end in parent
 	close(pair[0]);
 
 	// wait for child to exit
@@ -345,8 +345,9 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		return error_code;
 	}
 
+	// check if child exited normally
 	if (!WIFEXITED(status)) {
-		log_error("Child opening file (name: %s) as %u:%u did not exit properly",
+		log_error("Child opening file (name: %s) as %u:%u did not exit normally",
 		          name, user_id, group_id);
 
 		close(fd);
@@ -354,6 +355,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		return API_E_INTERNAL_ERROR;
 	}
 
+	// get child error code from child exit status
 	error_code = WEXITSTATUS(status);
 
 	if (error_code != API_E_OK) {
