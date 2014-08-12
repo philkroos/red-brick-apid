@@ -300,7 +300,7 @@ APIE list_occupy(ObjectID id, ObjectType item_type, List **list) {
 	return API_E_OK;
 }
 
-void list_unoccupy(List *list) {
+void list_vacate(List *list) {
 	object_unlock(&list->base);
 	object_release_internal(&list->base);
 }

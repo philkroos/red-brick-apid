@@ -128,7 +128,7 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 APIE file_get_position(ObjectID id, uint64_t *position);
 
 APIE file_occupy(ObjectID id, File **file);
-void file_unoccupy(File *file);
+void file_vacate(File *file);
 
 APIE file_get_info(ObjectID name_id, bool follow_symlink,
                    uint8_t *type, uint16_t *permissions, uint32_t *user_id,

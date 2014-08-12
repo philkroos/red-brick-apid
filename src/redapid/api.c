@@ -769,6 +769,7 @@ static void api_get_file_info(GetFileInfoRequest *request) {
 
 	network_dispatch_response((Packet *)&response);
 }
+
 static void api_get_symlink_target(GetSymlinkTargetRequest *request) {
 	GetSymlinkTargetResponse response;
 

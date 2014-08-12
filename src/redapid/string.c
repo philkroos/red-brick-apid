@@ -323,7 +323,7 @@ APIE string_occupy(ObjectID id, String **string) {
 	return API_E_OK;
 }
 
-void string_unoccupy(String *string) {
+void string_vacate(String *string) {
 	object_unlock(&string->base);
 	object_release_internal(&string->base);
 }

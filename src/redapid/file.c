@@ -138,7 +138,7 @@ static void file_destroy(File *file) {
 
 	close(file->fd);
 
-	string_unoccupy(file->name);
+	string_vacate(file->name);
 
 	free(file);
 }
@@ -592,7 +592,7 @@ cleanup:
 		close(fd);
 
 	case 1:
-		string_unoccupy(name);
+		string_vacate(name);
 
 	default:
 		break;
@@ -953,7 +953,7 @@ APIE file_occupy(ObjectID id, File **file) {
 	return API_E_OK;
 }
 
-void file_unoccupy(File *file) {
+void file_vacate(File *file) {
 	object_unlock(&file->base);
 	object_release_internal(&file->base);
 }

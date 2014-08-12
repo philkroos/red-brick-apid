@@ -51,7 +51,7 @@ typedef struct {
 static void directory_destroy(Directory *directory) {
 	closedir(directory->dp);
 
-	string_unoccupy(directory->name);
+	string_vacate(directory->name);
 
 	free(directory);
 }
@@ -145,7 +145,7 @@ cleanup:
 		closedir(dp);
 
 	case 1:
-		string_unoccupy(name);
+		string_vacate(name);
 
 	default:
 		break;
