@@ -25,6 +25,7 @@
 #include <stdbool.h>
 
 #include <daemonlib/io.h>
+#include <daemonlib/packet.h>
 #include <daemonlib/pipe.h>
 
 #include "object.h"

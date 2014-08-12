@@ -24,32 +24,8 @@
 
 #include <daemonlib/packet.h>
 
-typedef enum {
-	API_E_OK = 0,
-	API_E_UNKNOWN_ERROR,
-	API_E_INVALID_OPERATION,
-	API_E_OPERATION_ABORTED,
-	API_E_INTERNAL_ERROR,
-	API_E_UNKNOWN_OBJECT_ID,
-	API_E_NO_FREE_OBJECT_ID,
-	API_E_OBJECT_IS_LOCKED,
-	API_E_NO_MORE_DATA,
-	API_E_WRONG_LIST_ITEM_TYPE,
-	API_E_INVALID_PARAMETER,       // EINVAL
-	API_E_NO_FREE_MEMORY,          // ENOMEM
-	API_E_NO_FREE_SPACE,           // ENOSPC
-	API_E_ACCESS_DENIED,           // EACCES
-	API_E_ALREADY_EXISTS,          // EEXIST
-	API_E_DOES_NOT_EXIST,          // ENOENT
-	API_E_INTERRUPTED,             // EINTR
-	API_E_IS_DIRECTORY,            // EISDIR
-	API_E_NOT_A_DIRECTORY,         // ENOTDIR
-	API_E_WOULD_BLOCK,             // EWOULDBLOCK
-	API_E_OVERFLOW,                // EOVERFLOW
-	API_E_INVALID_FILE_DESCRIPTOR, // EBADF
-	API_E_OUT_OF_RANGE,            // ERANGE
-	API_E_NAME_TOO_LONG            // ENAMETOOLONG
-} APIE;
+#include "api_error.h"
+#include "object.h"
 
 int api_init(void);
 void api_exit(void);
@@ -58,9 +34,9 @@ void api_handle_request(Packet *request);
 
 APIE api_get_error_code_from_errno(void);
 
-void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
+void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
                                         uint8_t length_written);
-void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
+void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
                                        uint8_t *buffer, uint8_t length_read);
 
 #endif // REDAPID_API_H

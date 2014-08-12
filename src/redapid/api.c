@@ -946,7 +946,7 @@ APIE api_get_error_code_from_errno(void) {
 	}
 }
 
-void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
+void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
                                         uint8_t length_written) {
 	_async_file_write_callback.file_id = file_id;
 	_async_file_write_callback.error_code = error_code;
@@ -955,7 +955,7 @@ void api_send_async_file_write_callback(uint16_t file_id, APIE error_code,
 	network_dispatch_response((Packet *)&_async_file_write_callback);
 }
 
-void api_send_async_file_read_callback(uint16_t file_id, APIE error_code,
+void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
                                        uint8_t *buffer, uint8_t length_read) {
 	_async_file_read_callback.file_id = file_id;
 	_async_file_read_callback.error_code = error_code;

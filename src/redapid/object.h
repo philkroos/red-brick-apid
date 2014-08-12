@@ -25,7 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "api.h"
+#include "api_error.h"
 
 typedef uint16_t ObjectID;
 
