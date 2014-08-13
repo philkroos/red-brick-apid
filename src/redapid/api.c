@@ -1097,7 +1097,7 @@ enum file_type {
 + callback: async_file_read  -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
 ? callback: file_event       -> uint16_t file_id, uint8_t events
 
-? get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
++ get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
 ? get_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
 ? get_file_sha1_digest    (uint16_t name_string_id)                              -> uint8_t error_code, uint8_t digest[20]
 ? remove_file             (uint16_t name_string_id, bool recursive)              -> uint8_t error_code
