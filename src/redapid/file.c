@@ -244,7 +244,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		if (setregid(group_id, group_id) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could change to %u group for opening file (name: %s): %s (%d)",
+			log_error("Could not change to %u group for opening file (name: %s): %s (%d)",
 			          group_id, name, get_errno_name(errno), errno);
 
 			goto child_cleanup;
@@ -254,7 +254,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		if (setreuid(user_id, user_id) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could change to %u user for opening file (name: %s): %s (%d)",
+			log_error("Could not change to %u user for opening file (name: %s): %s (%d)",
 			          user_id, name, get_errno_name(errno), errno);
 
 			goto child_cleanup;
