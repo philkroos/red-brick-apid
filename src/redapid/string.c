@@ -43,14 +43,16 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	uint32_t allocated;
 	char *buffer;
 
-	if (reserve <= string->allocated) {
-		return API_E_OK;
-	}
-
 	if (reserve > INT32_MAX) {
 		log_warn("Cannot reserve %u bytes, exceeds maximum length of string object", reserve);
 
 		return API_E_OUT_OF_RANGE;
+	}
+
+	++reserve; // one extra byte for the NULL-terminator
+
+	if (reserve <= string->allocated) {
+		return API_E_OK;
 	}
 
 	allocated = GROW_ALLOCATION(reserve);
@@ -140,6 +142,7 @@ APIE string_wrap(char *buffer, ObjectID *id) {
 	memcpy(string->buffer, buffer, length);
 
 	string->length = length;
+	string->buffer[string->length] = '\0';
 
 	*id = string->base.id;
 
@@ -163,6 +166,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 
 	if (length < string->length) {
 		string->length = length;
+		string->buffer[string->length] = '\0';
 	}
 
 	return API_E_OK;
@@ -236,6 +240,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 
 	if (offset + length > string->length) {
 		string->length = offset + length;
+		string->buffer[string->length] = '\0';
 	}
 
 	log_debug("Setting %u byte(s) at offset %u of string object (id: %u)",
@@ -292,26 +297,8 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	return API_E_OK;
 }
 
-APIE string_null_terminate_buffer(String *string) {
-	APIE error_code = string_reserve(string, string->length + 1);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	string->buffer[string->length] = '\0';
-
-	return API_E_OK;
-}
-
 APIE string_occupy(ObjectID id, String **string) {
 	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	error_code = string_null_terminate_buffer(*string);
 
 	if (error_code != API_E_OK) {
 		return error_code;

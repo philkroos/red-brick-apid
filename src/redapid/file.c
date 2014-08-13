@@ -974,12 +974,6 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 		return error_code;
 	}
 
-	error_code = string_null_terminate_buffer(name);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
 	if (follow_symlink) {
 		rc = stat(name->buffer, &buffer);
 	} else {
@@ -1035,12 +1029,6 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 	char *target;
 	char buffer[1024 + 1];
 	ssize_t rc;
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	error_code = string_null_terminate_buffer(name);
 
 	if (error_code != API_E_OK) {
 		return error_code;

@@ -30,9 +30,9 @@
 typedef struct {
 	Object base;
 
-	char *buffer; // may not be NULL-terminated
-	uint32_t length; // <= INT32_MAX, does not include potential NULL-terminator
-	uint32_t allocated; // <= INT32_MAX
+	char *buffer; // is always NULL-terminated
+	uint32_t length; // <= INT32_MAX, excludes NULL-terminator
+	uint32_t allocated; // <= INT32_MAX + 1, includes NULL-terminator
 } String;
 
 APIE string_allocate(uint32_t reserve, ObjectID *id);
@@ -43,8 +43,6 @@ APIE string_get_length(ObjectID id, uint32_t *length);
 
 APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer);
 APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer);
-
-APIE string_null_terminate_buffer(String *string);
 
 APIE string_occupy(ObjectID id, String **string);
 void string_vacate(String *string);
