@@ -217,14 +217,10 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 	appended_item = array_append(&list->items);
 
 	if (appended_item == NULL) {
-		if (errno == ENOMEM) {
-			error_code = API_E_NO_FREE_MEMORY;
-		} else {
-			error_code = API_E_UNKNOWN_ERROR;
-		}
+		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not append to list object item array: %s (%d)",
-		          get_errno_name(errno), errno);
+		log_error("Could not append to list object (id: %u) item array: %s (%d)",
+		          id, get_errno_name(errno), errno);
 
 		return error_code;
 	}

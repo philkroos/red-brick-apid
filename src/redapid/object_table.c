@@ -44,6 +44,8 @@
 
 #include "object_table.h"
 
+#include "api.h"
+
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
 static int _next_id = 0;
@@ -119,11 +121,7 @@ APIE object_table_add_object(Object *object) {
 	object_ptr = array_append(&_objects[object->type]);
 
 	if (object_ptr == NULL) {
-		if (errno == ENOMEM) {
-			error_code = API_E_NO_FREE_MEMORY;
-		} else {
-			error_code = API_E_UNKNOWN_ERROR;
-		}
+		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not append to %s object array: %s (%d)",
 		          object_get_type_name(object->type),
