@@ -45,35 +45,30 @@ typedef enum {
 typedef struct _Object Object;
 
 typedef void (*ObjectDestroyFunction)(Object *object);
-typedef void (*ObjectLockFunction)(Object *object);
-typedef APIE (*ObjectUnlockFunction)(Object *object);
 
 struct _Object {
 	ObjectID id;
 	ObjectType type;
 	ObjectDestroyFunction destroy;
-	ObjectLockFunction lock;
-	ObjectUnlockFunction unlock;
-	int internal_ref_count;
-	int external_ref_count;
-	int lock_count;
+	int internal_reference_count;
+	int external_reference_count;
+	int usage_count;
 };
 
 const char *object_get_type_name(ObjectType type);
 bool object_is_type_valid(ObjectType type);
 
-APIE object_create(Object *object, ObjectType type, bool with_internal_ref,
-                   ObjectDestroyFunction destroy, ObjectLockFunction lock,
-                   ObjectUnlockFunction unlock);
+APIE object_create(Object *object, ObjectType type, bool with_internal_reference,
+                   ObjectDestroyFunction destroy);
 void object_destroy(Object *object);
 
-void object_acquire_internal(Object *object);
-APIE object_release_internal(Object *object);
+void object_add_internal_reference(Object *object);
+void object_remove_internal_reference(Object *object);
 
-void object_acquire_external(Object *object);
-APIE object_release_external(Object *object);
+void object_add_external_reference(Object *object);
+void object_remove_external_reference(Object *object);
 
-void object_lock(Object *object);
-APIE object_unlock(Object *object);
+void object_occupy(Object *object);
+void object_vacate(Object *object);
 
 #endif // REDAPID_OBJECT_H

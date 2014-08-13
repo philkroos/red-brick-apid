@@ -88,8 +88,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	(*string)->allocated = 0;
 
 	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, false,
-	                           (ObjectDestroyFunction)string_destroy,
-	                           NULL, NULL);
+	                           (ObjectDestroyFunction)string_destroy);
 
 	if (error_code != API_E_OK) {
 		free(*string);
@@ -100,7 +99,7 @@ static APIE string_create(uint32_t reserve, String **string) {
 	error_code = string_reserve(*string, reserve);
 
 	if (error_code != API_E_OK) {
-		object_release_external(&(*string)->base);
+		object_remove_external_reference(&(*string)->base);
 
 		return error_code;
 	}
@@ -158,8 +157,8 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 		return error_code;
 	}
 
-	if (string->base.lock_count > 0) {
-		log_warn("Cannot truncate locked string object (id: %u)", id);
+	if (string->base.usage_count > 0) {
+		log_warn("Cannot truncate string object (id: %u) in use", id);
 
 		return API_E_OBJECT_IS_LOCKED;
 	}
@@ -197,8 +196,8 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 		return error_code;
 	}
 
-	if (string->base.lock_count > 0) {
-		log_warn("Cannot change locked string object (id: %u)", id);
+	if (string->base.usage_count > 0) {
+		log_warn("Cannot change string object (id: %u) in use", id);
 
 		return API_E_OBJECT_IS_LOCKED;
 	}
@@ -298,19 +297,9 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 }
 
 APIE string_occupy(ObjectID id, String **string) {
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	object_acquire_internal(&(*string)->base);
-	object_lock(&(*string)->base);
-
-	return API_E_OK;
+	return object_table_occupy_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
 void string_vacate(String *string) {
-	object_unlock(&string->base);
-	object_release_internal(&string->base);
+	object_vacate(&string->base);
 }

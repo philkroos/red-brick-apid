@@ -122,8 +122,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	}
 
 	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY, false,
-	                           (ObjectDestroyFunction)directory_destroy,
-	                           NULL, NULL);
+	                           (ObjectDestroyFunction)directory_destroy);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
@@ -163,7 +162,7 @@ APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 		return error_code;
 	}
 
-	object_acquire_external(&directory->name->base);
+	object_add_external_reference(&directory->name->base);
 
 	*name_id = directory->name->base.id;
 

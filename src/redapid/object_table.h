@@ -33,6 +33,9 @@ void object_table_remove_object(Object *object);
 APIE object_table_get_object(ObjectID id, Object **object);
 APIE object_table_get_typed_object(ObjectType type, ObjectID id, Object **object);
 
+APIE object_table_occupy_object(ObjectID id, Object **object);
+APIE object_table_occupy_typed_object(ObjectType type, ObjectID id, Object **object);
+
 APIE object_table_release_object(ObjectID id);
 
 APIE object_table_get_next_entry(ObjectType type, ObjectID *id);

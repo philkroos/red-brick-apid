@@ -234,6 +234,30 @@ APIE object_table_get_typed_object(ObjectType type, ObjectID id, Object **object
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
+APIE object_table_occupy_object(ObjectID id, Object **object) {
+	APIE error_code = object_table_get_object(id, object);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_occupy(*object);
+
+	return API_E_OK;
+}
+
+APIE object_table_occupy_typed_object(ObjectType type, ObjectID id, Object **object) {
+	APIE error_code = object_table_get_typed_object(type, id, object);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_occupy(*object);
+
+	return API_E_OK;
+}
+
 // public API
 APIE object_table_release_object(ObjectID id) {
 	int type;
@@ -245,7 +269,9 @@ APIE object_table_release_object(ObjectID id) {
 			candidate = array_get(&_objects[type], i);
 
 			if ((*candidate)->id == id) {
-				return object_release_external(*candidate);
+				object_remove_external_reference(*candidate);
+
+				return API_E_OK;
 			}
 		}
 	}
@@ -273,7 +299,7 @@ APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
 
 	object = array_get(&_objects[type], _next_entry_index[type]++);
 
-	object_acquire_external(*object);
+	object_add_external_reference(*object);
 
 	*id = (*object)->id;
 

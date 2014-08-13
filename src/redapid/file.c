@@ -566,8 +566,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->length_to_read_async = 0;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
-	                           (ObjectDestroyFunction)file_destroy,
-	                           NULL, NULL);
+	                           (ObjectDestroyFunction)file_destroy);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
@@ -612,7 +611,7 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 		return error_code;
 	}
 
-	object_acquire_external(&file->name->base);
+	object_add_external_reference(&file->name->base);
 
 	*name_id = file->name->base.id;
 
@@ -943,21 +942,11 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 }
 
 APIE file_occupy(ObjectID id, File **file) {
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	object_acquire_internal(&(*file)->base);
-	object_lock(&(*file)->base);
-
-	return API_E_OK;
+	return object_table_occupy_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
 }
 
 void file_vacate(File *file) {
-	object_unlock(&file->base);
-	object_release_internal(&file->base);
+	object_vacate(&file->base);
 }
 
 // public API

@@ -33,49 +33,14 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-static void list_release_item(Object **item) {
-	object_release_internal(*item);
+static void list_vacate_item(Object **item) {
+	object_vacate(*item);
 }
 
 static void list_destroy(List *list) {
-	array_destroy(&list->items, (ItemDestroyFunction)list_release_item);
+	array_destroy(&list->items, (ItemDestroyFunction)list_vacate_item);
 
 	free(list);
-}
-
-static void list_lock(List *list) {
-	int i;
-	Object *object;
-
-	for (i = 0; i < list->items.count; ++i) {
-		object = array_get(&list->items, i);
-
-		object_lock(object);
-	}
-}
-
-static APIE list_unlock(List *list) {
-	int i;
-	Object *object;
-	APIE error_code;
-
-	for (i = 0; i < list->items.count; ++i) {
-		object = array_get(&list->items, i);
-
-		error_code = object_unlock(object);
-
-		if (error_code != API_E_OK) {
-			for (--i; i >= 0; --i) {
-				object = array_get(&list->items, i);
-
-				object_lock(object);
-			}
-
-			return error_code;
-		}
-	}
-
-	return API_E_OK;
 }
 
 APIE list_allocate(uint16_t reserve, ObjectID *id) {
@@ -108,9 +73,7 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 	phase = 2;
 
 	error_code = object_create(&list->base, OBJECT_TYPE_LIST, false,
-	                           (ObjectDestroyFunction)list_destroy,
-	                           (ObjectLockFunction)list_lock,
-	                           (ObjectUnlockFunction)list_unlock);
+	                           (ObjectDestroyFunction)list_destroy);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
@@ -123,7 +86,7 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 2:
-		array_destroy(&list->items, (ItemDestroyFunction)list_release_item);
+		array_destroy(&list->items, (ItemDestroyFunction)list_vacate_item);
 
 	case 1:
 		free(list);
@@ -168,7 +131,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 
 	item = array_get(&list->items, index);
 
-	object_acquire_external(item);
+	object_add_external_reference(item);
 
 	*item_id = item->id;
 
@@ -192,8 +155,8 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 		return API_E_INVALID_OPERATION;
 	}
 
-	if (list->base.lock_count > 0) {
-		log_warn("Cannot append item (id: %u) to locked list object (id: %u)",
+	if (list->base.usage_count > 0) {
+		log_warn("Cannot append item (id: %u) to list object (id: %u) in use",
 		         item_id, id);
 
 		return API_E_OBJECT_IS_LOCKED;
@@ -206,13 +169,11 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 		return API_E_INVALID_OPERATION;
 	}
 
-	error_code = object_table_get_object(item_id, &item);
+	error_code = object_table_occupy_object(item_id, &item);
 
 	if (error_code != API_E_OK) {
 		return error_code;
 	}
-
-	object_acquire_internal(item);
 
 	appended_item = array_append(&list->items);
 
@@ -221,6 +182,8 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 
 		log_error("Could not append to list object (id: %u) item array: %s (%d)",
 		          id, get_errno_name(errno), errno);
+
+		object_vacate(item);
 
 		return error_code;
 	}
@@ -239,8 +202,8 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 		return error_code;
 	}
 
-	if (list->base.lock_count > 0) {
-		log_warn("Cannot remove item (index: %u) from locked list object (id: %u)",
+	if (list->base.usage_count > 0) {
+		log_warn("Cannot remove item (index: %u) from list object (id: %u) in use",
 		         index, id);
 
 		return API_E_OBJECT_IS_LOCKED;
@@ -253,7 +216,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 		return API_E_OUT_OF_RANGE;
 	}
 
-	array_remove(&list->items, index, (ItemDestroyFunction)list_release_item);
+	array_remove(&list->items, index, (ItemDestroyFunction)list_vacate_item);
 
 	return API_E_OK;
 }
@@ -278,7 +241,7 @@ APIE list_ensure_item_type(List *list, ObjectType type) {
 }
 
 APIE list_occupy(ObjectID id, ObjectType item_type, List **list) {
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
+	APIE error_code = object_table_occupy_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -287,16 +250,14 @@ APIE list_occupy(ObjectID id, ObjectType item_type, List **list) {
 	error_code = list_ensure_item_type(*list, item_type);
 
 	if (error_code != API_E_OK) {
+		list_vacate(*list);
+
 		return error_code;
 	}
-
-	object_acquire_internal(&(*list)->base);
-	object_lock(&(*list)->base);
 
 	return API_E_OK;
 }
 
 void list_vacate(List *list) {
-	object_unlock(&list->base);
-	object_release_internal(&list->base);
+	object_vacate(&list->base);
 }
