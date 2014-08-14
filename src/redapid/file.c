@@ -52,19 +52,25 @@ static int sendfd(int socket_handle, int fd) {
 	iovec.iov_base = buffer;
 	iovec.iov_len = sizeof(buffer);
 
-	memset(&msghdr, 0, sizeof (msghdr));
+	memset(&msghdr, 0, sizeof(msghdr));
 
 	msghdr.msg_iov = &iovec;
 	msghdr.msg_iovlen = 1;
-	msghdr.msg_control = (caddr_t)control;
-	msghdr.msg_controllen = CMSG_LEN(sizeof(int));
 
-	cmsghdr = CMSG_FIRSTHDR(&msghdr);
-	cmsghdr->cmsg_len = CMSG_LEN(sizeof(int));
-	cmsghdr->cmsg_level = SOL_SOCKET;
-	cmsghdr->cmsg_type = SCM_RIGHTS;
+	if (fd < 0) {
+		msghdr.msg_control = NULL;
+		msghdr.msg_controllen = 0;
+	} else {
+		msghdr.msg_control = (caddr_t)control;
+		msghdr.msg_controllen = CMSG_LEN(sizeof(int));
 
-	memmove(CMSG_DATA(cmsghdr), &fd, sizeof(int));
+		cmsghdr = CMSG_FIRSTHDR(&msghdr);
+		cmsghdr->cmsg_len = CMSG_LEN(sizeof(int));
+		cmsghdr->cmsg_level = SOL_SOCKET;
+		cmsghdr->cmsg_type = SCM_RIGHTS;
+
+		memcpy(CMSG_DATA(cmsghdr), &fd, sizeof(int));
+	}
 
 	if (sendmsg(socket_handle, &msghdr, 0) != (int)iovec.iov_len) {
 		return -1;
@@ -73,13 +79,12 @@ static int sendfd(int socket_handle, int fd) {
 	return 0;
 }
 
-static int recvfd(int socket_handle) {
+static int recvfd(int socket_handle, int *fd) {
 	uint8_t buffer[1] = { 0 };
 	struct iovec iovec;
 	struct msghdr msghdr;
 	struct cmsghdr *cmsghdr;
 	uint8_t control[CMSG_SPACE(sizeof(int))];
-	int fd;
 
 	iovec.iov_base = buffer;
 	iovec.iov_len = sizeof(buffer);
@@ -99,9 +104,13 @@ static int recvfd(int socket_handle) {
 
 	cmsghdr = CMSG_FIRSTHDR(&msghdr);
 
-	memmove(&fd, CMSG_DATA(cmsghdr), sizeof(int));
+	if (cmsghdr != NULL) {
+		memcpy(fd, CMSG_DATA(cmsghdr), sizeof(int));
+	} else {
+		*fd = -1;
+	}
 
-	return fd;
+	return 0;
 }
 
 static FileType file_get_type_from_stat_mode(mode_t mode) {
@@ -216,11 +225,11 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	APIE error_code;
 	int pair[2];
 	pid_t pid;
-	int fd;
+	int fd = -1;
 	int rc;
 	int status;
 
-	// create socket pair to pass fd from child to parent
+	// create socket pair to pass FD from child to parent
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
 		error_code = api_get_error_code_from_errno();
 
@@ -272,25 +281,23 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 			goto child_cleanup;
 		}
 
-		// send fd to parent
+		error_code = API_E_OK;
+
+	child_cleanup:
+		// send FD to parent in all cases
 		do {
 			rc = sendfd(pair[1], fd);
 		} while (rc < 0 && errno == EINTR);
 
 		if (rc < 0) {
-			error_code = api_get_error_code_from_errno();
-
-			log_error("Could not send to parent for file (name: %s): %s (%d)",
+			log_error("Could not send file descriptor to parent process for file (name: %s): %s (%d)",
 			          name, get_errno_name(errno), errno);
 
-			close(fd);
-
-			goto child_cleanup;
+			if (fd >= 0) {
+				close(fd);
+			}
 		}
 
-		error_code = API_E_OK;
-
-	child_cleanup:
 		// close socket pair write end in child
 		close(pair[1]);
 
@@ -303,18 +310,13 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 
 	// receive FD from child
 	do {
-		fd = recvfd(pair[0]);
-	} while (fd < 0 && errno == EINTR);
+		rc = recvfd(pair[0], &fd);
+	} while (rc < 0 && errno == EINTR);
 
-	// if recvfd returns < 0 and errno == ENOENT then the child closed the
-	// socket pair before sending a FD. in this case the child is going to
-	// report an error code in its exit status. if errno != ENOENT another
-	// error occurred and the child is (probably) not going to send an error
-	// code in its exit status. report this and wait for the child to exit.
-	if (fd < 0 && errno != ENOENT) {
+	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not receive from child opening file (name: %s) as %u:%u: %s (%d)",
+		log_error("Could not receive file descriptor from child process opening file (name: %s) as %u:%u: %s (%d)",
 		          name, user_id, group_id, get_errno_name(errno), errno);
 
 		// close socket pair read end in parent
@@ -337,20 +339,24 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not wait for child opening file (name: %s) as %u:%u: %s (%d)",
+		log_error("Could not wait for child process opening file (name: %s) as %u:%u: %s (%d)",
 		          name, user_id, group_id, get_errno_name(errno), errno);
 
-		close(fd);
+		if (fd >= 0) {
+			close(fd);
+		}
 
 		return error_code;
 	}
 
 	// check if child exited normally
 	if (!WIFEXITED(status)) {
-		log_error("Child opening file (name: %s) as %u:%u did not exit normally",
+		log_error("Child process opening file (name: %s) as %u:%u did not exit normally",
 		          name, user_id, group_id);
 
-		close(fd);
+		if (fd >= 0) {
+			close(fd);
+		}
 
 		return API_E_INTERNAL_ERROR;
 	}
@@ -359,9 +365,20 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	error_code = WEXITSTATUS(status);
 
 	if (error_code != API_E_OK) {
-		close(fd);
+		if (fd >= 0) {
+			close(fd);
+		}
 
 		return error_code;
+	}
+
+	// check if FD is invalid after child process exited successfully. this
+	// should not be possible. the check is here just to be on the safe side
+	if (fd < 0) {
+		log_error("Child process opening file (name: %s) as %u:%u succeeded, but returned an invalid file descriptor",
+		          name, user_id, group_id);
+
+		return API_E_INTERNAL_ERROR;
 	}
 
 	*fd_ = fd;
