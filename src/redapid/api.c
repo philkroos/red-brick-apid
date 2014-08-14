@@ -123,6 +123,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint32_t length_to_reserve;
+	char buffer[STRING_MAX_ALLOCATE_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED AllocateStringRequest;
 
 typedef struct {
@@ -543,7 +544,8 @@ static void api_allocate_string(AllocateStringRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = string_allocate(request->length_to_reserve, &response.string_id);
+	response.error_code = string_allocate(request->length_to_reserve,
+	                                      request->buffer, &response.string_id);
 
 	network_dispatch_response((Packet *)&response);
 }

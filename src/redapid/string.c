@@ -108,13 +108,25 @@ static APIE string_create(uint32_t reserve, String **string) {
 }
 
 // public API
-APIE string_allocate(uint32_t reserve, ObjectID *id) {
+APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
+	uint32_t length = strnlen(buffer, STRING_MAX_ALLOCATE_BUFFER_LENGTH);
 	String *string;
-	APIE error_code = string_create(reserve, &string);
+	APIE error_code;
+
+	if (reserve < length) {
+		reserve = length;
+	}
+
+	error_code = string_create(reserve, &string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
 	}
+
+	memcpy(string->buffer, buffer, length);
+
+	string->length = length;
+	string->buffer[string->length] = '\0';
 
 	*id = string->base.id;
 
