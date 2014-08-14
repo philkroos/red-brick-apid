@@ -32,7 +32,7 @@
 
 #include "api.h"
 #include "file.h"
-#include "object_table.h"
+#include "inventory.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -156,7 +156,7 @@ cleanup:
 // public API
 APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 	Directory *directory;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -172,7 +172,7 @@ APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 // public API
 APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 	Directory *directory;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 	struct dirent *dirent;
 
 	if (error_code != API_E_OK) {
@@ -231,7 +231,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 // public API
 APIE directory_rewind(ObjectID id) {
 	Directory *directory;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 
 	if (error_code != API_E_OK) {
 		return error_code;

@@ -62,6 +62,8 @@ APIE object_create(Object *object, ObjectType type, bool with_internal_reference
                    ObjectDestroyFunction destroy);
 void object_destroy(Object *object);
 
+APIE object_release(ObjectID id);
+
 void object_add_internal_reference(Object *object);
 void object_remove_internal_reference(Object *object);
 

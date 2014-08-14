@@ -43,6 +43,27 @@ typedef void (*AsyncFileReadCallbackFunction)(uint16_t, uint8_t, uint8_t[60], ui
 
 typedef struct {
 	PacketHeader header;
+	uint8_t type;
+} ATTRIBUTE_PACKED GetNextInventoryEntry_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t object_id;
+} ATTRIBUTE_PACKED GetNextInventoryEntryResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t type;
+} ATTRIBUTE_PACKED RewindInventory_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RewindInventoryResponse_;
+
+typedef struct {
+	PacketHeader header;
 	uint16_t object_id;
 } ATTRIBUTE_PACKED ReleaseObject_;
 
@@ -50,27 +71,6 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseObjectResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED GetNextObjectTableEntry_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t object_id;
-} ATTRIBUTE_PACKED GetNextObjectTableEntryResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED RewindObjectTable_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED RewindObjectTableResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -470,9 +470,9 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 
 	device_p = red->p;
 
+	device_p->response_expected[RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_REWIND_INVENTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_RELEASE_OBJECT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_REWIND_OBJECT_TABLE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_ALLOCATE_STRING] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_TRUNCATE_STRING] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_STRING_LENGTH] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -533,39 +533,13 @@ int red_get_api_version(RED *red, uint8_t ret_api_version[3]) {
 	return device_get_api_version(red->p, ret_api_version);
 }
 
-int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code) {
+int red_get_next_inventory_entry(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_object_id) {
 	DevicePrivate *device_p = red->p;
-	ReleaseObject_ request;
-	ReleaseObjectResponse_ response;
+	GetNextInventoryEntry_ request;
+	GetNextInventoryEntryResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_RELEASE_OBJECT, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.object_id = leconvert_uint16_to(object_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-
-
-
-	return ret;
-}
-
-int red_get_next_object_table_entry(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_object_id) {
-	DevicePrivate *device_p = red->p;
-	GetNextObjectTableEntry_ request;
-	GetNextObjectTableEntryResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -586,19 +560,45 @@ int red_get_next_object_table_entry(RED *red, uint8_t type, uint8_t *ret_error_c
 	return ret;
 }
 
-int red_rewind_object_table(RED *red, uint8_t type, uint8_t *ret_error_code) {
+int red_rewind_inventory(RED *red, uint8_t type, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
-	RewindObjectTable_ request;
-	RewindObjectTableResponse_ response;
+	RewindInventory_ request;
+	RewindInventoryResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_REWIND_OBJECT_TABLE, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_REWIND_INVENTORY, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
 	}
 
 	request.type = type;
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
+int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	ReleaseObject_ request;
+	ReleaseObjectResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_RELEASE_OBJECT, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.object_id = leconvert_uint16_to(object_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 

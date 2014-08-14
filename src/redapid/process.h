@@ -22,7 +22,7 @@
 #ifndef REDAPID_PROCESS_H
 #define REDAPID_PROCESS_H
 
-#include "object_table.h"
+#include "object.h"
 
 APIE process_fork(pid_t *pid);
 

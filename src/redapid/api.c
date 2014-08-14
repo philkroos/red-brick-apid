@@ -29,9 +29,9 @@
 
 #include "directory.h"
 #include "file.h"
+#include "inventory.h"
 #include "list.h"
 #include "network.h"
-#include "object_table.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -41,9 +41,10 @@
 typedef uint8_t tfpbool;
 
 typedef enum {
-	FUNCTION_RELEASE_OBJECT = 1,
-	FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY,
-	FUNCTION_REWIND_OBJECT_TABLE,
+	FUNCTION_GET_NEXT_INVENTORY_ENTRY = 1,
+	FUNCTION_REWIND_INVENTORY,
+
+	FUNCTION_RELEASE_OBJECT,
 
 	FUNCTION_ALLOCATE_STRING,
 	FUNCTION_TRUNCATE_STRING,
@@ -82,7 +83,32 @@ typedef enum {
 #include <daemonlib/packed_begin.h>
 
 //
-// object table
+// inventory
+//
+
+typedef struct {
+	PacketHeader header;
+	uint8_t type;
+} ATTRIBUTE_PACKED GetNextInventoryEntryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t object_id;
+} ATTRIBUTE_PACKED GetNextInventoryEntryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t type;
+} ATTRIBUTE_PACKED RewindInventoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RewindInventoryResponse;
+
+//
+// object
 //
 
 typedef struct {
@@ -94,27 +120,6 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseObjectResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED GetNextObjectTableEntryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t object_id;
-} ATTRIBUTE_PACKED GetNextObjectTableEntryResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED RewindObjectTableRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED RewindObjectTableResponse;
 
 //
 // string
@@ -502,7 +507,31 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 }
 
 //
-// object table
+// inventory
+//
+
+static void api_get_next_inventory_entry(GetNextInventoryEntryRequest *request) {
+	GetNextInventoryEntryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = inventory_get_next_entry(request->type, &response.object_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_rewind_inventory(RewindInventoryRequest *request) {
+	RewindInventoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = inventory_rewind(request->type);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+//
+// object
 //
 
 static void api_release_object(ReleaseObjectRequest *request) {
@@ -510,27 +539,7 @@ static void api_release_object(ReleaseObjectRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = object_table_release_object(request->object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_next_object_table_entry(GetNextObjectTableEntryRequest *request) {
-	GetNextObjectTableEntryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = object_table_get_next_entry(request->type, &response.object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_rewind_object_table(RewindObjectTableRequest *request) {
-	RewindObjectTableResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = object_table_rewind(request->type);
+	response.error_code = object_release(request->object_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -877,10 +886,12 @@ void api_handle_request(Packet *request) {
 			break;
 
 	switch (request->header.function_id) {
-	// object table
-	DISPATCH_FUNCTION(RELEASE_OBJECT,              ReleaseObject,           release_object)
-	DISPATCH_FUNCTION(GET_NEXT_OBJECT_TABLE_ENTRY, GetNextObjectTableEntry, get_next_object_table_entry)
-	DISPATCH_FUNCTION(REWIND_OBJECT_TABLE,         RewindObjectTable,       rewind_object_table)
+	// inventory
+	DISPATCH_FUNCTION(GET_NEXT_INVENTORY_ENTRY,      GetNextInventoryEntry,      get_next_inventory_entry)
+	DISPATCH_FUNCTION(REWIND_INVENTORY,              RewindInventory,            rewind_inventory)
+
+	// object
+	DISPATCH_FUNCTION(RELEASE_OBJECT,                ReleaseObject,              release_object)
 
 	// string
 	DISPATCH_FUNCTION(ALLOCATE_STRING,             AllocateString,          allocate_string)
@@ -974,7 +985,7 @@ void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
 #if 0
 
 /*
- * object table
+ * inventory
  */
 
 enum object_type {
@@ -986,9 +997,16 @@ enum object_type {
 	OBJECT_TYPE_PROGRAM
 }
 
-+ release_object              (uint16_t object_id)  -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
-+ get_next_object_table_entry (uint8_t type)        -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-table, adds a reference to the object, you need to call release_object() when done with it
-+ rewind_object_table         (uint8_t type)        -> uint8_t error_code
++ get_next_inventory_entry (uint8_t type) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-inventory, adds a reference to the object, you need to call release_object() when done with it
++ rewind_inventory         (uint8_t type) -> uint8_t error_code
+? purge_inventory          (uint8_t type) -> uint8_t error_code
+
+
+/*
+ * object
+ */
+
++ release_object (uint16_t object_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
 
 
 /*

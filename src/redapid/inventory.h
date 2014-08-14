@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * object_table.h: Table of objects
+ * inventory.h: Inventory of objects
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,26 +19,24 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef REDAPID_OBJECT_TABLE_H
-#define REDAPID_OBJECT_TABLE_H
+#ifndef REDAPID_INVENTORY_H
+#define REDAPID_INVENTORY_H
 
 #include "object.h"
 
-int object_table_init(void);
-void object_table_exit(void);
+int inventory_init(void);
+void inventory_exit(void);
 
-APIE object_table_add_object(Object *object);
-void object_table_remove_object(Object *object);
+APIE inventory_add_object(Object *object);
+void inventory_remove_object(Object *object);
 
-APIE object_table_get_object(ObjectID id, Object **object);
-APIE object_table_get_typed_object(ObjectType type, ObjectID id, Object **object);
+APIE inventory_get_object(ObjectID id, Object **object);
+APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object);
 
-APIE object_table_occupy_object(ObjectID id, Object **object);
-APIE object_table_occupy_typed_object(ObjectType type, ObjectID id, Object **object);
+APIE inventory_occupy_object(ObjectID id, Object **object);
+APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object);
 
-APIE object_table_release_object(ObjectID id);
+APIE inventory_get_next_entry(ObjectType type, ObjectID *id);
+APIE inventory_rewind(ObjectType type);
 
-APIE object_table_get_next_entry(ObjectType type, ObjectID *id);
-APIE object_table_rewind(ObjectType type);
-
-#endif // REDAPID_OBJECT_TABLE_H
+#endif // REDAPID_INVENTORY_H

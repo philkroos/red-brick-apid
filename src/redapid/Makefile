@@ -71,11 +71,11 @@ SOURCES := ../daemonlib/array.c \
            config_options.c \
            directory.c \
            file.c \
+           inventory.c \
            list.c \
            main.c \
            network.c \
            object.c \
-           object_table.c \
            process.c \
            string.c
 

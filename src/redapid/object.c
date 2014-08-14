@@ -25,7 +25,7 @@
 
 #include "object.h"
 
-#include "object_table.h"
+#include "inventory.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
@@ -56,7 +56,7 @@ static void object_remove_reference(Object *object, int *reference_count,
 
 	// destroy object if last reference was removed
 	if (object->internal_reference_count == 0 && object->external_reference_count == 0) {
-		object_table_remove_object(object); // calls object_destroy
+		inventory_remove_object(object); // calls object_destroy
 	}
 }
 
@@ -108,7 +108,7 @@ APIE object_create(Object *object, ObjectType type, bool with_internal_reference
 	object->external_reference_count = 1;
 	object->usage_count = 0;
 
-	return object_table_add_object(object);
+	return inventory_add_object(object);
 }
 
 void object_destroy(Object *object) {
@@ -126,6 +126,20 @@ void object_destroy(Object *object) {
 	if (object->destroy != NULL) {
 		object->destroy(object);
 	}
+}
+
+// public API
+APIE object_release(ObjectID id) {
+	Object *object;
+	APIE error_code = inventory_get_object(id, &object);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_remove_external_reference(object);
+
+	return API_E_OK;
 }
 
 void object_add_internal_reference(Object *object) {

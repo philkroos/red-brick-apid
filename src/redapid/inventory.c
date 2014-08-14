@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * object_table.c: Table of objects
+ * inventory.c: Inventory of objects
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@
 #include <daemonlib/log.h>
 #include <daemonlib/utils.h>
 
-#include "object_table.h"
+#include "inventory.h"
 
 #include "api.h"
 
@@ -53,14 +53,14 @@ static Array _objects[MAX_OBJECT_TYPES];
 static Array _free_ids;
 static int _next_entry_index[MAX_OBJECT_TYPES] = { 0, 0, 0, 0, 0, 0 };
 
-static void object_table_destroy_object(Object **object) {
+static void inventory_destroy_object(Object **object) {
 	object_destroy(*object);
 }
 
-int object_table_init(void) {
+int inventory_init(void) {
 	int type;
 
-	log_debug("Initializing object subsystem");
+	log_debug("Initializing inventory subsystem");
 
 	if (array_create(&_free_ids, 32, sizeof(ObjectID), true) < 0) {
 		log_error("Could not create free object ID array: %s (%d)",
@@ -76,7 +76,7 @@ int object_table_init(void) {
 			          object_get_type_name(type), get_errno_name(errno), errno);
 
 			for (--type; type >= OBJECT_TYPE_STRING; --type) {
-				array_destroy(&_objects[type], (ItemDestroyFunction)object_table_destroy_object);
+				array_destroy(&_objects[type], (ItemDestroyFunction)inventory_destroy_object);
 			}
 
 			array_destroy(&_free_ids, NULL);
@@ -88,24 +88,24 @@ int object_table_init(void) {
 	return 0;
 }
 
-void object_table_exit(void) {
-	log_debug("Shutting down object subsystem");
+void inventory_exit(void) {
+	log_debug("Shutting down inventory subsystem");
 
 	// destroy all objects that could have references to string objects...
-	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (ItemDestroyFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (ItemDestroyFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (ItemDestroyFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_FILE], (ItemDestroyFunction)object_table_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_LIST], (ItemDestroyFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_FILE], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_LIST], (ItemDestroyFunction)inventory_destroy_object);
 
 	// ...before destroying the remaining string objects...
-	array_destroy(&_objects[OBJECT_TYPE_STRING], (ItemDestroyFunction)object_table_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_STRING], (ItemDestroyFunction)inventory_destroy_object);
 
 	// ...before destroying the free IDs array
 	array_destroy(&_free_ids, NULL);
 }
 
-APIE object_table_add_object(Object *object) {
+APIE inventory_add_object(Object *object) {
 	Object **object_ptr;
 	APIE error_code;
 	int last;
@@ -147,7 +147,7 @@ APIE object_table_add_object(Object *object) {
 	return API_E_OK;
 }
 
-void object_table_remove_object(Object *object) {
+void inventory_remove_object(Object *object) {
 	int i;
 	Object **candidate;
 	ObjectID *free_id;
@@ -184,7 +184,7 @@ void object_table_remove_object(Object *object) {
 		          object_get_type_name(object->type), object->id);
 
 		// remove object from array
-		array_remove(&_objects[object->type], i, (ItemDestroyFunction)object_table_destroy_object);
+		array_remove(&_objects[object->type], i, (ItemDestroyFunction)inventory_destroy_object);
 
 		return;
 	}
@@ -193,7 +193,7 @@ void object_table_remove_object(Object *object) {
 	          object_get_type_name(object->type), object->id);
 }
 
-APIE object_table_get_object(ObjectID id, Object **object) {
+APIE inventory_get_object(ObjectID id, Object **object) {
 	int type;
 	int i;
 	Object **candidate;
@@ -215,7 +215,7 @@ APIE object_table_get_object(ObjectID id, Object **object) {
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
-APIE object_table_get_typed_object(ObjectType type, ObjectID id, Object **object) {
+APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
 	int i;
 	Object **candidate;
 
@@ -234,8 +234,8 @@ APIE object_table_get_typed_object(ObjectType type, ObjectID id, Object **object
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
-APIE object_table_occupy_object(ObjectID id, Object **object) {
-	APIE error_code = object_table_get_object(id, object);
+APIE inventory_occupy_object(ObjectID id, Object **object) {
+	APIE error_code = inventory_get_object(id, object);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -246,8 +246,8 @@ APIE object_table_occupy_object(ObjectID id, Object **object) {
 	return API_E_OK;
 }
 
-APIE object_table_occupy_typed_object(ObjectType type, ObjectID id, Object **object) {
-	APIE error_code = object_table_get_typed_object(type, id, object);
+APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object) {
+	APIE error_code = inventory_get_typed_object(type, id, object);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -259,30 +259,7 @@ APIE object_table_occupy_typed_object(ObjectType type, ObjectID id, Object **obj
 }
 
 // public API
-APIE object_table_release_object(ObjectID id) {
-	int type;
-	int i;
-	Object **candidate;
-
-	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
-		for (i = 0; i < _objects[type].count; ++i) {
-			candidate = array_get(&_objects[type], i);
-
-			if ((*candidate)->id == id) {
-				object_remove_external_reference(*candidate);
-
-				return API_E_OK;
-			}
-		}
-	}
-
-	log_warn("Could not release unknown object (id: %u)", id);
-
-	return API_E_UNKNOWN_OBJECT_ID;
-}
-
-// public API
-APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
+APIE inventory_get_next_entry(ObjectType type, ObjectID *id) {
 	Object **object;
 
 	if (!object_is_type_valid(type)) {
@@ -292,7 +269,7 @@ APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
 	}
 
 	if (_next_entry_index[type] >= _objects[type].count) {
-		log_debug("Reached end of %s object table", object_get_type_name(type));
+		log_debug("Reached end of %s inventory", object_get_type_name(type));
 
 		return API_E_NO_MORE_DATA;
 	}
@@ -307,7 +284,7 @@ APIE object_table_get_next_entry(ObjectType type, ObjectID *id) {
 }
 
 // public API
-APIE object_table_rewind(ObjectType type) {
+APIE inventory_rewind(ObjectType type) {
 	if (!object_is_type_valid(type)) {
 		log_warn("Invalid object type %d", type);
 

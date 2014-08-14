@@ -29,7 +29,7 @@
 #include "list.h"
 
 #include "api.h"
-#include "object_table.h"
+#include "inventory.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
@@ -101,7 +101,7 @@ cleanup:
 // public API
 APIE list_get_length(ObjectID id, uint16_t *length) {
 	List *list;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -115,7 +115,7 @@ APIE list_get_length(ObjectID id, uint16_t *length) {
 // public API
 APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 	List *list;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 	Object *item;
 
 	if (error_code != API_E_OK) {
@@ -141,7 +141,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 // public API
 APIE list_append_to(ObjectID id, ObjectID item_id) {
 	List *list;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 	Object *item;
 	Object **appended_item;
 
@@ -169,7 +169,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 		return API_E_INVALID_OPERATION;
 	}
 
-	error_code = object_table_occupy_object(item_id, &item);
+	error_code = inventory_occupy_object(item_id, &item);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -196,7 +196,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 // public API
 APIE list_remove_from(ObjectID id, uint16_t index) {
 	List *list;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -241,7 +241,7 @@ APIE list_ensure_item_type(List *list, ObjectType type) {
 }
 
 APIE list_occupy(ObjectID id, ObjectType item_type, List **list) {
-	APIE error_code = object_table_occupy_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
+	APIE error_code = inventory_occupy_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
 
 	if (error_code != API_E_OK) {
 		return error_code;

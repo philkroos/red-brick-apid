@@ -37,7 +37,7 @@
 #include "file.h"
 
 #include "api.h"
-#include "object_table.h"
+#include "inventory.h"
 #include "process.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -622,7 +622,7 @@ cleanup:
 // public API
 APIE file_get_name(ObjectID id, ObjectID *name_id) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -638,7 +638,7 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 // public API
 APIE file_get_type(ObjectID id, uint8_t *type) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -652,7 +652,7 @@ APIE file_get_type(ObjectID id, uint8_t *type) {
 // public API
 APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	ssize_t rc;
 
 	if (error_code != API_E_OK) {
@@ -692,7 +692,7 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 // public API
 ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 
 	if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
 		return ERROR_CODE_INVALID_PARAMETER;
@@ -727,7 +727,7 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 // public API
 ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	ssize_t length_written;
 
 	if (error_code != API_E_OK) {
@@ -779,7 +779,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 // public API
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	ssize_t rc;
 
 	if (error_code != API_E_OK) {
@@ -819,7 +819,7 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 // public API
 APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 
 	if (error_code != API_E_OK) {
@@ -866,7 +866,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 // public API
 APIE file_abort_async_read(ObjectID id) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 
 	if (error_code != API_E_OK) {
@@ -890,7 +890,7 @@ APIE file_abort_async_read(ObjectID id) {
 // public API
 APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	int whence;
 	off_t rc;
 
@@ -935,7 +935,7 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 // public API
 APIE file_get_position(ObjectID id, uint64_t *position) {
 	File *file;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	off_t rc;
 
 	if (error_code != API_E_OK) {
@@ -959,7 +959,7 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 }
 
 APIE file_occupy(ObjectID id, File **file) {
-	return object_table_occupy_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
+	return inventory_occupy_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
 }
 
 void file_vacate(File *file) {
@@ -972,7 +972,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
                    uint32_t *group_id, uint64_t *length, uint64_t *access_time,
                    uint64_t *modification_time, uint64_t *status_change_time) {
 	String *name;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
 	struct stat buffer;
 	int rc;
 
@@ -1031,7 +1031,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 // public API
 APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id) {
 	String *name;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
 	char *target;
 	char buffer[1024 + 1];
 	ssize_t rc;

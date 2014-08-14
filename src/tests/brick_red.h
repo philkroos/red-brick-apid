@@ -31,17 +31,17 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_RELEASE_OBJECT 1
+#define RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_OBJECT_TABLE_ENTRY 2
+#define RED_FUNCTION_REWIND_INVENTORY 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_OBJECT_TABLE 3
+#define RED_FUNCTION_RELEASE_OBJECT 3
 
 /**
  * \ingroup BrickRED
@@ -477,21 +477,21 @@ int red_get_api_version(RED *red, uint8_t ret_api_version[3]);
  *
  * 
  */
+int red_get_next_inventory_entry(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_object_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_rewind_inventory(RED *red, uint8_t type, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
 int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_get_next_object_table_entry(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_object_id);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_rewind_object_table(RED *red, uint8_t type, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED

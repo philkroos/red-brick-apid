@@ -29,7 +29,7 @@
 
 #include "string.h"
 
-#include "object_table.h"
+#include "inventory.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
@@ -163,7 +163,7 @@ APIE string_wrap(char *buffer, ObjectID *id) {
 // public API
 APIE string_truncate(ObjectID id, uint32_t length) {
 	String *string;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -186,7 +186,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 // public API
 APIE string_get_length(ObjectID id, uint32_t *length) {
 	String *string;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -200,7 +200,7 @@ APIE string_get_length(ObjectID id, uint32_t *length) {
 // public API
 APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	String *string;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 	uint32_t length;
 	uint32_t i;
 
@@ -263,7 +263,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 // public API
 APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	String *string;
-	APIE error_code = object_table_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 	uint32_t length;
 
 	if (error_code != API_E_OK) {
@@ -309,7 +309,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 }
 
 APIE string_occupy(ObjectID id, String **string) {
-	return object_table_occupy_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+	return inventory_occupy_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
 void string_vacate(String *string) {

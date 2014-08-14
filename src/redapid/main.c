@@ -39,7 +39,7 @@
 #include <daemonlib/utils.h>
 
 #include "api.h"
-#include "object_table.h"
+#include "inventory.h"
 #include "network.h"
 #include "version.h"
 
@@ -227,8 +227,8 @@ int main(int argc, char **argv) {
 		goto error_signal;
 	}
 
-	if (object_table_init() < 0) {
-		goto error_object_table;
+	if (inventory_init() < 0) {
+		goto error_inventory;
 	}
 
 	if (api_init() < 0) {
@@ -252,9 +252,9 @@ error_network:
 	api_exit();
 
 error_api:
-	object_table_exit();
+	inventory_exit();
 
-error_object_table:
+error_inventory:
 	signal_exit();
 
 error_signal:
