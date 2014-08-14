@@ -9,17 +9,7 @@
 #define PORT 4223
 #define UID "3hG4aq" // Change to your UID
 
-uint64_t microseconds(void) {
-	struct timeval tv;
-
-	// FIXME: use a monotonic source such as clock_gettime(CLOCK_MONOTONIC),
-	//        QueryPerformanceCounter() or mach_absolute_time()
-	if (gettimeofday(&tv, NULL) < 0) {
-		return 0;
-	} else {
-		return tv.tv_sec * 1000000 + tv.tv_usec;
-	}
-}
+#include "utils.c"
 
 int main() {
 	uint8_t ec;
@@ -41,21 +31,8 @@ int main() {
 	}
 
 	uint16_t sid;
-	rc = red_allocate_string(&red, 20, &ec, &sid);
-	if (rc < 0) {
-		printf("red_allocate_string -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_allocate_string -> ec %u\n", ec);
-	}
-	printf("red_allocate_string -> sid %u\n", sid);
-
-	rc = red_set_string_chunk(&red, sid, 0, "/lib/", &ec);
-	if (rc < 0) {
-		printf("red_set_string_chunk -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_set_string_chunk -> ec %u\n", ec);
+	if (allocate_string_object(&red, "/lib/", &sid)) {
+		goto cleanup;
 	}
 
 	uint16_t did;
@@ -100,7 +77,7 @@ int main() {
 		if (type == RED_FILE_TYPE_SYMLINK) {
 			uint16_t tid;
 
-			rc = red_get_symlink_target(&red, nid, false, &ec, &tid);
+			rc = red_get_symlink_target(&red, nid, true, &ec, &tid);
 			if (rc < 0) {
 				printf("red_get_symlink_target -> rc %d\n", rc);
 			}
@@ -161,6 +138,7 @@ int main() {
 
 	printf("red_get_next_directory_entry in %f sec\n", dur);
 
+cleanup:
 	rc = red_release_object(&red, did, &ec);
 	if (rc < 0) {
 		printf("red_release_object/directory -> rc %d\n", rc);

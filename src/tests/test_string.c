@@ -9,17 +9,7 @@
 #define PORT 4223
 #define UID "3hG4aq" // Change to your UID
 
-uint64_t microseconds(void) {
-	struct timeval tv;
-
-	// FIXME: use a monotonic source such as clock_gettime(CLOCK_MONOTONIC),
-	//        QueryPerformanceCounter() or mach_absolute_time()
-	if (gettimeofday(&tv, NULL) < 0) {
-		return 0;
-	} else {
-		return tv.tv_sec * 1000000 + tv.tv_usec;
-	}
-}
+#include "utils.c"
 
 int main() {
 	uint8_t ec;
@@ -41,7 +31,7 @@ int main() {
 	}
 
 	uint16_t sid;
-	rc = red_allocate_string(&red, 20, &ec, &sid);
+	rc = red_allocate_string(&red, 20, "", &ec, &sid);
 	if (rc < 0) {
 		printf("red_acquire_string -> rc %d\n", rc);
 	}

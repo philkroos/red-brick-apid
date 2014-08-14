@@ -11,17 +11,7 @@
 #define UID "3hG4aq"
 //#define UID "3hG6BK"
 
-uint64_t microseconds(void) {
-	struct timeval tv;
-
-	// FIXME: use a monotonic source such as clock_gettime(CLOCK_MONOTONIC),
-	//        QueryPerformanceCounter() or mach_absolute_time()
-	if (gettimeofday(&tv, NULL) < 0) {
-		return 0;
-	} else {
-		return tv.tv_sec * 1000000 + tv.tv_usec;
-	}
-}
+#include "utils.c"
 
 uint64_t st;
 uint8_t buffer[61];
@@ -85,28 +75,11 @@ int main() {
 	}
 
 	uint16_t sid;
-	rc = red_allocate_string(&red, 20, &ec, &sid);
-	if (rc < 0) {
-		printf("red_allocate_string -> rc %d\n", rc);
-		return -1;
-	}
-	if (ec != 0) {
-		printf("red_allocate_string -> ec %u\n", ec);
-		return -1;
-	}
-	printf("red_allocate_string -> sid %u\n", sid);
-
-	rc = red_set_string_chunk(&red, sid, 0, "/tmp/foobar2", &ec);
-	if (rc < 0) {
-		printf("red_set_string_chunk -> rc %d\n", rc);
-		return -1;
-	}
-	if (ec != 0) {
-		printf("red_set_string_chunk -> ec %u\n", ec);
+	if (allocate_string_object(&red, "/tmp/foobar", &sid)) {
 		return -1;
 	}
 
-	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 1000, 1000, &ec, &fid);
+	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
 	}

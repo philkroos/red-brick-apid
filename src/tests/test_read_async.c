@@ -9,17 +9,7 @@
 #define PORT 4223
 #define UID "3hG4aq" // Change to your UID
 
-uint64_t microseconds(void) {
-	struct timeval tv;
-
-	// FIXME: use a monotonic source such as clock_gettime(CLOCK_MONOTONIC),
-	//        QueryPerformanceCounter() or mach_absolute_time()
-	if (gettimeofday(&tv, NULL) < 0) {
-		return 0;
-	} else {
-		return tv.tv_sec * 1000000 + tv.tv_usec;
-	}
-}
+#include "utils.c"
 
 uint64_t st;
 uint64_t length_to_read = 20130671;
@@ -93,21 +83,8 @@ int main() {
 	}
 
 	uint16_t sid;
-	rc = red_allocate_string(&red, 20, &ec, &sid);
-	if (rc < 0) {
-		printf("red_acquire_string -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_acquire_string -> ec %u\n", ec);
-	}
-	printf("red_acquire_string -> sid %u\n", sid);
-
-	rc = red_set_string_chunk(&red, sid, 0, "/tmp/foobar2", &ec);
-	if (rc < 0) {
-		printf("red_set_string_chunk -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_set_string_chunk -> ec %u\n", ec);
+	if (allocate_string_object(&red, "/tmp/foobar", &sid)) {
+		return -1;
 	}
 
 	rc = red_open_file(&red, sid, RED_FILE_FLAG_READ_ONLY, 0, 0, 0, &ec, &fid);

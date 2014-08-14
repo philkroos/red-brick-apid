@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-07.      *
+ * This file was automatically generated on 2014-08-14.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -75,6 +75,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint32_t length_to_reserve;
+	char buffer[60];
 } ATTRIBUTE_PACKED AllocateString_;
 
 typedef struct {
@@ -611,7 +612,7 @@ int red_rewind_object_table(RED *red, uint8_t type, uint8_t *ret_error_code) {
 	return ret;
 }
 
-int red_allocate_string(RED *red, uint32_t length_to_reserve, uint8_t *ret_error_code, uint16_t *ret_string_id) {
+int red_allocate_string(RED *red, uint32_t length_to_reserve, const char buffer[60], uint8_t *ret_error_code, uint16_t *ret_string_id) {
 	DevicePrivate *device_p = red->p;
 	AllocateString_ request;
 	AllocateStringResponse_ response;
@@ -624,6 +625,8 @@ int red_allocate_string(RED *red, uint32_t length_to_reserve, uint8_t *ret_error
 	}
 
 	request.length_to_reserve = leconvert_uint32_to(length_to_reserve);
+	strncpy(request.buffer, buffer, 60);
+
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 

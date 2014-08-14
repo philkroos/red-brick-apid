@@ -9,17 +9,7 @@
 #define PORT 4223
 #define UID "3hG4aq" // Change to your UID
 
-uint64_t microseconds(void) {
-	struct timeval tv;
-
-	// FIXME: use a monotonic source such as clock_gettime(CLOCK_MONOTONIC),
-	//        QueryPerformanceCounter() or mach_absolute_time()
-	if (gettimeofday(&tv, NULL) < 0) {
-		return 0;
-	} else {
-		return tv.tv_sec * 1000000 + tv.tv_usec;
-	}
-}
+#include "utils.c"
 
 int main() {
 	uint8_t ec;
@@ -34,28 +24,15 @@ int main() {
 	red_create(&red, UID, &ipcon);
 
 	// Connect to brickd
-	if (ipcon_connect(&ipcon, HOST, PORT) < 0) {
-		fprintf(stderr, "Could not connect\n");
-		exit(1);
+	rc = ipcon_connect(&ipcon, HOST, PORT);
+	if (rc < 0) {
+		printf("ipcon_connect -> rc %d\n", rc);
+		return -1;
 	}
-	// Don't use device before ipcon is connected
 
 	uint16_t sid;
-	rc = red_allocate_string(&red, 20, &ec, &sid);
-	if (rc < 0) {
-		printf("red_allocate_string -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_allocate_string -> ec %u\n", ec);
-	}
-	printf("red_allocate_string -> sid %u\n", sid);
-
-	rc = red_set_string_chunk(&red, sid, 0, "/tmp/foobar", &ec);
-	if (rc < 0) {
-		printf("red_set_string_chunk -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_set_string_chunk -> ec %u\n", ec);
+	if (allocate_string_object(&red, "/tmp/foobar", &sid)) {
+		goto cleanup;
 	}
 
 	uint16_t fid;
@@ -107,6 +84,7 @@ int main() {
 		printf("red_release_object/file -> ec %u\n", ec);
 	}
 
+cleanup:
 	rc = red_release_object(&red, sid, &ec);
 	if (rc < 0) {
 		printf("red_release_object/string -> rc %d\n", rc);

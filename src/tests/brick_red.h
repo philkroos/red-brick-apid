@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-07.      *
+ * This file was automatically generated on 2014-08-14.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -498,7 +498,7 @@ int red_rewind_object_table(RED *red, uint8_t type, uint8_t *ret_error_code);
  *
  * 
  */
-int red_allocate_string(RED *red, uint32_t length_to_reserve, uint8_t *ret_error_code, uint16_t *ret_string_id);
+int red_allocate_string(RED *red, uint32_t length_to_reserve, const char buffer[60], uint8_t *ret_error_code, uint16_t *ret_string_id);
 
 /**
  * \ingroup BrickRED
