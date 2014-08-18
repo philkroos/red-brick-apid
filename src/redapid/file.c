@@ -19,6 +19,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#define _GNU_SOURCE // for O_NOATIME from fcntl.h
+
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -270,7 +272,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		}
 
 		// open file
-		fd = open(name, flags | O_NONBLOCK, mode);
+		fd = open(name, flags, mode);
 
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
@@ -392,7 +394,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	int phase = 0;
 	APIE error_code;
 	String *name;
-	int open_flags = 0;
+	int open_flags = O_NONBLOCK | O_NOCTTY;
 	mode_t open_mode = 0;
 	int fd;
 	File *file;
@@ -424,6 +426,14 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		goto cleanup;
 	}
 
+	if ((flags & FILE_FLAG_CREATE) == 0 && permissions != 0) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Permissions specified without using FILE_FLAG_CREATE");
+
+		goto cleanup;
+	}
+
 	// translate flags
 	// FIXME: check for invalid flag combinations?
 	if ((flags & FILE_FLAG_READ_ONLY) != 0) {
@@ -450,45 +460,55 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		open_flags |= O_EXCL;
 	}
 
+	if ((flags & FILE_FLAG_NO_ACCESS_TIME) != 0) {
+		open_flags |= O_NOATIME;
+	}
+
+	if ((flags & FILE_FLAG_NO_FOLLOW) != 0) {
+		open_flags |= O_NOFOLLOW;
+	}
+
 	if ((flags & FILE_FLAG_TRUNCATE) != 0) {
 		open_flags |= O_TRUNC;
 	}
 
-	// translate permissions
-	if ((permissions & FILE_PERMISSION_USER_READ) != 0) {
-		open_mode |= S_IRUSR;
-	}
+	// translate create permissions
+	if ((flags & FILE_FLAG_CREATE) != 0) {
+		if ((permissions & FILE_PERMISSION_USER_READ) != 0) {
+			open_mode |= S_IRUSR;
+		}
 
-	if ((permissions & FILE_PERMISSION_USER_WRITE) != 0) {
-		open_mode |= S_IWUSR;
-	}
+		if ((permissions & FILE_PERMISSION_USER_WRITE) != 0) {
+			open_mode |= S_IWUSR;
+		}
 
-	if ((permissions & FILE_PERMISSION_USER_EXECUTE) != 0) {
-		open_mode |= S_IXUSR;
-	}
+		if ((permissions & FILE_PERMISSION_USER_EXECUTE) != 0) {
+			open_mode |= S_IXUSR;
+		}
 
-	if ((permissions & FILE_PERMISSION_GROUP_READ) != 0) {
-		open_mode |= S_IRGRP;
-	}
+		if ((permissions & FILE_PERMISSION_GROUP_READ) != 0) {
+			open_mode |= S_IRGRP;
+		}
 
-	if ((permissions & FILE_PERMISSION_GROUP_WRITE) != 0) {
-		open_mode |= S_IWGRP;
-	}
+		if ((permissions & FILE_PERMISSION_GROUP_WRITE) != 0) {
+			open_mode |= S_IWGRP;
+		}
 
-	if ((permissions & FILE_PERMISSION_GROUP_EXECUTE) != 0) {
-		open_mode |= S_IXGRP;
-	}
+		if ((permissions & FILE_PERMISSION_GROUP_EXECUTE) != 0) {
+			open_mode |= S_IXGRP;
+		}
 
-	if ((permissions & FILE_PERMISSION_OTHERS_READ) != 0) {
-		open_mode |= S_IROTH;
-	}
+		if ((permissions & FILE_PERMISSION_OTHERS_READ) != 0) {
+			open_mode |= S_IROTH;
+		}
 
-	if ((permissions & FILE_PERMISSION_OTHERS_WRITE) != 0) {
-		open_mode |= S_IWOTH;
-	}
+		if ((permissions & FILE_PERMISSION_OTHERS_WRITE) != 0) {
+			open_mode |= S_IWOTH;
+		}
 
-	if ((permissions & FILE_PERMISSION_OTHERS_EXECUTE) != 0) {
-		open_mode |= S_IXOTH;
+		if ((permissions & FILE_PERMISSION_OTHERS_EXECUTE) != 0) {
+			open_mode |= S_IXOTH;
+		}
 	}
 
 	// occupy name string object
@@ -502,7 +522,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	// open file
 	if (geteuid() == user_id && getegid() == group_id) {
-		fd = open(name->buffer, open_flags | O_NONBLOCK, open_mode);
+		fd = open(name->buffer, open_flags, open_mode);
 
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
@@ -591,8 +611,13 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	*id = file->base.id;
 
-	log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: 0o%04o, user-id: %u, group-id: %u, handle: %d)",
-	          file->base.id, file->name->buffer, flags, permissions, user_id, group_id, fd);
+	if ((flags & FILE_FLAG_CREATE) != 0) {
+		log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: 0o%04o, user-id: %u, group-id: %u, handle: %d)",
+		          file->base.id, file->name->buffer, flags, permissions, user_id, group_id, fd);
+	} else {
+		log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, user-id: %u, group-id: %u, handle: %d)",
+		          file->base.id, file->name->buffer, flags, user_id, group_id, fd);
+	}
 
 	phase = 5;
 
