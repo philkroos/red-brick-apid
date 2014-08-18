@@ -899,9 +899,9 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 	}
 
 	switch (origin) {
-	case FILE_ORIGIN_SET:     whence = SEEK_SET; break;
-	case FILE_ORIGIN_CURRENT: whence = SEEK_CUR; break;
-	case FILE_ORIGIN_END:     whence = SEEK_END; break;
+	case FILE_ORIGIN_BEGINNING: whence = SEEK_SET; break;
+	case FILE_ORIGIN_CURRENT:   whence = SEEK_CUR; break;
+	case FILE_ORIGIN_END:       whence = SEEK_END; break;
 
 	default:
 		log_warn("Invalid file origin %d", origin);

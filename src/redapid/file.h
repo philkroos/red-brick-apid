@@ -77,7 +77,7 @@ typedef enum { // bitmask
                              FILE_PERMISSION_OTHERS_ALL)
 
 typedef enum {
-	FILE_ORIGIN_SET = 0,
+	FILE_ORIGIN_BEGINNING = 0,
 	FILE_ORIGIN_CURRENT,
 	FILE_ORIGIN_END
 } FileOrigin;
