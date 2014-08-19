@@ -82,10 +82,11 @@ int main() {
 	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
+		goto cleanup;
 	}
 	if (ec != 0) {
 		printf("red_open_file -> ec %u\n", ec);
-		goto cleanup_open_file;
+		goto cleanup;
 	}
 	printf("red_open_file -> fid %u\n", fid);
 
@@ -108,7 +109,7 @@ int main() {
 		printf("red_release_object/file -> ec %u\n", ec);
 	}
 
-cleanup_open_file:
+cleanup:
 	rc = red_release_object(&red, sid, &ec);
 	if (rc < 0) {
 		printf("red_release_object/string -> rc %d\n", rc);

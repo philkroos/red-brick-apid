@@ -90,9 +90,11 @@ int main() {
 	rc = red_open_file(&red, sid, RED_FILE_FLAG_READ_ONLY, 0, 0, 0, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
+		goto cleanup;
 	}
 	if (ec != 0) {
 		printf("red_open_file -> ec %u\n", ec);
+		goto cleanup;
 	}
 	printf("red_open_file -> fid %u\n", fid);
 
@@ -105,25 +107,25 @@ int main() {
 	if (rc < 0) {
 		printf("red_read_file_async %d -> rc %d\n", async_reads, rc);
 	}
-	if (!ec) {
+	if (ec != 0) {
 		printf("red_read_file_async %d -> ec %u\n", async_reads, ec);
 	}
 
 	++async_reads;
 
-	printf("waiting... 1\n");
+	printf("waiting... calling red_abort_async_file_read next\n");
 	getchar();
 
-	//printf("red_abort_async_file_read...\n");
+	printf("red_abort_async_file_read...\n");
 	rc = red_abort_async_file_read(&red, fid, &ec);
 	if (rc < 0) {
 		printf("red_abort_async_file_read -> rc %d\n", rc);
 	}
-	if (!ec) {
+	if (ec != 0) {
 		printf("red_abort_async_file_read -> ec %u\n", ec);
 	}
 
-	printf("waiting... 2\n");
+	printf("waiting... calling red_set_file_position next\n");
 	getchar();
 
 	printf("red_set_file_position...\n");
@@ -132,7 +134,7 @@ int main() {
 	if (rc < 0) {
 		printf("red_set_file_position -> rc %d\n", rc);
 	}
-	if (!ec) {
+	if (ec != 0) {
 		printf("red_set_file_position -> ec %u\n", ec);
 	}
 	printf("red_set_file_position -> position %lu\n", position);
@@ -143,7 +145,7 @@ int main() {
 	if (rc < 0) {
 		printf("red_get_file_position -> rc %d\n", rc);
 	}
-	if (!ec) {
+	if (ec != 0) {
 		printf("red_get_file_position -> ec %u\n", ec);
 	}
 	printf("red_get_file_position -> position %lu\n", position);
@@ -156,6 +158,7 @@ int main() {
 		printf("red_release_object/file -> ec %u\n", ec);
 	}
 
+cleanup:
 	rc = red_release_object(&red, sid, &ec);
 	if (rc < 0) {
 		printf("red_release_object/string -> rc %d\n", rc);

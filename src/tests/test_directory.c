@@ -32,16 +32,18 @@ int main() {
 
 	uint16_t sid;
 	if (allocate_string_object(&red, "/lib/", &sid)) {
-		goto cleanup;
+		return -1;
 	}
 
 	uint16_t did;
 	rc = red_open_directory(&red, sid, &ec, &did);
 	if (rc < 0) {
 		printf("red_open_directory -> rc %d\n", rc);
+		goto cleanup;
 	}
 	if (ec != 0) {
 		printf("red_open_directory -> ec %u\n", ec);
+		goto cleanup;
 	}
 	printf("red_open_directory -> did %u\n", did);
 
@@ -62,13 +64,14 @@ int main() {
 		}
 
 		char buffer[63 + 1];
-
 		rc = red_get_string_chunk(&red, nid, 0, &ec, buffer);
 		if (rc < 0) {
 			printf("red_get_string_chunk -> rc %d\n", rc);
+			break;
 		}
 		if (ec != 0) {
 			printf("red_get_string_chunk -> ec %u\n", ec);
+			break;
 		}
 
 		buffer[63] = '\0';
@@ -80,17 +83,21 @@ int main() {
 			rc = red_get_symlink_target(&red, nid, true, &ec, &tid);
 			if (rc < 0) {
 				printf("red_get_symlink_target -> rc %d\n", rc);
+				break;
 			}
 			if (ec != 0) {
 				printf("red_get_symlink_target -> ec %u\n", ec);
+				break;
 			}
 
 			rc = red_get_string_chunk(&red, tid, 0, &ec, buffer);
 			if (rc < 0) {
 				printf("red_get_string_chunk -> rc %d\n", rc);
+				break;
 			}
 			if (ec != 0) {
 				printf("red_get_string_chunk -> ec %u\n", ec);
+				break;
 			}
 
 			buffer[63] = '\0';

@@ -35,9 +35,11 @@ int main() {
 	rc = red_allocate_list(&red, 20, &ec, &lid);
 	if (rc < 0) {
 		printf("red_allocate_list -> rc %d\n", rc);
+		return -1;
 	}
 	if (ec != 0) {
 		printf("red_allocate_list -> ec %u\n", ec);
+		return -1;
 	}
 	printf("red_allocate_list -> sid %u\n", lid);
 
@@ -45,7 +47,6 @@ int main() {
 	for (i = 0; i < 30; ++i) {
 		uint16_t sid;
 		if (allocate_string_object(&red, "A123456789B123456789C123456789D123456789", &sid) < 0) {
-			printf("FAIOL\n");
 			goto cleanup;
 		}
 

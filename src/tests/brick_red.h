@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-14.      *
+ * This file was automatically generated on 2014-08-19.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -31,157 +31,227 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY 1
+#define RED_FUNCTION_RELEASE_OBJECT 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_INVENTORY 2
+#define RED_FUNCTION_OPEN_INVENTORY 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_RELEASE_OBJECT 3
+#define RED_FUNCTION_GET_INVENTORY_TYPE 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_STRING 4
+#define RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY 4
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_TRUNCATE_STRING 5
+#define RED_FUNCTION_REWIND_INVENTORY 5
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_LENGTH 6
+#define RED_FUNCTION_ALLOCATE_STRING 6
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_STRING_CHUNK 7
+#define RED_FUNCTION_TRUNCATE_STRING 7
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_CHUNK 8
+#define RED_FUNCTION_GET_STRING_LENGTH 8
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_LIST 9
+#define RED_FUNCTION_SET_STRING_CHUNK 9
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_LENGTH 10
+#define RED_FUNCTION_GET_STRING_CHUNK 10
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_ITEM 11
+#define RED_FUNCTION_ALLOCATE_LIST 11
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_APPEND_TO_LIST 12
+#define RED_FUNCTION_GET_LIST_LENGTH 12
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_FROM_LIST 13
+#define RED_FUNCTION_GET_LIST_ITEM 13
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_FILE 14
+#define RED_FUNCTION_APPEND_TO_LIST 14
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_NAME 15
+#define RED_FUNCTION_REMOVE_FROM_LIST 15
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_TYPE 16
+#define RED_FUNCTION_OPEN_FILE 16
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE 17
+#define RED_FUNCTION_GET_FILE_NAME 17
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_UNCHECKED 18
+#define RED_FUNCTION_GET_FILE_TYPE 18
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_ASYNC 19
+#define RED_FUNCTION_WRITE_FILE 19
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE 20
+#define RED_FUNCTION_WRITE_FILE_UNCHECKED 20
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE_ASYNC 21
+#define RED_FUNCTION_WRITE_FILE_ASYNC 21
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 22
+#define RED_FUNCTION_READ_FILE 22
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_FILE_POSITION 23
+#define RED_FUNCTION_READ_FILE_ASYNC 23
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_POSITION 24
+#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 24
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_INFO 27
+#define RED_FUNCTION_SET_FILE_POSITION 25
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_SYMLINK_TARGET 28
+#define RED_FUNCTION_GET_FILE_POSITION 26
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 29
+#define RED_FUNCTION_GET_FILE_INFO 29
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 30
+#define RED_FUNCTION_GET_SYMLINK_TARGET 30
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 31
+#define RED_FUNCTION_OPEN_DIRECTORY 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 32
+#define RED_FUNCTION_GET_DIRECTORY_NAME 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_START_PROCESS 33
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 33
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REWIND_DIRECTORY 34
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SPAWN_PROCESS 35
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_KILL_PROCESS 36
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_COMMAND 37
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_ARGUMENTS 38
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_ENVIRONMENT 39
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY 40
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_USER_ID 41
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_GROUP_ID 42
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_STDIN 43
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_STDOUT 44
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_STDERR 45
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_STATE 46
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_EXIT_CODE 47
 
 /**
  * \ingroup BrickRED
@@ -192,46 +262,57 @@ typedef Device RED;
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t file_id, uint8_t error_code, uint8_t length_written, void *user_data) \endcode
+ * 
+ * This callback reports the result of a call to the {@link red_write_file_async}
+ * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 25
+#define RED_CALLBACK_ASYNC_FILE_WRITE 27
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t file_id, uint8_t error_code, uint8_t ret_buffer[60], uint8_t length_read, void *user_data) \endcode
+ * 
+ * This callback reports the result of a call to the {@link red_read_file_async}
+ * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 26
+#define RED_CALLBACK_ASYNC_FILE_READ 28
 
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_STRING 0
+#define RED_OBJECT_TYPE_INVENTORY 0
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_LIST 1
+#define RED_OBJECT_TYPE_STRING 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_FILE 2
+#define RED_OBJECT_TYPE_LIST 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_DIRECTORY 3
+#define RED_OBJECT_TYPE_FILE 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_PROCESS 4
+#define RED_OBJECT_TYPE_DIRECTORY 4
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_PROGRAM 5
+#define RED_OBJECT_TYPE_PROCESS 5
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_OBJECT_TYPE_PROGRAM 6
 
 /**
  * \ingroup BrickRED
@@ -266,7 +347,17 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FILE_FLAG_TRUNCATE 64
+#define RED_FILE_FLAG_NO_ACCESS_TIME 64
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FILE_FLAG_NO_FOLLOW 128
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FILE_FLAG_TRUNCATE 256
 
 /**
  * \ingroup BrickRED
@@ -371,7 +462,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FILE_ORIGIN_SET 0
+#define RED_FILE_ORIGIN_BEGINNING 0
 
 /**
  * \ingroup BrickRED
@@ -382,6 +473,51 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_FILE_ORIGIN_END 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_INTERRUPT 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_QUIT 3
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_ABORT 6
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_KILL 9
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_USER1 10
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_USER2 12
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_TERMINATE 15
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_CONTINUE 18
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_SIGNAL_STOP 19
 
 /**
  * \ingroup BrickRED
@@ -475,210 +611,300 @@ int red_get_api_version(RED *red, uint8_t ret_api_version[3]);
 /**
  * \ingroup BrickRED
  *
- * 
- */
-int red_get_next_inventory_entry(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_object_id);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_rewind_inventory(RED *red, uint8_t type, uint8_t *ret_error_code);
-
-/**
- * \ingroup BrickRED
- *
- * 
+ * Decreases the reference count of an object by one and returns the resulting
+ * error code. If the reference count reaches zero the object is destroyed.
  */
 int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
+ * Opens the inventory for a specific object type and allocates a new inventory
+ * object for it.
  * 
+ * Returns the object ID of the new directory object and the resulting error code.
+ */
+int red_open_inventory(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_inventory_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Returns the object type of a inventory object and the resulting error code.
+ */
+int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint8_t *ret_type);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Returns the object ID of the next object in an inventory object and the
+ * resulting error code. If there is not next object then error code
+ * ``API_E_NO_MORE_DATA`` is returned. To rewind an inventory object call
+ * {@link red_rewind_inventory}.
+ */
+int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_object_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Rewinds an inventory object and returns the resulting error code.
+ */
+int red_rewind_inventory(RED *red, uint16_t inventory_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Allocates a new string object, reserves ``length_to_reserve`` bytes memory
+ * for it and sets up to the first 60 bytes. Set ``length_to_reserve`` to the
+ * length of the string that should be stored in the string object.
+ * 
+ * Returns the object ID of the new string object and the resulting error code.
  */
 int red_allocate_string(RED *red, uint32_t length_to_reserve, const char buffer[60], uint8_t *ret_error_code, uint16_t *ret_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Truncates a string object to ``length`` bytes and returns the resulting
+ * error code.
  */
 int red_truncate_string(RED *red, uint16_t string_id, uint32_t length, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the length of a string object in bytes and the resulting error code.
  */
 int red_get_string_length(RED *red, uint16_t string_id, uint8_t *ret_error_code, uint32_t *ret_length);
 
 /**
  * \ingroup BrickRED
  *
+ * Sets a chunk of up to 58 bytes in a string object beginning at ``offset``.
  * 
+ * Returns the resulting error code.
  */
 int red_set_string_chunk(RED *red, uint16_t string_id, uint32_t offset, const char buffer[58], uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns a chunk up to 63 bytes from a string object beginning at ``offset`` and
+ * returns the resulting error code.
  */
 int red_get_string_chunk(RED *red, uint16_t string_id, uint32_t offset, uint8_t *ret_error_code, char ret_buffer[63]);
 
 /**
  * \ingroup BrickRED
  *
+ * Allocates a new list object and reserves memory for ``length_to_reserve`` items.
+ * Set ``length_to_reserve`` to the number of items that should be stored in the
+ * list object.
  * 
+ * Returns the object ID of the new list object and the resulting error code.
  */
 int red_allocate_list(RED *red, uint16_t length_to_reserve, uint8_t *ret_error_code, uint16_t *ret_list_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the length of a list object in items and the resulting error code.
  */
 int red_get_list_length(RED *red, uint16_t list_id, uint8_t *ret_error_code, uint16_t *ret_length);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the object ID of the object stored at ``index`` in a list object and
+ * returns the resulting error code.
  */
 int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id);
 
 /**
  * \ingroup BrickRED
  *
+ * Appends an object to a list object and increases the reference count of the
+ * appended object by one.
  * 
+ * Returns the resulting error code.
  */
 int red_append_to_list(RED *red, uint16_t list_id, uint16_t item_object_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
+ * Removes the object stored at ``index`` from a list object and decreases the
+ * reference count of the removed object by one.
  * 
+ * Returns the resulting error code.
  */
 int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
+ * Opens an existing file or creates a new file and allocates a new file object
+ * for it.
  * 
+ * The reference count of the name string object is increased by one. When the
+ * file object is destroyed then the reference count of the name string object is
+ * decreased by one. Also the name string object is locked and cannot be modified
+ * while the file object holds a reference to it.
+ * 
+ * Returns the object ID of the new file object and the resulting error code.
  */
 int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the name of a file object and the resulting error code.
  */
 int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the type of a file object and the resulting error code.
  */
 int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type);
 
 /**
  * \ingroup BrickRED
  *
+ * Writes up to 61 bytes to a file object.
  * 
+ * Returns the actual number of bytes written and the resulting error code.
  */
 int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written);
 
 /**
  * \ingroup BrickRED
  *
+ * Writes up to 61 bytes to a file object.
  * 
+ * Does neither report the actual number of bytes written nor the resulting error
+ * code.
  */
 int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
 /**
  * \ingroup BrickRED
  *
+ * Writes up to 61 bytes to a file object.
  * 
+ * Reports the actual number of bytes written and the resulting error code via the
+ * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
  */
 int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
 /**
  * \ingroup BrickRED
  *
+ * Reads up to 62 bytes from a file object.
  * 
+ * Returns the read bytes and the resulting error code.
  */
 int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *ret_error_code, uint8_t ret_buffer[62], uint8_t *ret_length_read);
 
 /**
  * \ingroup BrickRED
  *
+ * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object.
  * 
+ * Returns the resulting error code.
+ * 
+ * Reports the read bytes in 60 byte chunks and the resulting error code of the
+ * read operation via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
  */
 int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
+ * Aborts a {@link red_read_file_async} operation in progress.
  * 
+ * Returns the resulting error code.
  */
 int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
+ * Set the current seek position of a file object in bytes.
  * 
+ * Returns the resulting seek position and error code.
  */
 int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t origin, uint8_t *ret_error_code, uint64_t *ret_position);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the current seek position of a file object in bytes and returns the
+ * resulting error code.
  */
 int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint64_t *ret_position);
 
 /**
  * \ingroup BrickRED
  *
+ * Returns various information about a file and the resulting error code.
  * 
+ * The information is obtained via the
+ * `stat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
+ * function. If ``follow_symlink`` is *false* then the
+ * `lstat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
+ * function is used instead.
  */
 int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time);
 
 /**
  * \ingroup BrickRED
  *
+ * Returns the target of a symlink and the resulting error code.
  * 
+ * If ``canonicalize`` is *false* then the target of the symlink is resolved one
+ * level via the
+ * `readlink() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/readlink.html>`__
+ * function, otherwise it is fully resolved using the
+ * `realpath() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/realpath.html>`__
+ * function.
  */
 int red_get_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint8_t *ret_error_code, uint16_t *ret_target_string_id);
 
 /**
  * \ingroup BrickRED
  *
+ * Opens an existing directory and allocates a new directory object for it.
  * 
+ * The reference count of the name string object is increased by one. When the
+ * directory object is destroyed then the reference count of the name string
+ * object is decreased by one. Also the name string object is locked and cannot be
+ * modified while the directory object holds a reference to it.
+ * 
+ * Returns the object ID of the new directory object and the resulting error code.
  */
 int red_open_directory(RED *red, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_directory_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the name of a directory object and the resulting error code.
  */
 int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the next entry in a directory object and the resulting error code.
+ * If there is not next entry then error code ``API_E_NO_MORE_DATA`` is returned.
+ * To rewind a directory object call {@link red_rewind_directory}.
  */
 int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id, uint8_t *ret_type);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Rewinds a directory object and returns the resulting error code.
  */
 int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_code);
 
@@ -687,7 +913,91 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
  *
  * 
  */
-int red_start_process(RED *red, uint16_t command_string_id, uint16_t argument_string_ids[20], uint8_t argument_count, uint16_t environment_string_ids[8], uint8_t environment_count, bool merge_stdout_and_stderr, uint8_t *ret_error_code, uint16_t *ret_process_id);
+int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t user_id, uint32_t group_id, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_kill_process(RED *red, uint16_t process_id, uint8_t signal);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_arguments(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_environment(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_working_directory(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_working_directory_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_user_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_group_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_group_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_stdin(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_stdout(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdout_file_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stderr_file_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_process_exit_code(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_exit_code);
 
 /**
  * \ingroup BrickRED
