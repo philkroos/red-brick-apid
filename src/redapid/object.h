@@ -32,7 +32,8 @@ typedef uint16_t ObjectID;
 #define OBJECT_ID_MAX UINT16_MAX
 
 typedef enum {
-	OBJECT_TYPE_STRING = 0,
+	OBJECT_TYPE_INVENTORY = 0,
+	OBJECT_TYPE_STRING,
 	OBJECT_TYPE_LIST,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
@@ -40,7 +41,7 @@ typedef enum {
 	OBJECT_TYPE_PROGRAM
 } ObjectType;
 
-#define MAX_OBJECT_TYPES 6
+#define MAX_OBJECT_TYPES 7
 
 typedef struct _Object Object;
 

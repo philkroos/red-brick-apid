@@ -36,7 +36,11 @@ APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object);
 APIE inventory_occupy_object(ObjectID id, Object **object);
 APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object);
 
-APIE inventory_get_next_entry(ObjectType type, ObjectID *id);
-APIE inventory_rewind(ObjectType type);
+APIE inventory_open(ObjectType type, ObjectID *id);
+
+APIE inventory_get_type(ObjectID id, uint8_t *type);
+
+APIE inventory_get_next_entry(ObjectID id, ObjectID *object_id);
+APIE inventory_rewind(ObjectID id);
 
 #endif // REDAPID_INVENTORY_H

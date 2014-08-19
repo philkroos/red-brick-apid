@@ -37,6 +37,7 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
 
 #include <daemonlib/array.h>
 #include <daemonlib/log.h>
@@ -48,10 +49,20 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
+typedef struct {
+	Object base;
+
+	ObjectType type;
+	int index;
+} Inventory;
+
 static int _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
 static Array _free_ids;
-static int _next_entry_index[MAX_OBJECT_TYPES] = { 0, 0, 0, 0, 0, 0 };
+
+static void inventory_destroy(Inventory *inventory) {
+	free(inventory);
+}
 
 static void inventory_destroy_object(Object **object) {
 	object_destroy(*object);
@@ -70,12 +81,12 @@ int inventory_init(void) {
 	}
 
 	// allocate object arrays
-	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
+	for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
 		if (array_create(&_objects[type], 32, sizeof(Object *), true) < 0) {
 			log_error("Could not create %s object array: %s (%d)",
 			          object_get_type_name(type), get_errno_name(errno), errno);
 
-			for (--type; type >= OBJECT_TYPE_STRING; --type) {
+			for (--type; type >= OBJECT_TYPE_INVENTORY; --type) {
 				array_destroy(&_objects[type], (ItemDestroyFunction)inventory_destroy_object);
 			}
 
@@ -100,6 +111,9 @@ void inventory_exit(void) {
 
 	// ...before destroying the remaining string objects...
 	array_destroy(&_objects[OBJECT_TYPE_STRING], (ItemDestroyFunction)inventory_destroy_object);
+
+	// ...before destroying the inventory objects...
+	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], (ItemDestroyFunction)inventory_destroy_object);
 
 	// ...before destroying the free IDs array
 	array_destroy(&_free_ids, NULL);
@@ -151,6 +165,8 @@ void inventory_remove_object(Object *object) {
 	int i;
 	Object **candidate;
 	ObjectID *free_id;
+	Inventory **inventory;
+	int k;
 
 	for (i = 0; i < _objects[object->type].count; ++i) {
 		candidate = array_get(&_objects[object->type], i);
@@ -176,8 +192,12 @@ void inventory_remove_object(Object *object) {
 		}
 
 		// adjust next-entry-index
-		if (_next_entry_index[object->type] > i) {
-			--_next_entry_index[object->type];
+		for (k = 0; k < _objects[OBJECT_TYPE_INVENTORY].count; ++k) {
+			inventory = array_get(&_objects[OBJECT_TYPE_INVENTORY], k);
+
+			if ((*inventory)->type == object->type && (*inventory)->index > i) {
+				--(*inventory)->index;
+			}
 		}
 
 		log_debug("Removing %s object (id: %u)",
@@ -198,7 +218,7 @@ APIE inventory_get_object(ObjectID id, Object **object) {
 	int i;
 	Object **candidate;
 
-	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
+	for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
 		for (i = 0; i < _objects[type].count; ++i) {
 			candidate = array_get(&_objects[type], i);
 
@@ -259,8 +279,9 @@ APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object
 }
 
 // public API
-APIE inventory_get_next_entry(ObjectType type, ObjectID *id) {
-	Object **object;
+APIE inventory_open(ObjectType type, ObjectID *id) {
+	Inventory *inventory;
+	APIE error_code;
 
 	if (!object_is_type_valid(type)) {
 		log_warn("Invalid object type %d", type);
@@ -268,30 +289,86 @@ APIE inventory_get_next_entry(ObjectType type, ObjectID *id) {
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (_next_entry_index[type] >= _objects[type].count) {
-		log_debug("Reached end of %s inventory", object_get_type_name(type));
+	// create inventory object
+	inventory = calloc(1, sizeof(Inventory));
 
-		return API_E_NO_MORE_DATA;
+	if (inventory == NULL) {
+		log_error("Could not allocate inventory object: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		return API_E_NO_FREE_MEMORY;
 	}
 
-	object = array_get(&_objects[type], _next_entry_index[type]++);
+	inventory->type = type;
+	inventory->index = 0;
 
-	object_add_external_reference(*object);
+	error_code = object_create(&inventory->base, OBJECT_TYPE_INVENTORY, false,
+	                           (ObjectDestroyFunction)inventory_destroy);
 
-	*id = (*object)->id;
+	if (error_code != API_E_OK) {
+		free(inventory);
+
+		return error_code;
+	}
+
+	*id = inventory->base.id;
+
+	log_debug("Opened inventory object (id: %u, type: %s)",
+	          inventory->base.id, object_get_type_name(inventory->type));
 
 	return API_E_OK;
 }
 
 // public API
-APIE inventory_rewind(ObjectType type) {
-	if (!object_is_type_valid(type)) {
-		log_warn("Invalid object type %d", type);
+APIE inventory_get_type(ObjectID id, uint8_t *type) {
+	Inventory *inventory;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
 
-		return API_E_INVALID_PARAMETER;
+	if (error_code != API_E_OK) {
+		return error_code;
 	}
 
-	_next_entry_index[type] = 0;
+	*type = inventory->type;
+
+	return API_E_OK;
+}
+
+// public API
+APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
+	Inventory *inventory;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
+	Object **object;
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (inventory->index >= _objects[inventory->type].count) {
+		log_debug("Reached end of %s inventory (id: %u)",
+		          object_get_type_name(inventory->type), id);
+
+		return API_E_NO_MORE_DATA;
+	}
+
+	object = array_get(&_objects[inventory->type], inventory->index++);
+
+	object_add_external_reference(*object);
+
+	*object_id = (*object)->id;
+
+	return API_E_OK;
+}
+
+// public API
+APIE inventory_rewind(ObjectID id) {
+	Inventory *inventory;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	inventory->index = 0;
 
 	return API_E_OK;
 }

@@ -41,10 +41,12 @@
 typedef uint8_t tfpbool;
 
 typedef enum {
-	FUNCTION_GET_NEXT_INVENTORY_ENTRY = 1,
-	FUNCTION_REWIND_INVENTORY,
+	FUNCTION_RELEASE_OBJECT = 1,
 
-	FUNCTION_RELEASE_OBJECT,
+	FUNCTION_OPEN_INVENTORY,
+	FUNCTION_GET_INVENTORY_TYPE,
+	FUNCTION_GET_NEXT_INVENTORY_ENTRY,
+	FUNCTION_REWIND_INVENTORY,
 
 	FUNCTION_ALLOCATE_STRING,
 	FUNCTION_TRUNCATE_STRING,
@@ -83,31 +85,6 @@ typedef enum {
 #include <daemonlib/packed_begin.h>
 
 //
-// inventory
-//
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED GetNextInventoryEntryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t object_id;
-} ATTRIBUTE_PACKED GetNextInventoryEntryResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED RewindInventoryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED RewindInventoryResponse;
-
-//
 // object
 //
 
@@ -120,6 +97,53 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseObjectResponse;
+
+//
+// inventory
+//
+
+typedef struct {
+	PacketHeader header;
+	uint8_t type;
+} ATTRIBUTE_PACKED OpenInventoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t inventory_id;
+} ATTRIBUTE_PACKED OpenInventoryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t inventory_id;
+} ATTRIBUTE_PACKED GetInventoryTypeRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t type;
+} ATTRIBUTE_PACKED GetInventoryTypeResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t inventory_id;
+} ATTRIBUTE_PACKED GetNextInventoryEntryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t object_id;
+} ATTRIBUTE_PACKED GetNextInventoryEntryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t inventory_id;
+} ATTRIBUTE_PACKED RewindInventoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RewindInventoryResponse;
 
 //
 // string
@@ -507,30 +531,6 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 }
 
 //
-// inventory
-//
-
-static void api_get_next_inventory_entry(GetNextInventoryEntryRequest *request) {
-	GetNextInventoryEntryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = inventory_get_next_entry(request->type, &response.object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_rewind_inventory(RewindInventoryRequest *request) {
-	RewindInventoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = inventory_rewind(request->type);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-//
 // object
 //
 
@@ -540,6 +540,50 @@ static void api_release_object(ReleaseObjectRequest *request) {
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
 	response.error_code = object_release(request->object_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+//
+// inventory
+//
+
+static void api_open_inventory(OpenInventoryRequest *request) {
+	OpenInventoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = inventory_open(request->type, &response.inventory_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_inventory_type(GetInventoryTypeRequest *request) {
+	GetInventoryTypeResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = inventory_get_type(request->inventory_id, &response.type);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_next_inventory_entry(GetNextInventoryEntryRequest *request) {
+	GetNextInventoryEntryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = inventory_get_next_entry(request->inventory_id, &response.object_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_rewind_inventory(RewindInventoryRequest *request) {
+	RewindInventoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = inventory_rewind(request->inventory_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -886,12 +930,14 @@ void api_handle_request(Packet *request) {
 			break;
 
 	switch (request->header.function_id) {
-	// inventory
-	DISPATCH_FUNCTION(GET_NEXT_INVENTORY_ENTRY,      GetNextInventoryEntry,      get_next_inventory_entry)
-	DISPATCH_FUNCTION(REWIND_INVENTORY,              RewindInventory,            rewind_inventory)
-
 	// object
 	DISPATCH_FUNCTION(RELEASE_OBJECT,                ReleaseObject,              release_object)
+
+	// inventory
+	DISPATCH_FUNCTION(OPEN_INVENTORY,                OpenInventory,              open_inventory)
+	DISPATCH_FUNCTION(GET_INVENTORY_TYPE,            GetInventoryType,           get_inventory_type)
+	DISPATCH_FUNCTION(GET_NEXT_INVENTORY_ENTRY,      GetNextInventoryEntry,      get_next_inventory_entry)
+	DISPATCH_FUNCTION(REWIND_INVENTORY,              RewindInventory,            rewind_inventory)
 
 	// string
 	DISPATCH_FUNCTION(ALLOCATE_STRING,             AllocateString,          allocate_string)
@@ -985,11 +1031,19 @@ void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
 #if 0
 
 /*
+ * object
+ */
+
++ release_object (uint16_t object_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
+
+
+/*
  * inventory
  */
 
 enum object_type {
-	OBJECT_TYPE_STRING = 0,
+	OBJECT_TYPE_INVENTORY = 0,
+	OBJECT_TYPE_STRING,
 	OBJECT_TYPE_LIST,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
@@ -997,16 +1051,10 @@ enum object_type {
 	OBJECT_TYPE_PROGRAM
 }
 
-+ get_next_inventory_entry (uint8_t type) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-inventory, adds a reference to the object, you need to call release_object() when done with it
-+ rewind_inventory         (uint8_t type) -> uint8_t error_code
-? purge_inventory          (uint8_t type) -> uint8_t error_code
-
-
-/*
- * object
- */
-
-+ release_object (uint16_t object_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
++ open_inventory           (uint8_t type)          -> uint8_t error_code, uint16_t inventory_id // you need to call release_object() when done with it
++ get_inventory_type       (uint16_t inventory_id) -> uint8_t error_code, uint8_t type
++ get_next_inventory_entry (uint16_t inventory_id) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-inventory, adds a reference to the object, you need to call release_object() when done with it
++ rewind_inventory         (uint16_t inventory_id) -> uint8_t error_code
 
 
 /*
@@ -1076,7 +1124,7 @@ enum file_permission { // bitmask
 };
 
 enum file_origin {
-	FILE_ORIGIN_SET = 0,
+	FILE_ORIGIN_BEGINNING = 0,
 	FILE_ORIGIN_CURRENT,
 	FILE_ORIGIN_END
 }
@@ -1113,9 +1161,9 @@ enum file_type {
 ? set_file_events       (uint16_t file_id, uint8_t events)                              -> uint8_t error_code
 ? get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint8_t events
 
-+ callback: async_file_write -> uint16_t file_id, uint8_t error_code, uint8_t length_written
-+ callback: async_file_read  -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
-? callback: file_event       -> uint16_t file_id, uint8_t events
++ callback: async_file_write    -> uint16_t file_id, uint8_t error_code, uint8_t length_written
++ callback: async_file_read     -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
+? callback: file_event_occurred -> uint16_t file_id, uint8_t events
 
 + get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
 ? get_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
@@ -1149,16 +1197,15 @@ struct directory {
  */
 
 enum process_signal {
-	PROCESS_SIGNAL_ABORT = 0,
-	PROCESS_SIGNAL_CONTINUE,
-	PROCESS_SIGNAL_HANGUP,
-	PROCESS_SIGNAL_INTERRUPT,
-	PROCESS_SIGNAL_KILL,
-	PROCESS_SIGNAL_QUIT,
-	PROCESS_SIGNAL_STOP,
-	PROCESS_SIGNAL_TERMINATE,
-	PROCESS_SIGNAL_USER1,
-	PROCESS_SIGNAL_USER2
+	PROCESS_SIGNAL_INTERRUPT = 2,  // SIGINT
+	PROCESS_SIGNAL_QUIT      = 3,  // SIGQUIT
+	PROCESS_SIGNAL_ABORT     = 6,  // SIGABRT
+	PROCESS_SIGNAL_KILL      = 9,  // SIGKILL
+	PROCESS_SIGNAL_USER1     = 10, // SIGUSR1
+	PROCESS_SIGNAL_USER2     = 12, // SIGUSR2
+	PROCESS_SIGNAL_TERMINATE = 15, // SIGTERM
+	PROCESS_SIGNAL_CONTINUE  = 18, // SIGCONT
+	PROCESS_SIGNAL_STOP      = 19  // SIGSTOP
 }
 
 enum process_state {
@@ -1174,6 +1221,8 @@ struct process {
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
 	uint16_t working_directory_string_id;
+	uint32_t user_id;
+	uint32_t group_id;
 	uint16_t stdin_file_id;
 	uint16_t stdout_file_id;
 	uint16_t stderr_file_id;
@@ -1193,13 +1242,15 @@ struct process {
 ? get_process_arguments         (uint16_t process_id)                 -> uint8_t error_code, uint16_t arguments_list_id // adds a reference to the argument list, you need to call release_object() when done with it
 ? get_process_environment       (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_list_id // adds a reference to the environment list, you need to call release_object() when done with it
 ? get_process_working_directory (uint16_t process_id)                 -> uint8_t error_code, uint16_t working_directory_string_id // adds a reference to the working directory string, you need to call release_object() when done with it
+? get_process_user_id           (uint16_t process_id)                 -> uint8_t error_code, uint32_t user_id
+? get_process_group_id          (uint16_t process_id)                 -> uint8_t error_code, uint32_t group_id
+? get_process_stdin             (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
+? get_process_stdout            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
+? get_process_stderr            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
 ? get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state
 ? get_process_exit_code         (uint16_t process_id)                 -> uint8_t error_code, uint8_t exit_code
-? get_process_stdin_file        (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
-? get_process_stdout_file       (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
-? get_process_stderr_file       (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
 
-? callback: process_state -> uint16_t process_id, uint8_t state
+? callback: process_state_changed -> uint16_t process_id, uint8_t state
 
 
 /*
