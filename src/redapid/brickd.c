@@ -78,7 +78,8 @@ static void brickd_handle_read(void *opaque) {
 
 		if (!brickd->request_header_checked) {
 			if (!packet_header_is_valid_request(&brickd->request.header, &message)) {
-				log_error("Got invalid request (%s) from Brick Daemon, disconnecting brickd: %s",
+				// FIXME: include packet_get_content_dump output in the error message
+				log_error("Received invalid request (%s) from Brick Daemon, disconnecting brickd: %s",
 				          packet_get_request_signature(packet_signature, &brickd->request),
 				          message);
 
@@ -99,7 +100,7 @@ static void brickd_handle_read(void *opaque) {
 
 		// FIXME: filter requests by RED Brick UID
 
-		log_debug("Got %s request (%s) from Brick Daemon",
+		log_debug("Received %s request (%s) from Brick Daemon",
 		          api_get_function_name_from_id(brickd->request.header.function_id),
 		          packet_get_request_signature(packet_signature, &brickd->request));
 
