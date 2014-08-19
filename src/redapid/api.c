@@ -1006,6 +1006,52 @@ APIE api_get_error_code_from_errno(void) {
 	}
 }
 
+const char *api_get_function_name_from_id(int function_id) {
+	switch (function_id) {
+	case FUNCTION_RELEASE_OBJECT:                return "release-object";
+
+	case FUNCTION_OPEN_INVENTORY:                return "open-inventory";
+	case FUNCTION_GET_INVENTORY_TYPE:            return "get-inventory-type";
+	case FUNCTION_GET_NEXT_INVENTORY_ENTRY:      return "get-next-inventory-entry";
+	case FUNCTION_REWIND_INVENTORY:              return "rewind-inventory";
+
+	case FUNCTION_ALLOCATE_STRING:               return "allocate-string";
+	case FUNCTION_TRUNCATE_STRING:               return "truncate-string";
+	case FUNCTION_GET_STRING_LENGTH:             return "get-string-length";
+	case FUNCTION_SET_STRING_CHUNK:              return "set-string-chunk";
+	case FUNCTION_GET_STRING_CHUNK:              return "get-string-chunk";
+
+	case FUNCTION_ALLOCATE_LIST:                 return "allocate-list";
+	case FUNCTION_GET_LIST_LENGTH:               return "get-list-length";
+	case FUNCTION_GET_LIST_ITEM:                 return "get-list-item";
+	case FUNCTION_APPEND_TO_LIST:                return "append-to-list";
+	case FUNCTION_REMOVE_FROM_LIST:              return "remove-from-list";
+
+	case FUNCTION_OPEN_FILE:                     return "open-file";
+	case FUNCTION_GET_FILE_NAME:                 return "get-file-name";
+	case FUNCTION_GET_FILE_TYPE:                 return "get-file-type";
+	case FUNCTION_WRITE_FILE:                    return "write-file";
+	case FUNCTION_WRITE_FILE_UNCHECKED:          return "write-file-unchecked";
+	case FUNCTION_WRITE_FILE_ASYNC:              return "write-file-async";
+	case FUNCTION_READ_FILE:                     return "read-file";
+	case FUNCTION_READ_FILE_ASYNC:               return "read-file-async";
+	case FUNCTION_ABORT_ASYNC_FILE_READ:         return "abort-async-file-read";
+	case FUNCTION_SET_FILE_POSITION:             return "set-file-position";
+	case FUNCTION_GET_FILE_POSITION:             return "get-file-position";
+	case CALLBACK_ASYNC_FILE_WRITE:              return "async-file-write";
+	case CALLBACK_ASYNC_FILE_READ:               return "async-file-read";
+	case FUNCTION_GET_FILE_INFO:                 return "get-file-info";
+	case FUNCTION_GET_SYMLINK_TARGET:            return "get-symlink-target";
+
+	case FUNCTION_OPEN_DIRECTORY:                return "open-directory";
+	case FUNCTION_GET_DIRECTORY_NAME:            return "get-directory-name";
+	case FUNCTION_GET_NEXT_DIRECTORY_ENTRY:      return "get-next-directory-entry";
+	case FUNCTION_REWIND_DIRECTORY:              return "rewind-directory";
+
+	default:                                     return "<unknwon>";
+	}
+}
+
 void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
                                         uint8_t length_written) {
 	_async_file_write_callback.file_id = file_id;

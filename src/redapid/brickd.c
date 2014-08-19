@@ -99,7 +99,8 @@ static void brickd_handle_read(void *opaque) {
 
 		// FIXME: filter requests by RED Brick UID
 
-		log_debug("Got request (%s) from Brick Daemon",
+		log_debug("Got %s request (%s) from Brick Daemon",
+		          api_get_function_name_from_id(brickd->request.header.function_id),
 		          packet_get_request_signature(packet_signature, &brickd->request));
 
 		api_handle_request(&brickd->request);
@@ -182,7 +183,16 @@ void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 		return;
 	}
 
-	log_debug("%s response (%s) to Brick Daemon",
-	          enqueued ? "Enqueued" : "Sent",
-	          packet_get_response_signature(packet_signature, response));
+	// FIXME: avoid packet_header_get_sequence_number call if log_debug is disabled
+	if (packet_header_get_sequence_number(&response->header) == 0) {
+		log_debug("%s %s callback (%s) to Brick Daemon",
+		          enqueued ? "Enqueued" : "Sent",
+		          api_get_function_name_from_id(response->header.function_id),
+		          packet_get_callback_signature(packet_signature, response));
+	} else {
+		log_debug("%s %s response (%s) to Brick Daemon",
+		          enqueued ? "Enqueued" : "Sent",
+		          api_get_function_name_from_id(response->header.function_id),
+		          packet_get_response_signature(packet_signature, response));
+	}
 }
