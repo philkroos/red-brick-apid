@@ -141,6 +141,13 @@ APIE object_release(ObjectID id) {
 		return error_code;
 	}
 
+	if (object->external_reference_count == 0) {
+		log_warn("Could not remove external %s object (id: %u) reference, external reference count is already zero",
+		         object_get_type_name(object->type), object->id);
+
+		return API_E_INVALID_OPERATION;
+	}
+
 	object_remove_external_reference(object);
 
 	return API_E_OK;
