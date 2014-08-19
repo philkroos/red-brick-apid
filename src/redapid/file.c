@@ -756,6 +756,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 	ssize_t length_written;
 
 	if (error_code != API_E_OK) {
+		// FIXME: this callback should be delivered after the response of this function
 		api_send_async_file_write_callback(id, error_code, 0);
 
 		if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
@@ -769,6 +770,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		log_warn("Length of %u byte(s) exceeds maximum length of file async write buffer",
 		         length_to_write);
 
+		// FIXME: this callback should be delivered after the response of this function
 		api_send_async_file_write_callback(id, API_E_INVALID_PARAMETER, 0);
 
 		return ERROR_CODE_INVALID_PARAMETER;
@@ -778,6 +780,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		log_warn("Could not write %u byte(s) asynchronously while reading %"PRIu64" byte(s) from file object (id: %u, name: %s) asynchronously",
 		         length_to_write, file->length_to_read_async, id, file->name->buffer);
 
+		// FIXME: this callback should be delivered after the response of this function
 		api_send_async_file_write_callback(id, API_E_INVALID_OPERATION, 0);
 
 		return ERROR_CODE_UNKNOWN_ERROR;
@@ -791,11 +794,13 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		log_warn("Could not write %u byte(s) to file object (id: %u, name: %s) asynchronously: %s (%d)",
 		         length_to_write, id, file->name->buffer, get_errno_name(errno), errno);
 
+		// FIXME: this callback should be delivered after the response of this function
 		api_send_async_file_write_callback(id, error_code, 0);
 
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
+	// FIXME: this callback should be delivered after the response of this function
 	api_send_async_file_write_callback(id, API_E_OK, length_written);
 
 	return ERROR_CODE_OK;
@@ -866,6 +871,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	}
 
 	if (length_to_read == 0) {
+		// FIXME: this callback should be delivered after the response of this function
 		api_send_async_file_read_callback(file->base.id, API_E_OK, buffer, 0);
 
 		return API_E_OK;
@@ -907,6 +913,7 @@ APIE file_abort_async_read(ObjectID id) {
 
 	file->length_to_read_async = 0;
 
+	// FIXME: this callback should be delivered after the response of this function
 	api_send_async_file_read_callback(file->base.id, API_E_OPERATION_ABORTED, buffer, 0);
 
 	return API_E_OK;
