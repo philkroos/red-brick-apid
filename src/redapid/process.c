@@ -693,10 +693,33 @@ cleanup:
 
 // public API
 APIE process_kill(ObjectID id, ProcessSignal signal) {
-	(void)id;
-	(void)signal;
+	Process *process;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	int rc;
 
-	return API_E_INVALID_OPERATION;
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (process->state != PROCESS_STATE_RUNNING && process->state != PROCESS_STATE_STOPPED) {
+		log_error("Cannot send signal (number: %d) to an already dead child process (command: %s)",
+		          signal, process->command->buffer);
+
+		return API_E_INVALID_OPERATION;
+	}
+
+	rc = kill(process->pid, signal);
+
+	if (rc < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not send signal (number: %d) to child process (command: %s, pid: %u): %s (%d)",
+		          signal, process->command->buffer, process->pid, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	return API_E_OK;
 }
 
 // public API
