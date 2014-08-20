@@ -413,7 +413,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	if ((permissions & ~FILE_PERMISSION_ALL) != 0) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Invalid file permissions 0o%04o", permissions);
+		log_warn("Invalid file permissions %04o", permissions);
 
 		goto cleanup;
 	}
@@ -612,7 +612,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	*id = file->base.id;
 
 	if ((flags & FILE_FLAG_CREATE) != 0) {
-		log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: 0o%04o, user-id: %u, group-id: %u, handle: %d)",
+		log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, permissions: %04o, user-id: %u, group-id: %u, handle: %d)",
 		          file->base.id, file->name->buffer, flags, permissions, user_id, group_id, fd);
 	} else {
 		log_debug("Opened file object (id: %u, name: %s, flags: 0x%04X, user-id: %u, group-id: %u, handle: %d)",

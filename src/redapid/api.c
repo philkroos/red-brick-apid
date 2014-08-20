@@ -1581,7 +1581,7 @@ struct directory {
 + get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 + rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-? create_directory (uint16_t name_string_id, uint16_t permissions) -> uint8_t error_code
+? create_directory (uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id) -> uint8_t error_code
 
 
 /*

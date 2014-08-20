@@ -132,8 +132,8 @@ static void process_handle_state_change(void *opaque) {
 	process->state = change.state;
 	process->exit_code = change.exit_code;
 
-	log_debug("State (state: %u, exit_code: %u) of child process (command: %s, pid: %u) changed",
-	          process->state, process->exit_code, process->command->buffer, process->pid);
+	log_debug("State of child process (command: %s, pid: %u) changed (state: %u, exit_code: %u)",
+	          process->command->buffer, process->pid, process->state, process->exit_code);
 
 	api_send_process_state_changed_callback(process->base.id, change.state,
 	                                        change.exit_code);
