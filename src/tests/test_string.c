@@ -77,13 +77,7 @@ int main() {
 	buffer[63] = '\0';
 	printf("red_get_string_chunk -> buffer '%s'\n", buffer);
 
-	rc = red_release_object(&red, sid, &ec);
-	if (rc < 0) {
-		printf("red_release_object/string -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/string -> ec %u\n", ec);
-	}
+	release_object(&red, sid, "string");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

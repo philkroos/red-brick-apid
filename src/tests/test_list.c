@@ -46,7 +46,7 @@ int main() {
 	int i;
 	for (i = 0; i < 30; ++i) {
 		uint16_t sid;
-		if (allocate_string_object(&red, "A123456789B123456789C123456789D123456789", &sid) < 0) {
+		if (allocate_string(&red, "A123456789B123456789C123456789D123456789", &sid) < 0) {
 			goto cleanup;
 		}
 
@@ -58,13 +58,7 @@ int main() {
 			printf("red_append_to_list -> ec %u\n", ec);
 		}
 
-		rc = red_release_object(&red, sid, &ec);
-		if (rc < 0) {
-			printf("red_release_object/string -> rc %d\n", rc);
-		}
-		if (ec != 0) {
-			printf("red_release_object/string -> ec %u\n", ec);
-		}
+		release_object(&red, sid, "string");
 	}
 
 	uint16_t length;
@@ -95,13 +89,7 @@ int main() {
 	printf("red_get_list_length -> length %u\n", length);
 
 cleanup:
-	rc = red_release_object(&red, lid, &ec);
-	if (rc < 0) {
-		printf("red_release_object/list -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/list -> ec %u\n", ec);
-	}
+	release_object(&red, lid, "list");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

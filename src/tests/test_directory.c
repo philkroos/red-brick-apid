@@ -31,7 +31,7 @@ int main() {
 	}
 
 	uint16_t sid;
-	if (allocate_string_object(&red, "/lib/", &sid)) {
+	if (allocate_string(&red, "/lib/", &sid)) {
 		return -1;
 	}
 
@@ -103,13 +103,7 @@ int main() {
 			buffer[63] = '\0';
 			printf(" ==> %s", buffer);
 
-			rc = red_release_object(&red, tid, &ec);
-			if (rc < 0) {
-				printf("red_release_object/string -> rc %d\n", rc);
-			}
-			if (ec != 0) {
-				printf("red_release_object/string -> ec %u\n", ec);
-			}
+			release_object(&red, tid, "string");
 		}
 		printf("\n");
 
@@ -131,13 +125,7 @@ int main() {
 
 		printf("%u %o %u %u %lu %lu %lu %lu\n", type, permissions, user_id, group_id, length, access_time, modification_time, status_change_time);*/
 
-		rc = red_release_object(&red, nid, &ec);
-		if (rc < 0) {
-			printf("red_release_object/string -> rc %d\n", rc);
-		}
-		if (ec != 0) {
-			printf("red_release_object/string -> ec %u\n", ec);
-		}
+		release_object(&red, nid, "string");
 	}
 
 	uint64_t et = microseconds();
@@ -146,21 +134,8 @@ int main() {
 	printf("red_get_next_directory_entry in %f sec\n", dur);
 
 cleanup:
-	rc = red_release_object(&red, did, &ec);
-	if (rc < 0) {
-		printf("red_release_object/directory -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/directory -> ec %u\n", ec);
-	}
-
-	rc = red_release_object(&red, sid, &ec);
-	if (rc < 0) {
-		printf("red_release_object/string -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/string -> ec %u\n", ec);
-	}
+	release_object(&red, did, "directory");
+	release_object(&red, sid, "string");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

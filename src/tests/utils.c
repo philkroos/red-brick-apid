@@ -10,10 +10,10 @@ uint64_t microseconds(void) {
 	}
 }
 
-int allocate_string_object(RED *red, const char *string, uint16_t *object_id) {
+int allocate_string(RED *red, const char *string, uint16_t *object_id) {
+	int rc;
 	uint8_t ec;
 	uint16_t sid;
-	int rc;
 
 	rc = red_allocate_string(red, 20, string, &ec, &sid);
 	if (rc < 0) {
@@ -37,6 +37,23 @@ int allocate_string_object(RED *red, const char *string, uint16_t *object_id) {
 	}*/
 
 	*object_id = sid;
+
+	return 0;
+}
+
+int release_object(RED *red, uint16_t object_id, const char *type) {
+	uint8_t ec;
+	int rc;
+
+	rc = red_release_object(red, object_id, &ec);
+	if (rc < 0) {
+		printf("red_release_object/%s -> rc %d\n", type, rc);
+		return -1;
+	}
+	if (ec != 0) {
+		printf("red_release_object/%s -> ec %u\n", type, ec);
+		return -1;
+	}
 
 	return 0;
 }

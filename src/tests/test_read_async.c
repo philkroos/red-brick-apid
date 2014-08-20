@@ -83,7 +83,7 @@ int main() {
 	}
 
 	uint16_t sid;
-	if (allocate_string_object(&red, "/tmp/foobar", &sid)) {
+	if (allocate_string(&red, "/tmp/foobar", &sid)) {
 		return -1;
 	}
 
@@ -150,22 +150,10 @@ int main() {
 	}
 	printf("red_get_file_position -> position %lu\n", position);
 
-	rc = red_release_object(&red, fid, &ec);
-	if (rc < 0) {
-		printf("red_release_object/file -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/file -> ec %u\n", ec);
-	}
+	release_object(&red, fid, "file");
 
 cleanup:
-	rc = red_release_object(&red, sid, &ec);
-	if (rc < 0) {
-		printf("red_release_object/string -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/string -> ec %u\n", ec);
-	}
+	release_object(&red, sid, "string");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

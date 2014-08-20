@@ -38,7 +38,7 @@ int main() {
 	}
 
 	uint16_t command_sid;
-	if (allocate_string_object(&red, "/tmp/bluXXbb.sh", &command_sid)) {
+	if (allocate_string(&red, "/tmp/blubb.sh", &command_sid)) {
 		return -1;
 	}
 
@@ -53,7 +53,7 @@ int main() {
 	printf("red_allocate_list -> sid %u\n", arguments_lid);
 
 	uint16_t argument_sid;
-	if (allocate_string_object(&red, "whatever", &argument_sid)) {
+	if (allocate_string(&red, "whatever", &argument_sid)) {
 		return -1;
 	}
 
@@ -76,12 +76,12 @@ int main() {
 	printf("red_allocate_list -> sid %u\n", environment_lid);
 
 	uint16_t working_directory_sid;
-	if (allocate_string_object(&red, "/tmp", &working_directory_sid)) {
+	if (allocate_string(&red, "/tmp", &working_directory_sid)) {
 		return -1;
 	}
 
 	uint16_t null_sid;
-	if (allocate_string_object(&red, "/dev/null", &null_sid)) {
+	if (allocate_string(&red, "/dev/null", &null_sid)) {
 		return -1;
 	}
 
@@ -118,6 +118,16 @@ int main() {
 	printf("red_spawn_process -> pid %u\n", pid);
 
 	getchar();
+
+	release_object(&red, command_sid, "string");
+	release_object(&red, arguments_lid, "list");
+	release_object(&red, argument_sid, "string");
+	release_object(&red, environment_lid, "list");
+	release_object(&red, working_directory_sid, "string");
+	release_object(&red, null_sid, "string");
+	release_object(&red, stdin_fid, "string");
+	release_object(&red, stdout_fid, "string");
+	release_object(&red, pid, "process");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

@@ -58,13 +58,7 @@ int main() {
 		}
 		printf("red_get_next_inventory_entry -> oid %u\n", oid);
 
-		rc = red_release_object(&red, oid, &ec);
-		if (rc < 0) {
-			printf("red_release_object -> rc %d\n", rc);
-		}
-		if (ec != 0) {
-			printf("red_release_object -> ec %u\n", ec);
-		}
+		release_object(&red, oid, "object");
 	}
 
 	uint64_t et = microseconds();
@@ -72,13 +66,7 @@ int main() {
 
 	printf("red_get_next_inventory_entry in %f sec\n", dur);
 
-	rc = red_release_object(&red, iid, &ec);
-	if (rc < 0) {
-		printf("red_release_object/inventory -> rc %d\n", rc);
-	}
-	if (ec != 0) {
-		printf("red_release_object/inventory -> ec %u\n", ec);
-	}
+	release_object(&red, iid, "inventory");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);
