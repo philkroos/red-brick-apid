@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-19.      *
+ * This file was automatically generated on 2014-08-20.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -251,11 +251,6 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_EXIT_CODE 47
-
-/**
- * \ingroup BrickRED
- */
 #define RED_FUNCTION_GET_IDENTITY 255
 
 /**
@@ -277,6 +272,13 @@ typedef Device RED;
  * function.
  */
 #define RED_CALLBACK_ASYNC_FILE_READ 28
+
+/**
+ * \ingroup BrickRED
+ *
+ * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
+ */
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 47
 
 
 /**
@@ -518,6 +520,31 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_PROCESS_SIGNAL_STOP 19
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_STATE_UNKNOWN 0
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_STATE_RUNNING 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_STATE_EXITED 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_STATE_KILLED 3
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_STATE_STOPPED 4
 
 /**
  * \ingroup BrickRED
@@ -830,9 +857,9 @@ int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_cod
 /**
  * \ingroup BrickRED
  *
- * Set the current seek position of a file object in bytes.
+ * Set the current seek position of a file object in bytes relative to ``origin``.
  * 
- * Returns the resulting seek position and error code.
+ * Returns the resulting absolute seek position and error code.
  */
 int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t origin, uint8_t *ret_error_code, uint64_t *ret_position);
 
@@ -990,14 +1017,7 @@ int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_cod
  *
  * 
  */
-int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_get_process_exit_code(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_exit_code);
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
 
 /**
  * \ingroup BrickRED

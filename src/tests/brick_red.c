@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-19.      *
+ * This file was automatically generated on 2014-08-20.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -24,6 +24,8 @@ extern "C" {
 typedef void (*AsyncFileWriteCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
 
 typedef void (*AsyncFileReadCallbackFunction)(uint16_t, uint8_t, uint8_t[60], uint8_t, void *);
+
+typedef void (*ProcessStateChangedCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
 
 #if defined _MSC_VER || defined __BORLANDC__
 	#pragma pack(push)
@@ -553,18 +555,15 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t state;
+	uint8_t exit_code;
 } ATTRIBUTE_PACKED GetProcessStateResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessExitCode_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+	uint8_t state;
 	uint8_t exit_code;
-} ATTRIBUTE_PACKED GetProcessExitCodeResponse_;
+} ATTRIBUTE_PACKED ProcessStateChangedCallback_;
 
 typedef struct {
 	PacketHeader header;
@@ -613,6 +612,21 @@ static void red_callback_wrapper_async_file_read(DevicePrivate *device_p, Packet
 	callback->file_id = leconvert_uint16_from(callback->file_id);
 
 	callback_function(callback->file_id, callback->error_code, callback->buffer, callback->length_read, user_data);
+}
+
+static void red_callback_wrapper_process_state_changed(DevicePrivate *device_p, Packet *packet) {
+	ProcessStateChangedCallbackFunction callback_function;
+	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_PROCESS_STATE_CHANGED];
+	ProcessStateChangedCallback_ *callback = (ProcessStateChangedCallback_ *)packet;
+	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_PROCESS_STATE_CHANGED];
+
+	if (callback_function == NULL) {
+		return;
+	}
+
+	callback->process_id = leconvert_uint16_from(callback->process_id);
+
+	callback_function(callback->process_id, callback->state, callback->exit_code, user_data);
 }
 
 void red_create(RED *red, const char *uid, IPConnection *ipcon) {
@@ -668,11 +682,12 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDOUT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDERR] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STATE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_EXIT_CODE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_CALLBACK_PROCESS_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_WRITE] = red_callback_wrapper_async_file_write;
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
+	device_p->callback_wrappers[RED_CALLBACK_PROCESS_STATE_CHANGED] = red_callback_wrapper_process_state_changed;
 }
 
 void red_destroy(RED *red) {
@@ -1871,7 +1886,7 @@ int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_cod
 	return ret;
 }
 
-int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state) {
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code) {
 	DevicePrivate *device_p = red->p;
 	GetProcessState_ request;
 	GetProcessStateResponse_ response;
@@ -1892,32 +1907,6 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
 	}
 	*ret_error_code = response.error_code;
 	*ret_state = response.state;
-
-
-
-	return ret;
-}
-
-int red_get_process_exit_code(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_exit_code) {
-	DevicePrivate *device_p = red->p;
-	GetProcessExitCode_ request;
-	GetProcessExitCodeResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_EXIT_CODE, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_exit_code = response.exit_code;
 
 

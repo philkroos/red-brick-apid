@@ -22,8 +22,71 @@
 #ifndef REDAPID_PROCESS_H
 #define REDAPID_PROCESS_H
 
+#include <sys/types.h>
+
+#include <daemonlib/threads.h>
+
+#include "file.h"
+#include "list.h"
 #include "object.h"
+#include "string.h"
+
+typedef enum {
+	PROCESS_SIGNAL_INTERRUPT = 2,  // SIGINT
+	PROCESS_SIGNAL_QUIT      = 3,  // SIGQUIT
+	PROCESS_SIGNAL_ABORT     = 6,  // SIGABRT
+	PROCESS_SIGNAL_KILL      = 9,  // SIGKILL
+	PROCESS_SIGNAL_USER1     = 10, // SIGUSR1
+	PROCESS_SIGNAL_USER2     = 12, // SIGUSR2
+	PROCESS_SIGNAL_TERMINATE = 15, // SIGTERM
+	PROCESS_SIGNAL_CONTINUE  = 18, // SIGCONT
+	PROCESS_SIGNAL_STOP      = 19  // SIGSTOP
+} ProcessSignal;
+
+typedef enum {
+	PROCESS_STATE_UNKNOWN = 0,
+	PROCESS_STATE_RUNNING,
+	PROCESS_STATE_EXITED, // terminated normally
+	PROCESS_STATE_KILLED, // terminated by signal
+	PROCESS_STATE_STOPPED // stopped by signal
+} ProcessState;
+
+typedef struct {
+	Object base;
+
+	String *command;
+	List *arguments;
+	List *environment;
+	String *working_directory;
+	uint32_t user_id;
+	uint32_t group_id;
+	File *stdin;
+	File *stdout;
+	File *stderr;
+	ProcessState state;
+	uint8_t exit_code;
+	pid_t pid;
+	Pipe state_change_pipe;
+	Thread wait_thread;
+} Process;
 
 APIE process_fork(pid_t *pid);
+
+APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
+                   ObjectID environment_id, ObjectID working_directory_id,
+                   uint32_t user_id, uint32_t group_id, ObjectID stdin_id,
+                   ObjectID stdout_id, ObjectID stderr_id, ObjectID *id);
+APIE process_kill(ObjectID id, ProcessSignal signal);
+
+APIE process_get_command(ObjectID id, ObjectID *command_id);
+APIE process_get_arguments(ObjectID id, ObjectID *arguments_id);
+APIE process_get_environment(ObjectID id, ObjectID *environment_id);
+APIE process_get_working_directory(ObjectID id, ObjectID *working_directory_id);
+APIE process_get_user_id(ObjectID id, uint32_t *user_id);
+APIE process_get_group_id(ObjectID id, uint32_t *group_id);
+APIE process_get_stdin(ObjectID id, ObjectID *stdin_id);
+APIE process_get_stdout(ObjectID id, ObjectID *stdout_id);
+APIE process_get_stderr(ObjectID id, ObjectID *stderr_id);
+APIE process_get_state(ObjectID id, uint8_t *state, uint8_t *exit_code);
 
 #endif // REDAPID_PROCESS_H

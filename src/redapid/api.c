@@ -32,6 +32,7 @@
 #include "inventory.h"
 #include "list.h"
 #include "network.h"
+#include "process.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -79,7 +80,21 @@ typedef enum {
 	FUNCTION_OPEN_DIRECTORY,
 	FUNCTION_GET_DIRECTORY_NAME,
 	FUNCTION_GET_NEXT_DIRECTORY_ENTRY,
-	FUNCTION_REWIND_DIRECTORY
+	FUNCTION_REWIND_DIRECTORY,
+
+	FUNCTION_SPAWN_PROCESS,
+	FUNCTION_KILL_PROCESS,
+	FUNCTION_GET_PROCESS_COMMAND,
+	FUNCTION_GET_PROCESS_ARGUMENTS,
+	FUNCTION_GET_PROCESS_ENVIRONMENT,
+	FUNCTION_GET_PROCESS_WORKING_DIRECTORY,
+	FUNCTION_GET_PROCESS_USER_ID,
+	FUNCTION_GET_PROCESS_GROUP_ID,
+	FUNCTION_GET_PROCESS_STDIN,
+	FUNCTION_GET_PROCESS_STDOUT,
+	FUNCTION_GET_PROCESS_STDERR,
+	FUNCTION_GET_PROCESS_STATE,
+	CALLBACK_PROCESS_STATE_CHANGED
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -487,11 +502,168 @@ typedef struct {
 	uint8_t error_code;
 } ATTRIBUTE_PACKED RewindDirectoryResponse;
 
+//
+// process
+//
+
+typedef struct {
+	PacketHeader header;
+	uint16_t command_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
+	uint32_t user_id;
+	uint32_t group_id;
+	uint16_t stdin_file_id;
+	uint16_t stdout_file_id;
+	uint16_t stderr_file_id;
+} ATTRIBUTE_PACKED SpawnProcessRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED SpawnProcessResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+	uint8_t signal;
+} ATTRIBUTE_PACKED KillProcessRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED KillProcessResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessCommandRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t command_string_id;
+} ATTRIBUTE_PACKED GetProcessCommandResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessArgumentsRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t arguments_list_id;
+} ATTRIBUTE_PACKED GetProcessArgumentsResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessEnvironmentRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t environment_list_id;
+} ATTRIBUTE_PACKED GetProcessEnvironmentResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessWorkingDirectoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t working_directory_string_id;
+} ATTRIBUTE_PACKED GetProcessWorkingDirectoryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessUserIDRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint32_t user_id;
+} ATTRIBUTE_PACKED GetProcessUserIDResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessGroupIDRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint32_t group_id;
+} ATTRIBUTE_PACKED GetProcessGroupIDResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessStdinRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t stdin_file_id;
+} ATTRIBUTE_PACKED GetProcessStdinResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessStdoutRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t stdout_file_id;
+} ATTRIBUTE_PACKED GetProcessStdoutResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessStderrRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t stderr_file_id;
+} ATTRIBUTE_PACKED GetProcessStderrResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetProcessStateRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t state;
+	uint8_t exit_code;
+} ATTRIBUTE_PACKED GetProcessStateResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t process_id;
+	uint8_t state;
+	uint8_t exit_code;
+} ATTRIBUTE_PACKED ProcessStateChangedCallback;
+
 #include <daemonlib/packed_end.h>
+
+//
+// api
+//
 
 static uint32_t _uid = 0; // always little endian
 static AsyncFileWriteCallback _async_file_write_callback;
 static AsyncFileReadCallback _async_file_read_callback;
+static ProcessStateChangedCallback _process_state_changed_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
 	memset(response, 0, length);
@@ -882,6 +1054,139 @@ static void api_rewind_directory(RewindDirectoryRequest *request) {
 }
 
 //
+// process
+//
+
+static void api_spawn_process(SpawnProcessRequest *request) {
+	SpawnProcessResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_spawn(request->command_string_id,
+	                                    request->arguments_list_id,
+	                                    request->environment_list_id,
+	                                    request->working_directory_string_id,
+	                                    request->user_id,
+	                                    request->group_id,
+	                                    request->stdin_file_id,
+	                                    request->stdout_file_id,
+	                                    request->stderr_file_id,
+	                                    &response.process_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_kill_process(KillProcessRequest *request) {
+	KillProcessResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_kill(request->process_id, request->signal);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_command(GetProcessCommandRequest *request) {
+	GetProcessCommandResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_command(request->process_id, &response.command_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_arguments(GetProcessArgumentsRequest *request) {
+	GetProcessArgumentsResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_arguments(request->process_id, &response.arguments_list_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_environment(GetProcessEnvironmentRequest *request) {
+	GetProcessEnvironmentResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_environment(request->process_id, &response.environment_list_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_working_directory(GetProcessWorkingDirectoryRequest *request) {
+	GetProcessWorkingDirectoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_working_directory(request->process_id, &response.working_directory_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_user_id(GetProcessUserIDRequest *request) {
+	GetProcessUserIDResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_user_id(request->process_id, &response.user_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_group_id(GetProcessGroupIDRequest *request) {
+	GetProcessGroupIDResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_group_id(request->process_id, &response.group_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_stdin(GetProcessStdinRequest *request) {
+	GetProcessStdinResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_stdin(request->process_id, &response.stdin_file_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_stdout(GetProcessStdoutRequest *request) {
+	GetProcessStdoutResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_stdout(request->process_id, &response.stdout_file_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_stderr(GetProcessStderrRequest *request) {
+	GetProcessStderrResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_stderr(request->process_id, &response.stderr_file_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_process_state(GetProcessStateRequest *request) {
+	GetProcessStateResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = process_get_state(request->process_id, &response.state, &response.exit_code);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+//
 // api
 //
 
@@ -909,6 +1214,10 @@ int api_init(void) {
 	api_prepare_callback((Packet *)&_async_file_read_callback,
 	                     sizeof(_async_file_read_callback),
 	                     CALLBACK_ASYNC_FILE_READ);
+
+	api_prepare_callback((Packet *)&_process_state_changed_callback,
+	                     sizeof(_process_state_changed_callback),
+	                     CALLBACK_PROCESS_STATE_CHANGED);
 
 	return 0;
 }
@@ -973,6 +1282,20 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_DIRECTORY_NAME,            GetDirectoryName,           get_directory_name)
 	DISPATCH_FUNCTION(GET_NEXT_DIRECTORY_ENTRY,      GetNextDirectoryEntry,      get_next_directory_entry)
 	DISPATCH_FUNCTION(REWIND_DIRECTORY,              RewindDirectory,            rewind_directory)
+
+	// process
+	DISPATCH_FUNCTION(SPAWN_PROCESS,                 SpawnProcess,               spawn_process)
+	DISPATCH_FUNCTION(KILL_PROCESS,                  KillProcess,                kill_process)
+	DISPATCH_FUNCTION(GET_PROCESS_COMMAND,           GetProcessCommand,          get_process_command)
+	DISPATCH_FUNCTION(GET_PROCESS_ARGUMENTS,         GetProcessArguments,        get_process_arguments)
+	DISPATCH_FUNCTION(GET_PROCESS_ENVIRONMENT,       GetProcessEnvironment,      get_process_environment)
+	DISPATCH_FUNCTION(GET_PROCESS_WORKING_DIRECTORY, GetProcessWorkingDirectory, get_process_working_directory)
+	DISPATCH_FUNCTION(GET_PROCESS_USER_ID,           GetProcessUserID,           get_process_user_id)
+	DISPATCH_FUNCTION(GET_PROCESS_GROUP_ID,          GetProcessGroupID,          get_process_group_id)
+	DISPATCH_FUNCTION(GET_PROCESS_STDIN,             GetProcessStdin,            get_process_stdin)
+	DISPATCH_FUNCTION(GET_PROCESS_STDOUT,            GetProcessStdout,           get_process_stdout)
+	DISPATCH_FUNCTION(GET_PROCESS_STDERR,            GetProcessStderr,           get_process_stderr)
+	DISPATCH_FUNCTION(GET_PROCESS_STATE,             GetProcessState,            get_process_state)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -1048,6 +1371,20 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_NEXT_DIRECTORY_ENTRY:      return "get-next-directory-entry";
 	case FUNCTION_REWIND_DIRECTORY:              return "rewind-directory";
 
+	case FUNCTION_SPAWN_PROCESS:                 return "spawn-process";
+	case FUNCTION_KILL_PROCESS:                  return "kill-process";
+	case FUNCTION_GET_PROCESS_COMMAND:           return "get-process-command";
+	case FUNCTION_GET_PROCESS_ARGUMENTS:         return "get-process-arguments";
+	case FUNCTION_GET_PROCESS_ENVIRONMENT:       return "get-process-environment";
+	case FUNCTION_GET_PROCESS_WORKING_DIRECTORY: return "get-process-working-directory";
+	case FUNCTION_GET_PROCESS_USER_ID:           return "get-process-user-id";
+	case FUNCTION_GET_PROCESS_GROUP_ID:          return "get-process-group-id";
+	case FUNCTION_GET_PROCESS_STDIN:             return "get-process-stdin";
+	case FUNCTION_GET_PROCESS_STDOUT:            return "get-process-stdout";
+	case FUNCTION_GET_PROCESS_STDERR:            return "get-process-stderr";
+	case FUNCTION_GET_PROCESS_STATE:             return "get-process-state";
+	case CALLBACK_PROCESS_STATE_CHANGED:         return "process-state-changed";
+
 	default:                                     return "<unknwon>";
 	}
 }
@@ -1072,6 +1409,15 @@ void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
 	       sizeof(_async_file_read_callback.buffer) - length_read);
 
 	network_dispatch_response((Packet *)&_async_file_read_callback);
+}
+
+void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
+                                             uint8_t exit_code) {
+	_process_state_changed_callback.process_id = process_id;
+	_process_state_changed_callback.state = state;
+	_process_state_changed_callback.exit_code = exit_code;
+
+	network_dispatch_response((Packet *)&_process_state_changed_callback);
 }
 
 #if 0
@@ -1255,9 +1601,10 @@ enum process_signal {
 }
 
 enum process_state {
-	PROCESS_STATE_RUNNING = 0,
+	PROCESS_STATE_UNKNOWN = 0,
+	PROCESS_STATE_RUNNING,
 	PROCESS_STATE_EXITED, // terminated normally
-	PROCESS_STATE_SIGNALED, // terminated by signal
+	PROCESS_STATE_KILLED, // terminated by signal
 	PROCESS_STATE_STOPPED // stopped by signal
 }
 
@@ -1293,10 +1640,9 @@ struct process {
 ? get_process_stdin             (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
 ? get_process_stdout            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
 ? get_process_stderr            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
-? get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state
-? get_process_exit_code         (uint16_t process_id)                 -> uint8_t error_code, uint8_t exit_code
+? get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state, uint8_t exit_code
 
-? callback: process_state_changed -> uint16_t process_id, uint8_t state
+? callback: process_state_changed -> uint16_t process_id, uint8_t state, uint8_t exit_code
 
 
 /*
