@@ -62,29 +62,15 @@ static void object_remove_reference(Object *object, int *reference_count,
 
 const char *object_get_type_name(ObjectType type) {
 	switch (type) {
-	case OBJECT_TYPE_INVENTORY:
-		return "inventory";
+	case OBJECT_TYPE_INVENTORY: return "inventory";
+	case OBJECT_TYPE_STRING:    return "string";
+	case OBJECT_TYPE_LIST:      return "list";
+	case OBJECT_TYPE_FILE:      return "file";
+	case OBJECT_TYPE_DIRECTORY: return "directory";
+	case OBJECT_TYPE_PROCESS:   return "process";
+	case OBJECT_TYPE_PROGRAM:   return "program";
 
-	case OBJECT_TYPE_STRING:
-		return "string";
-
-	case OBJECT_TYPE_LIST:
-		return "list";
-
-	case OBJECT_TYPE_FILE:
-		return "file";
-
-	case OBJECT_TYPE_DIRECTORY:
-		return "directory";
-
-	case OBJECT_TYPE_PROCESS:
-		return "process";
-
-	case OBJECT_TYPE_PROGRAM:
-		return "program";
-
-	default:
-		return "<unknown>";
+	default:                    return "<unknown>";
 	}
 }
 
