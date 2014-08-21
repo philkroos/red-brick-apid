@@ -572,7 +572,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	if (file->type == FILE_TYPE_REGULAR) {
 		// (e)poll doesn't supported regular files. use a pipe with one byte in
 		// it to trigger read events for reading regular files asynchronously
-		if (pipe_create(&file->async_read_pipe) < 0) {
+		if (pipe_create(&file->async_read_pipe, false) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not create asynchronous read pipe: %s (%d)",
