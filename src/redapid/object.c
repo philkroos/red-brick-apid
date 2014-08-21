@@ -41,7 +41,7 @@ static void object_add_reference(Object *object, int *reference_count,
 static void object_remove_reference(Object *object, int *reference_count,
                                     const char *reference_count_name) {
 	if (*reference_count == 0) {
-		log_warn("Could not remove %s %s object (id: %u) reference, %s reference count is already zero",
+		log_warn("Cannot remove %s %s object (id: %u) reference, %s reference count is already zero",
 		         reference_count_name, object_get_type_name(object->type),
 		         object->id, reference_count_name);
 
@@ -128,7 +128,7 @@ APIE object_release(ObjectID id) {
 	}
 
 	if (object->external_reference_count == 0) {
-		log_warn("Could not remove external %s object (id: %u) reference, external reference count is already zero",
+		log_warn("Cannot remove external %s object (id: %u) reference, external reference count is already zero",
 		         object_get_type_name(object->type), object->id);
 
 		return API_E_INVALID_OPERATION;

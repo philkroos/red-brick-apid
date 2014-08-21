@@ -126,7 +126,7 @@ APIE inventory_add_object(Object *object) {
 
 	if (_free_ids.count == 0 && _next_id > OBJECT_ID_MAX) {
 		// all valid object IDs are acquired
-		log_warn("All object IDs are in use, cannot add new %s object",
+		log_warn("Cannot add new %s object, all object IDs are in use",
 		         object_get_type_name(object->type));
 
 		return API_E_NO_FREE_OBJECT_ID;
