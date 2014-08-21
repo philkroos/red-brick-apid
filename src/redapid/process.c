@@ -52,10 +52,35 @@ typedef struct {
 } ProcessStateChange;
 
 static void process_destroy(Process *process) {
-	thread_join(&process->wait_thread);
+	int rc;
+	bool stuck = false;
+
+	// remove the state change pipe from the event loop to avoid sending
+	// callbacks in case the child process is still alive and has to be killed
+	event_remove_source(process->state_change_pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
+
+	if (process->alive) {
+		log_warn("Destroying process object (id: %u, command: %s) while child process (pid: %u) is still alive",
+		         process->base.id, process->command->buffer, process->pid);
+
+		rc = kill(process->pid, SIGKILL);
+
+		if (rc < 0) {
+			if (errno != ESRCH) {
+				stuck = true;
+			}
+
+			log_error("Could not send SIGKILL signal to child process (command: %s, pid: %u): %s (%d)",
+			          process->command->buffer, process->pid, get_errno_name(errno), errno);
+		}
+	}
+
+	if (!stuck) {
+		thread_join(&process->wait_thread);
+	}
+
 	thread_destroy(&process->wait_thread);
 
-	event_remove_source(process->state_change_pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
 	pipe_destroy(&process->state_change_pipe);
 
 	file_vacate(process->stderr);
@@ -109,13 +134,20 @@ static void process_wait(void *opaque) {
 			change.fatal = false;
 		}
 
+		log_debug("State of child process (command: %s, pid: %u) changed (state: %u, exit_code: %u)",
+		          process->command->buffer, process->pid, change.state, change.exit_code);
+
+		if (change.fatal) {
+			process->alive = false;
+		}
+
 		if (pipe_write(&process->state_change_pipe, &change, sizeof(change)) < 0) {
 			log_error("Could not write to state change pipe for child process (command: %s, pid: %u): %s (%d)",
 			          process->command->buffer, process->pid, get_errno_name(errno), errno);
 
 			return;
 		}
-	} while (!change.fatal);
+	} while (process->alive);
 }
 
 static void process_handle_state_change(void *opaque) {
@@ -131,9 +163,6 @@ static void process_handle_state_change(void *opaque) {
 
 	process->state = change.state;
 	process->exit_code = change.exit_code;
-
-	log_debug("State of child process (command: %s, pid: %u) changed (state: %u, exit_code: %u)",
-	          process->command->buffer, process->pid, process->state, process->exit_code);
 
 	api_send_process_state_changed_callback(process->base.id, change.state,
 	                                        change.exit_code);
@@ -596,6 +625,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	process->stderr = stderr;
 	process->state = PROCESS_STATE_RUNNING;
 	process->exit_code = 0; // invalid
+	process->alive = true;
 	process->pid = pid;
 
 	if (pipe_create(&process->state_change_pipe) < 0) {
@@ -651,7 +681,7 @@ cleanup:
 		free(process);
 
 	case 11:
-		// FIXME: kill child process
+		kill(pid, SIGKILL);
 
 	case 10:
 		close(status_pipe[0]);
@@ -701,7 +731,7 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 		return error_code;
 	}
 
-	if (process->state != PROCESS_STATE_RUNNING && process->state != PROCESS_STATE_STOPPED) {
+	if (!process->alive) {
 		log_error("Cannot send signal (number: %d) to an already dead child process (command: %s)",
 		          signal, process->command->buffer);
 

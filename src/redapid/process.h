@@ -63,8 +63,9 @@ typedef struct {
 	File *stdin;
 	File *stdout;
 	File *stderr;
-	ProcessState state;
-	uint8_t exit_code;
+	ProcessState state; // asynchronously updated from the state change pipe
+	uint8_t exit_code; // asynchronously updated from the state change pipe
+	bool alive; // synchronously updated by the wait thread
 	pid_t pid;
 	Pipe state_change_pipe;
 	Thread wait_thread;
