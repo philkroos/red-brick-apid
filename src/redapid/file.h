@@ -98,11 +98,11 @@ typedef enum {
 	FILE_TYPE_SOCKET
 } FileType;
 
+#define FILE_MAX_READ_BUFFER_LENGTH 62
+#define FILE_MAX_ASYNC_READ_BUFFER_LENGTH 60
 #define FILE_MAX_WRITE_BUFFER_LENGTH 61
 #define FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH 61
 #define FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH 61
-#define FILE_MAX_READ_BUFFER_LENGTH 62
-#define FILE_MAX_ASYNC_READ_BUFFER_LENGTH 60
 
 typedef struct {
 	Object base;
@@ -121,13 +121,13 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 APIE file_get_name(ObjectID id, ObjectID *name_id);
 APIE file_get_type(ObjectID id, uint8_t *type);
 
-APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written);
-ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
-ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
-
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read);
 APIE file_read_async(ObjectID id, uint64_t length_to_read);
 APIE file_abort_async_read(ObjectID id);
+
+APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written);
+ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
+ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
 
 APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position);
 APIE file_get_position(ObjectID id, uint64_t *position);

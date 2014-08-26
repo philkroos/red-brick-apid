@@ -36,10 +36,10 @@ APIE api_get_error_code_from_errno(void);
 
 const char *api_get_function_name_from_id(int function_id);
 
-void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
-                                        uint8_t length_written);
 void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
                                        uint8_t *buffer, uint8_t length_read);
+void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
+                                        uint8_t length_written);
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
                                              uint8_t exit_code);

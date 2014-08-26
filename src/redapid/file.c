@@ -695,6 +695,124 @@ APIE file_get_type(ObjectID id, uint8_t *type) {
 }
 
 // public API
+APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read) {
+	File *file;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	ssize_t rc;
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (length_to_read > FILE_MAX_READ_BUFFER_LENGTH) {
+		log_warn("Length of %u byte(s) exceeds maximum length of file read buffer",
+		         length_to_read);
+
+		return API_E_OUT_OF_RANGE;
+	}
+
+	if (file->length_to_read_async > 0) {
+		log_warn("Cannot read %u byte(s) synchronously while reading %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
+		         length_to_read, file->length_to_read_async,
+		         id, file->name->buffer, file_get_type_name(file->type));
+
+		return API_E_INVALID_OPERATION;
+	}
+
+	rc = read(file->fd, buffer, length_to_read);
+
+	if (rc < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_warn("Could not read %u byte(s) from file object (id: %u, name: %s, type: %s): %s (%d)",
+		         length_to_read,
+		         id, file->name->buffer, file_get_type_name(file->type),
+		         get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	*length_read = rc;
+
+	return API_E_OK;
+}
+
+// public API
+APIE file_read_async(ObjectID id, uint64_t length_to_read) {
+	File *file;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (length_to_read > INT64_MAX) {
+		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
+		         length_to_read);
+
+		return API_E_OUT_OF_RANGE;
+	}
+
+	if (file->length_to_read_async > 0) {
+		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
+		         file->length_to_read_async,
+		         id, file->name->buffer, file_get_type_name(file->type));
+
+		return API_E_INVALID_OPERATION;
+	}
+
+	if (length_to_read == 0) {
+		// FIXME: this callback should be delivered after the response of this function
+		api_send_async_file_read_callback(file->base.id, API_E_OK, buffer, 0);
+
+		return API_E_OK;
+	}
+
+	file->length_to_read_async = length_to_read;
+
+	// reading the whole file and generating the callbacks here could block
+	// the event loop too long. instead poll the file (or a pipe instead for
+	// regular files) for readability. when done reading asynchronously then
+	// remove the file or pipe from the event loop again
+	if (event_add_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC,
+	                     EVENT_READ, file_handle_async_read, file) < 0) {
+		return API_E_INTERNAL_ERROR;
+	}
+
+	log_debug("Started reading of %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
+	          length_to_read,
+	          id, file->name->buffer, file_get_type_name(file->type));
+
+	return API_E_OK;
+}
+
+// public API
+APIE file_abort_async_read(ObjectID id) {
+	File *file;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	if (file->length_to_read_async == 0) {
+		// nothing to abort
+		return API_E_OK;
+	}
+
+	event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+
+	file->length_to_read_async = 0;
+
+	// FIXME: this callback should be delivered after the response of this function
+	api_send_async_file_read_callback(file->base.id, API_E_OPERATION_ABORTED, buffer, 0);
+
+	return API_E_OK;
+}
+
+// public API
 APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *length_written) {
 	File *file;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
@@ -833,124 +951,6 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 	api_send_async_file_write_callback(id, API_E_OK, length_written);
 
 	return ERROR_CODE_OK;
-}
-
-// public API
-APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read) {
-	File *file;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
-	ssize_t rc;
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	if (length_to_read > FILE_MAX_READ_BUFFER_LENGTH) {
-		log_warn("Length of %u byte(s) exceeds maximum length of file read buffer",
-		         length_to_read);
-
-		return API_E_OUT_OF_RANGE;
-	}
-
-	if (file->length_to_read_async > 0) {
-		log_warn("Cannot read %u byte(s) synchronously while reading %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
-		         length_to_read, file->length_to_read_async,
-		         id, file->name->buffer, file_get_type_name(file->type));
-
-		return API_E_INVALID_OPERATION;
-	}
-
-	rc = read(file->fd, buffer, length_to_read);
-
-	if (rc < 0) {
-		error_code = api_get_error_code_from_errno();
-
-		log_warn("Could not read %u byte(s) from file object (id: %u, name: %s, type: %s): %s (%d)",
-		         length_to_read,
-		         id, file->name->buffer, file_get_type_name(file->type),
-		         get_errno_name(errno), errno);
-
-		return error_code;
-	}
-
-	*length_read = rc;
-
-	return API_E_OK;
-}
-
-// public API
-APIE file_read_async(ObjectID id, uint64_t length_to_read) {
-	File *file;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	if (length_to_read > INT64_MAX) {
-		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
-		         length_to_read);
-
-		return API_E_OUT_OF_RANGE;
-	}
-
-	if (file->length_to_read_async > 0) {
-		log_warn("Still reading %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
-		         file->length_to_read_async,
-		         id, file->name->buffer, file_get_type_name(file->type));
-
-		return API_E_INVALID_OPERATION;
-	}
-
-	if (length_to_read == 0) {
-		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_read_callback(file->base.id, API_E_OK, buffer, 0);
-
-		return API_E_OK;
-	}
-
-	file->length_to_read_async = length_to_read;
-
-	// reading the whole file and generating the callbacks here could block
-	// the event loop too long. instead poll the file (or a pipe instead for
-	// regular files) for readability. when done reading asynchronously then
-	// remove the file or pipe from the event loop again
-	if (event_add_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC,
-	                     EVENT_READ, file_handle_async_read, file) < 0) {
-		return API_E_INTERNAL_ERROR;
-	}
-
-	log_debug("Started reading of %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
-	          length_to_read,
-	          id, file->name->buffer, file_get_type_name(file->type));
-
-	return API_E_OK;
-}
-
-// public API
-APIE file_abort_async_read(ObjectID id) {
-	File *file;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
-
-	if (error_code != API_E_OK) {
-		return error_code;
-	}
-
-	if (file->length_to_read_async == 0) {
-		// nothing to abort
-		return API_E_OK;
-	}
-
-	event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
-
-	file->length_to_read_async = 0;
-
-	// FIXME: this callback should be delivered after the response of this function
-	api_send_async_file_read_callback(file->base.id, API_E_OPERATION_ABORTED, buffer, 0);
-
-	return API_E_OK;
 }
 
 // public API

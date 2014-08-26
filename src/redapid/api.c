@@ -64,16 +64,16 @@ typedef enum {
 	FUNCTION_OPEN_FILE,
 	FUNCTION_GET_FILE_NAME,
 	FUNCTION_GET_FILE_TYPE,
-	FUNCTION_WRITE_FILE,
-	FUNCTION_WRITE_FILE_UNCHECKED,
-	FUNCTION_WRITE_FILE_ASYNC,
 	FUNCTION_READ_FILE,
 	FUNCTION_READ_FILE_ASYNC,
 	FUNCTION_ABORT_ASYNC_FILE_READ,
+	FUNCTION_WRITE_FILE,
+	FUNCTION_WRITE_FILE_UNCHECKED,
+	FUNCTION_WRITE_FILE_ASYNC,
 	FUNCTION_SET_FILE_POSITION,
 	FUNCTION_GET_FILE_POSITION,
-	CALLBACK_ASYNC_FILE_WRITE,
 	CALLBACK_ASYNC_FILE_READ,
+	CALLBACK_ASYNC_FILE_WRITE,
 	FUNCTION_GET_FILE_INFO,
 	FUNCTION_GET_SYMLINK_TARGET,
 
@@ -443,16 +443,16 @@ typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t length_written;
-} ATTRIBUTE_PACKED AsyncFileWriteCallback;
+	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t length_read;
+} ATTRIBUTE_PACKED AsyncFileReadCallback;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
-	uint8_t length_read;
-} ATTRIBUTE_PACKED AsyncFileReadCallback;
+	uint8_t length_written;
+} ATTRIBUTE_PACKED AsyncFileWriteCallback;
 
 //
 // directory
@@ -661,8 +661,8 @@ typedef struct {
 //
 
 static uint32_t _uid = 0; // always little endian
-static AsyncFileWriteCallback _async_file_write_callback;
 static AsyncFileReadCallback _async_file_read_callback;
+static AsyncFileWriteCallback _async_file_write_callback;
 static ProcessStateChangedCallback _process_state_changed_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
@@ -905,31 +905,6 @@ static void api_get_file_type(GetFileTypeRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
-static void api_write_file(WriteFileRequest *request) {
-	WriteFileResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = file_write(request->file_id, request->buffer,
-	                                 request->length_to_write, &response.length_written);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_write_file_unchecked(WriteFileUncheckedRequest *request) {
-	ErrorCode error_code = file_write_unchecked(request->file_id, request->buffer,
-	                                            request->length_to_write);
-
-	api_send_response_if_expected((Packet *)request, error_code);
-}
-
-static void api_write_file_async(WriteFileAsyncRequest *request) {
-	ErrorCode error_code = file_write_async(request->file_id, request->buffer,
-	                                        request->length_to_write);
-
-	api_send_response_if_expected((Packet *)request, error_code);
-}
-
 static void api_read_file(ReadFileRequest *request) {
 	ReadFileResponse response;
 
@@ -959,6 +934,31 @@ static void api_abort_async_file_read(AbortAsyncFileReadRequest *request) {
 	response.error_code = file_abort_async_read(request->file_id);
 
 	network_dispatch_response((Packet *)&response);
+}
+
+static void api_write_file(WriteFileRequest *request) {
+	WriteFileResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_write(request->file_id, request->buffer,
+	                                 request->length_to_write, &response.length_written);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_write_file_unchecked(WriteFileUncheckedRequest *request) {
+	ErrorCode error_code = file_write_unchecked(request->file_id, request->buffer,
+	                                            request->length_to_write);
+
+	api_send_response_if_expected((Packet *)request, error_code);
+}
+
+static void api_write_file_async(WriteFileAsyncRequest *request) {
+	ErrorCode error_code = file_write_async(request->file_id, request->buffer,
+	                                        request->length_to_write);
+
+	api_send_response_if_expected((Packet *)request, error_code);
 }
 
 static void api_set_file_position(SetFilePositionRequest *request) {
@@ -1207,13 +1207,13 @@ int api_init(void) {
 	          base58_encode(base58, uint32_from_le(_uid)),
 	          uint32_from_le(_uid));
 
-	api_prepare_callback((Packet *)&_async_file_write_callback,
-	                     sizeof(_async_file_write_callback),
-	                     CALLBACK_ASYNC_FILE_WRITE);
-
 	api_prepare_callback((Packet *)&_async_file_read_callback,
 	                     sizeof(_async_file_read_callback),
 	                     CALLBACK_ASYNC_FILE_READ);
+
+	api_prepare_callback((Packet *)&_async_file_write_callback,
+	                     sizeof(_async_file_write_callback),
+	                     CALLBACK_ASYNC_FILE_WRITE);
 
 	api_prepare_callback((Packet *)&_process_state_changed_callback,
 	                     sizeof(_process_state_changed_callback),
@@ -1266,12 +1266,12 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(OPEN_FILE,                     OpenFile,                   open_file)
 	DISPATCH_FUNCTION(GET_FILE_NAME,                 GetFileName,                get_file_name)
 	DISPATCH_FUNCTION(GET_FILE_TYPE,                 GetFileType,                get_file_type)
-	DISPATCH_FUNCTION(WRITE_FILE,                    WriteFile,                  write_file)
-	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,          WriteFileUnchecked,         write_file_unchecked)
-	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,              WriteFileAsync,             write_file_async)
 	DISPATCH_FUNCTION(READ_FILE,                     ReadFile,                   read_file)
 	DISPATCH_FUNCTION(READ_FILE_ASYNC,               ReadFileAsync,              read_file_async)
 	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,         AbortAsyncFileRead,         abort_async_file_read)
+	DISPATCH_FUNCTION(WRITE_FILE,                    WriteFile,                  write_file)
+	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,          WriteFileUnchecked,         write_file_unchecked)
+	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,              WriteFileAsync,             write_file_async)
 	DISPATCH_FUNCTION(SET_FILE_POSITION,             SetFilePosition,            set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,             GetFilePosition,            get_file_position)
 	DISPATCH_FUNCTION(GET_FILE_INFO,                 GetFileInfo,                get_file_info)
@@ -1353,16 +1353,16 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_OPEN_FILE:                     return "open-file";
 	case FUNCTION_GET_FILE_NAME:                 return "get-file-name";
 	case FUNCTION_GET_FILE_TYPE:                 return "get-file-type";
-	case FUNCTION_WRITE_FILE:                    return "write-file";
-	case FUNCTION_WRITE_FILE_UNCHECKED:          return "write-file-unchecked";
-	case FUNCTION_WRITE_FILE_ASYNC:              return "write-file-async";
 	case FUNCTION_READ_FILE:                     return "read-file";
 	case FUNCTION_READ_FILE_ASYNC:               return "read-file-async";
 	case FUNCTION_ABORT_ASYNC_FILE_READ:         return "abort-async-file-read";
+	case FUNCTION_WRITE_FILE:                    return "write-file";
+	case FUNCTION_WRITE_FILE_UNCHECKED:          return "write-file-unchecked";
+	case FUNCTION_WRITE_FILE_ASYNC:              return "write-file-async";
 	case FUNCTION_SET_FILE_POSITION:             return "set-file-position";
 	case FUNCTION_GET_FILE_POSITION:             return "get-file-position";
-	case CALLBACK_ASYNC_FILE_WRITE:              return "async-file-write";
 	case CALLBACK_ASYNC_FILE_READ:               return "async-file-read";
+	case CALLBACK_ASYNC_FILE_WRITE:              return "async-file-write";
 	case FUNCTION_GET_FILE_INFO:                 return "get-file-info";
 	case FUNCTION_GET_SYMLINK_TARGET:            return "get-symlink-target";
 
@@ -1389,15 +1389,6 @@ const char *api_get_function_name_from_id(int function_id) {
 	}
 }
 
-void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
-                                        uint8_t length_written) {
-	_async_file_write_callback.file_id = file_id;
-	_async_file_write_callback.error_code = error_code;
-	_async_file_write_callback.length_written = length_written;
-
-	network_dispatch_response((Packet *)&_async_file_write_callback);
-}
-
 void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
                                        uint8_t *buffer, uint8_t length_read) {
 	_async_file_read_callback.file_id = file_id;
@@ -1409,6 +1400,15 @@ void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
 	       sizeof(_async_file_read_callback.buffer) - length_read);
 
 	network_dispatch_response((Packet *)&_async_file_read_callback);
+}
+
+void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
+                                        uint8_t length_written) {
+	_async_file_write_callback.file_id = file_id;
+	_async_file_write_callback.error_code = error_code;
+	_async_file_write_callback.length_written = length_written;
+
+	network_dispatch_response((Packet *)&_async_file_write_callback);
 }
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
@@ -1542,19 +1542,19 @@ enum file_type {
 ? create_pipe           ()                                                              -> uint8_t error_code, uint16_t file_id // you need to call release_object() when done with it
 + get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
 + get_file_type         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type
-+ write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
-+ write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
-+ write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
 + read_file             (uint16_t file_id, uint8_t length_to_read)                      -> uint8_t error_code, uint8_t buffer[62], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
 + read_file_async       (uint16_t file_id, uint64_t length_to_read)                     -> uint8_t error_code
 + abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
++ write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
++ write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
++ write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
 + set_file_position     (uint16_t file_id, int64_t offset, uint8_t origin)              -> uint8_t error_code, uint64_t position
 + get_file_position     (uint16_t file_id)                                              -> uint8_t error_code, uint64_t position
 ? set_file_events       (uint16_t file_id, uint8_t events)                              -> uint8_t error_code
 ? get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint8_t events
 
-+ callback: async_file_write    -> uint16_t file_id, uint8_t error_code, uint8_t length_written
 + callback: async_file_read     -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
++ callback: async_file_write    -> uint16_t file_id, uint8_t error_code, uint8_t length_written
 ? callback: file_event_occurred -> uint16_t file_id, uint8_t events
 
 + get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
