@@ -11,11 +11,18 @@ uint64_t microseconds(void) {
 }
 
 int allocate_string(RED *red, const char *string, uint16_t *object_id) {
+	int length = strlen(string);
 	int rc;
 	uint8_t ec;
 	uint16_t sid;
 
-	rc = red_allocate_string(red, 20, string, &ec, &sid);
+	if (length > 60) {
+		// FIXME
+		printf("string '%s' is too long\n", string);
+		return -1;
+	}
+
+	rc = red_allocate_string(red, length, string, &ec, &sid);
 	if (rc < 0) {
 		printf("red_allocate_string '%s' -> rc %d\n", string, rc);
 		return -1;

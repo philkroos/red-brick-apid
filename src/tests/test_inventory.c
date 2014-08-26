@@ -30,43 +30,39 @@ int main() {
 		return -1;
 	}
 
-	uint16_t iid;
-	rc = red_open_inventory(&red, RED_OBJECT_TYPE_INVENTORY, &ec, &iid);
-	if (rc < 0) {
-		printf("red_open_inventory -> rc %d\n", rc);
-		return -1;
-	}
-	if (ec != 0) {
-		printf("red_open_inventory -> ec %u\n", ec);
-		return -1;
-	}
-	printf("red_open_inventory -> iid %u\n", iid);
-
-	uint64_t st = microseconds();
-
-	while (1) {
-		uint16_t oid;
-
-		rc = red_get_next_inventory_entry(&red, iid, &ec, &oid);
+	uint8_t type;
+	for (type = RED_OBJECT_TYPE_INVENTORY; type <= RED_OBJECT_TYPE_PROGRAM; ++type) {
+		uint16_t iid;
+		rc = red_open_inventory(&red, type, &ec, &iid);
 		if (rc < 0) {
-			printf("red_get_next_inventory_entry -> rc %d\n", rc);
-			break;
+			printf("red_open_inventory(%u) -> rc %d\n", type, rc);
+			return -1;
 		}
 		if (ec != 0) {
-			printf("red_get_next_inventory_entry -> ec %u\n", ec);
-			break;
+			printf("red_open_inventory(%u) -> ec %u\n", type, ec);
+			return -1;
 		}
-		printf("red_get_next_inventory_entry -> oid %u\n", oid);
+		printf("red_open_inventory(%u) -> iid %u\n", type, iid);
 
-		release_object(&red, oid, "object");
+		for (;;) {
+			uint16_t oid;
+
+			rc = red_get_next_inventory_entry(&red, iid, &ec, &oid);
+			if (rc < 0) {
+				printf("red_get_next_inventory_entry(%u) -> rc %d\n", type, rc);
+				break;
+			}
+			if (ec != 0) {
+				printf("red_get_next_inventory_entry(%u) -> ec %u\n", type, ec);
+				break;
+			}
+			printf("red_get_next_inventory_entry(%u) -> oid %u\n", type, oid);
+
+			release_object(&red, oid, "object");
+		}
+
+		release_object(&red, iid, "inventory");
 	}
-
-	uint64_t et = microseconds();
-	float dur = (et - st) / 1000000.0;
-
-	printf("red_get_next_inventory_entry in %f sec\n", dur);
-
-	release_object(&red, iid, "inventory");
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

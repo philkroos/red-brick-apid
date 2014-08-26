@@ -5,16 +5,16 @@
 #include "ip_connection.h"
 #include "brick_red.h"
 
-//#define HOST "192.168.178.27"
 #define HOST "localhost"
 #define PORT 4223
 #define UID "3hG4aq"
-//#define UID "3hG6BK"
 
 #include "utils.c"
 
+#define FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH 61
+
 uint64_t st;
-uint8_t buffer[61];
+uint8_t buffer[FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH];
 uint16_t fid;
 RED red;
 int k = 10;
@@ -23,6 +23,10 @@ void write_burst();
 
 void async_file_write(uint16_t file_id, uint8_t error_code, uint8_t length_written, void *user_data) {
 	(void)user_data;
+
+	if (file_id != fid) {
+		return;
+	}
 
 	printf("async_file_write k %d -> ec %u\n", k, error_code);
 
@@ -33,7 +37,7 @@ void async_file_write(uint16_t file_id, uint8_t error_code, uint8_t length_writt
 		uint64_t et = microseconds();
 		float dur = (et - st) / 1000000.0;
 
-		printf("RED_CALLBACK_ASYNC_FILE_WRITE file_id %u, length_written %d, in %f sec, %f kB/s\n", file_id, length_written, dur, 10 * 30001 * 61 / dur / 1024);
+		printf("RED_CALLBACK_ASYNC_FILE_WRITE file_id %u, length_written %d, in %f sec, %f kB/s\n", file_id, length_written, dur, 10 * 30001 * FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH / dur / 1024);
 	}
 }
 
@@ -44,13 +48,13 @@ void write_burst(void) {
 
 	int i;
 	for (i = 0; i < 30000; ++i) {
-		rc = red_write_file_unchecked(&red, fid, buffer, 61);
+		rc = red_write_file_unchecked(&red, fid, buffer, FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH);
 		if (rc < 0) {
 			printf("red_write_file_unchecked -> rc %d\n", rc);
 		}
 	}
 
-	rc = red_write_file_async(&red, fid, buffer, 61);
+	rc = red_write_file_async(&red, fid, buffer, FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH);
 	if (rc < 0) {
 		printf("red_write_file_async -> rc %d\n", rc);
 	}
@@ -90,7 +94,7 @@ int main() {
 	}
 	printf("red_open_file -> fid %u\n", fid);
 
-	memcpy(buffer, "foobar x1\nfoobar x2\nfoobar x3\nfoobar x4\nfoobar x5\nfoobar x6\n\n", 61);
+	memcpy(buffer, "foobar x1\nfoobar x2\nfoobar x3\nfoobar x4\nfoobar x5\nfoobar x6\n\n", FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH);
 
 	red_register_callback(&red, RED_CALLBACK_ASYNC_FILE_WRITE, async_file_write, NULL);
 
