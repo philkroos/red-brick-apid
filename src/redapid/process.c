@@ -482,7 +482,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		}
 
 		// redirect stdin
-		if (dup2(stdin->fd, STDIN_FILENO) != STDIN_FILENO) {
+		if (dup2(file_get_read_handle(stdin), STDIN_FILENO) != STDIN_FILENO) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not redirect stdin for child process (command: %s, pid: %u): %s (%d)",
@@ -492,7 +492,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		}
 
 		// redirect stdout
-		if (dup2(stdout->fd, STDOUT_FILENO) != STDOUT_FILENO) {
+		if (dup2(file_get_write_handle(stdout), STDOUT_FILENO) != STDOUT_FILENO) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not redirect stdout for child process (command: %s, pid: %u): %s (%d)",
@@ -514,7 +514,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		}
 
 		// redirect stderr
-		if (dup2(stderr->fd, STDERR_FILENO) != STDERR_FILENO) {
+		if (dup2(file_get_write_handle(stderr), STDERR_FILENO) != STDERR_FILENO) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not redirect stderr for child process (command: %s, pid: %u): %s (%d)",

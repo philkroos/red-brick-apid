@@ -1534,7 +1534,8 @@ enum file_type {
 	FILE_TYPE_BLOCK,
 	FILE_TYPE_FIFO,
 	FILE_TYPE_SYMLINK,
-	FILE_TYPE_SOCKET
+	FILE_TYPE_SOCKET,
+	FILE_TYPE_PIPE
 }
 
 + open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions,

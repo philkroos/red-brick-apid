@@ -126,6 +126,7 @@ static const char *file_get_type_name(FileType type) {
 	case FILE_TYPE_FIFO:      return "FIFO";
 	case FILE_TYPE_SYMLINK:   return "symlink";
 	case FILE_TYPE_SOCKET:    return "socket";
+	case FILE_TYPE_PIPE:      return "pipe";
 	}
 }
 
@@ -169,11 +170,19 @@ static void file_destroy(File *file) {
 	free(file);
 }
 
+static int file_handle_read(File *file, void *buffer, int length) {
+	return read(file->fd, buffer, length);
+}
+
+static int file_handle_write(File *file, void *buffer, int length) {
+	return write(file->fd, buffer, length);
+}
+
 static void file_handle_async_read(void *opaque) {
 	File *file = opaque;
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 	uint8_t length_to_read = sizeof(buffer);
-	ssize_t length_read;
+	int length_read;
 	APIE error_code;
 
 	// FIXME: maybe add a loop here and read multiple times per read event
@@ -182,7 +191,7 @@ static void file_handle_async_read(void *opaque) {
 		length_to_read = file->length_to_read_async;
 	}
 
-	length_read = read(file->fd, buffer, length_to_read);
+	length_read = file->read(file, buffer, length_to_read);
 
 	if (length_read < 0) {
 		if (errno_interrupted()) {
@@ -224,7 +233,7 @@ static void file_handle_async_read(void *opaque) {
 	file->length_to_read_async -= length_read;
 
 	log_debug("Read %d byte(s) from file object (id: %u, name: %s, type: %s) asynchronously, %"PRIu64" byte(s) left to read",
-	          (int)length_read,
+	          length_read,
 	          file->base.id, file->name->buffer, file_get_type_name(file->type),
 	          file->length_to_read_async);
 
@@ -619,6 +628,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->name = name;
 	file->fd = fd;
 	file->length_to_read_async = 0;
+	file->read = file_handle_read;
+	file->write = file_handle_write;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
 	                           (ObjectDestroyFunction)file_destroy);
@@ -719,7 +730,7 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 		return API_E_INVALID_OPERATION;
 	}
 
-	rc = read(file->fd, buffer, length_to_read);
+	rc = file->read(file, buffer, length_to_read);
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -837,7 +848,7 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 		return API_E_INVALID_OPERATION;
 	}
 
-	rc = write(file->fd, buffer, length_to_write);
+	rc = file->write(file, buffer, length_to_write);
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -881,7 +892,7 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
-	if (write(file->fd, buffer, length_to_write) < 0) {
+	if (file->write(file, buffer, length_to_write) < 0) {
 		log_warn("Could not write %u byte(s) to file object (id: %u, name: %s, type: %s) unchecked: %s (%d)",
 		         length_to_write,
 		         id, file->name->buffer, file_get_type_name(file->type),
@@ -931,7 +942,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
-	length_written = write(file->fd, buffer, length_to_write);
+	length_written = file->write(file, buffer, length_to_write);
 
 	if (length_written < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -975,6 +986,13 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 		return API_E_INVALID_PARAMETER;
 	}
 
+	if (file->type == FILE_TYPE_PIPE) {
+		log_warn("File object (id: %u, name: %s, type: %s) is not seekable",
+		         id, file->name->buffer, file_get_type_name(file->type));
+
+		return API_E_INVALID_OPERATION;
+	}
+
 	if (file->length_to_read_async > 0) {
 		log_warn("Cannot set position (offset %"PRIi64", origin: %d) while reading %"PRIu64" byte(s) from file object (id: %u, name: %s, type: %s) asynchronously",
 		         offset, origin, file->length_to_read_async,
@@ -1011,6 +1029,13 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 		return error_code;
 	}
 
+	if (file->type == FILE_TYPE_PIPE) {
+		log_warn("File object (id: %u, name: %s, type: %s) is not seekable",
+		         id, file->name->buffer, file_get_type_name(file->type));
+
+		return API_E_INVALID_OPERATION;
+	}
+
 	rc = lseek(file->fd, 0, SEEK_CUR);
 
 	if (rc == (off_t)-1) {
@@ -1026,6 +1051,14 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 	*position = rc;
 
 	return API_E_OK;
+}
+
+IOHandle file_get_read_handle(File *file) {
+	return file->fd;
+}
+
+IOHandle file_get_write_handle(File *file) {
+	return file->fd;
 }
 
 APIE file_occupy(ObjectID id, File **file) {

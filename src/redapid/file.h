@@ -93,9 +93,10 @@ typedef enum {
 	FILE_TYPE_DIRECTORY,
 	FILE_TYPE_CHARACTER,
 	FILE_TYPE_BLOCK,
-	FILE_TYPE_FIFO,
+	FILE_TYPE_FIFO, // named pipe
 	FILE_TYPE_SYMLINK,
-	FILE_TYPE_SOCKET
+	FILE_TYPE_SOCKET,
+	FILE_TYPE_PIPE // unnamed pipe
 } FileType;
 
 #define FILE_MAX_READ_BUFFER_LENGTH 62
@@ -104,16 +105,23 @@ typedef enum {
 #define FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH 61
 #define FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH 61
 
-typedef struct {
+typedef struct _File File;
+
+typedef int (*FileReadFunction)(File *file, void *buffer, int length);
+typedef int (*FileWriteFunction)(File *file, void *buffer, int length);
+
+struct _File {
 	Object base;
 
 	String *name;
 	FileType type;
-	int fd;
+	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR, otherwise set to fd
 	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
 	uint64_t length_to_read_async; // > 0 means async read in progress
-} File;
+	FileWriteFunction read;
+	FileWriteFunction write;
+};
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t user_id, uint32_t group_id, ObjectID *id);
@@ -131,6 +139,9 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 
 APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t *position);
 APIE file_get_position(ObjectID id, uint64_t *position);
+
+IOHandle file_get_read_handle(File *file);
+IOHandle file_get_write_handle(File *file);
 
 APIE file_occupy(ObjectID id, File **file);
 void file_vacate(File *file);
