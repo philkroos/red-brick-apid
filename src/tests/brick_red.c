@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-20.      *
+ * This file was automatically generated on 2014-08-27.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -21,9 +21,9 @@ extern "C" {
 
 
 
-typedef void (*AsyncFileWriteCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
-
 typedef void (*AsyncFileReadCallbackFunction)(uint16_t, uint8_t, uint8_t[60], uint8_t, void *);
+
+typedef void (*AsyncFileWriteCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
 
 typedef void (*ProcessStateChangedCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
 
@@ -227,14 +227,14 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileName_;
+	uint16_t flags;
+} ATTRIBUTE_PACKED CreatePipe_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t name_string_id;
-} ATTRIBUTE_PACKED GetFileNameResponse_;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED CreatePipeResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -250,29 +250,24 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-	uint8_t buffer[61];
-	uint8_t length_to_write;
-} ATTRIBUTE_PACKED WriteFile_;
+} ATTRIBUTE_PACKED GetFileName_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t length_written;
-} ATTRIBUTE_PACKED WriteFileResponse_;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetFileNameResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-	uint8_t buffer[61];
-	uint8_t length_to_write;
-} ATTRIBUTE_PACKED WriteFileUnchecked_;
+} ATTRIBUTE_PACKED GetFileFlags_;
 
 typedef struct {
 	PacketHeader header;
-	uint16_t file_id;
-	uint8_t buffer[61];
-	uint8_t length_to_write;
-} ATTRIBUTE_PACKED WriteFileAsync_;
+	uint8_t error_code;
+	uint16_t flags;
+} ATTRIBUTE_PACKED GetFileFlagsResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -311,6 +306,33 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+	uint8_t buffer[61];
+	uint8_t length_to_write;
+} ATTRIBUTE_PACKED WriteFile_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t length_written;
+} ATTRIBUTE_PACKED WriteFileResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint8_t buffer[61];
+	uint8_t length_to_write;
+} ATTRIBUTE_PACKED WriteFileUnchecked_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint8_t buffer[61];
+	uint8_t length_to_write;
+} ATTRIBUTE_PACKED WriteFileAsync_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
 	int64_t offset;
 	uint8_t origin;
 } ATTRIBUTE_PACKED SetFilePosition_;
@@ -336,16 +358,16 @@ typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t length_written;
-} ATTRIBUTE_PACKED AsyncFileWriteCallback_;
+	uint8_t buffer[60];
+	uint8_t length_read;
+} ATTRIBUTE_PACKED AsyncFileReadCallback_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t buffer[60];
-	uint8_t length_read;
-} ATTRIBUTE_PACKED AsyncFileReadCallback_;
+	uint8_t length_written;
+} ATTRIBUTE_PACKED AsyncFileWriteCallback_;
 
 typedef struct {
 	PacketHeader header;
@@ -446,6 +468,11 @@ typedef struct {
 	uint16_t process_id;
 	uint8_t signal;
 } ATTRIBUTE_PACKED KillProcess_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED KillProcessResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -584,21 +611,6 @@ typedef struct {
 #endif
 #undef ATTRIBUTE_PACKED
 
-static void red_callback_wrapper_async_file_write(DevicePrivate *device_p, Packet *packet) {
-	AsyncFileWriteCallbackFunction callback_function;
-	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_ASYNC_FILE_WRITE];
-	AsyncFileWriteCallback_ *callback = (AsyncFileWriteCallback_ *)packet;
-	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_ASYNC_FILE_WRITE];
-
-	if (callback_function == NULL) {
-		return;
-	}
-
-	callback->file_id = leconvert_uint16_from(callback->file_id);
-
-	callback_function(callback->file_id, callback->error_code, callback->length_written, user_data);
-}
-
 static void red_callback_wrapper_async_file_read(DevicePrivate *device_p, Packet *packet) {
 	AsyncFileReadCallbackFunction callback_function;
 	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_ASYNC_FILE_READ];
@@ -612,6 +624,21 @@ static void red_callback_wrapper_async_file_read(DevicePrivate *device_p, Packet
 	callback->file_id = leconvert_uint16_from(callback->file_id);
 
 	callback_function(callback->file_id, callback->error_code, callback->buffer, callback->length_read, user_data);
+}
+
+static void red_callback_wrapper_async_file_write(DevicePrivate *device_p, Packet *packet) {
+	AsyncFileWriteCallbackFunction callback_function;
+	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_ASYNC_FILE_WRITE];
+	AsyncFileWriteCallback_ *callback = (AsyncFileWriteCallback_ *)packet;
+	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_ASYNC_FILE_WRITE];
+
+	if (callback_function == NULL) {
+		return;
+	}
+
+	callback->file_id = leconvert_uint16_from(callback->file_id);
+
+	callback_function(callback->file_id, callback->error_code, callback->length_written, user_data);
 }
 
 static void red_callback_wrapper_process_state_changed(DevicePrivate *device_p, Packet *packet) {
@@ -652,18 +679,20 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_APPEND_TO_LIST] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_REMOVE_FROM_LIST] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_OPEN_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_CREATE_PIPE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_FILE_TYPE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_WRITE_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_WRITE_FILE_UNCHECKED] = DEVICE_RESPONSE_EXPECTED_FALSE;
-	device_p->response_expected[RED_FUNCTION_WRITE_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_FALSE;
+	device_p->response_expected[RED_FUNCTION_GET_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_FILE_FLAGS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_READ_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_READ_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_ABORT_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_WRITE_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_WRITE_FILE_UNCHECKED] = DEVICE_RESPONSE_EXPECTED_FALSE;
+	device_p->response_expected[RED_FUNCTION_WRITE_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_FALSE;
 	device_p->response_expected[RED_FUNCTION_SET_FILE_POSITION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_FILE_POSITION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_WRITE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
+	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_WRITE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_GET_FILE_INFO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_SYMLINK_TARGET] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_OPEN_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -671,7 +700,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_REWIND_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SPAWN_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_KILL_PROCESS] = DEVICE_RESPONSE_EXPECTED_FALSE;
+	device_p->response_expected[RED_FUNCTION_KILL_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -685,8 +714,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_CALLBACK_PROCESS_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
-	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_WRITE] = red_callback_wrapper_async_file_write;
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
+	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_WRITE] = red_callback_wrapper_async_file_write;
 	device_p->callback_wrappers[RED_CALLBACK_PROCESS_STATE_CHANGED] = red_callback_wrapper_process_state_changed;
 }
 
@@ -1154,19 +1183,19 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
 	return ret;
 }
 
-int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id) {
+int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t *ret_file_id) {
 	DevicePrivate *device_p = red->p;
-	GetFileName_ request;
-	GetFileNameResponse_ response;
+	CreatePipe_ request;
+	CreatePipeResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_NAME, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_CREATE_PIPE, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
 	}
 
-	request.file_id = leconvert_uint16_to(file_id);
+	request.flags = leconvert_uint16_to(flags);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -1174,7 +1203,7 @@ int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint1
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_name_string_id = leconvert_uint16_from(response.name_string_id);
+	*ret_file_id = leconvert_uint16_from(response.file_id);
 
 
 
@@ -1208,21 +1237,19 @@ int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
 	return ret;
 }
 
-int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written) {
+int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id) {
 	DevicePrivate *device_p = red->p;
-	WriteFile_ request;
-	WriteFileResponse_ response;
+	GetFileName_ request;
+	GetFileNameResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_WRITE_FILE, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_NAME, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
 	}
 
 	request.file_id = leconvert_uint16_to(file_id);
-	memcpy(request.buffer, buffer, 61 * sizeof(uint8_t));
-	request.length_to_write = length_to_write;
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -1230,50 +1257,35 @@ int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t lengt
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_length_written = response.length_written;
+	*ret_name_string_id = leconvert_uint16_from(response.name_string_id);
 
 
 
 	return ret;
 }
 
-int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) {
+int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_flags) {
 	DevicePrivate *device_p = red->p;
-	WriteFileUnchecked_ request;
+	GetFileFlags_ request;
+	GetFileFlagsResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_WRITE_FILE_UNCHECKED, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_FLAGS, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
 	}
 
 	request.file_id = leconvert_uint16_to(file_id);
-	memcpy(request.buffer, buffer, 61 * sizeof(uint8_t));
-	request.length_to_write = length_to_write;
 
-	ret = device_send_request(device_p, (Packet *)&request, NULL);
-
-
-	return ret;
-}
-
-int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) {
-	DevicePrivate *device_p = red->p;
-	WriteFileAsync_ request;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_WRITE_FILE_ASYNC, device_p->ipcon_p, device_p);
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
 	if (ret < 0) {
 		return ret;
 	}
+	*ret_error_code = response.error_code;
+	*ret_flags = leconvert_uint16_from(response.flags);
 
-	request.file_id = leconvert_uint16_to(file_id);
-	memcpy(request.buffer, buffer, 61 * sizeof(uint8_t));
-	request.length_to_write = length_to_write;
-
-	ret = device_send_request(device_p, (Packet *)&request, NULL);
 
 
 	return ret;
@@ -1356,6 +1368,77 @@ int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_cod
 	}
 	*ret_error_code = response.error_code;
 
+
+
+	return ret;
+}
+
+int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written) {
+	DevicePrivate *device_p = red->p;
+	WriteFile_ request;
+	WriteFileResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_WRITE_FILE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.file_id = leconvert_uint16_to(file_id);
+	memcpy(request.buffer, buffer, 61 * sizeof(uint8_t));
+	request.length_to_write = length_to_write;
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_length_written = response.length_written;
+
+
+
+	return ret;
+}
+
+int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) {
+	DevicePrivate *device_p = red->p;
+	WriteFileUnchecked_ request;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_WRITE_FILE_UNCHECKED, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.file_id = leconvert_uint16_to(file_id);
+	memcpy(request.buffer, buffer, 61 * sizeof(uint8_t));
+	request.length_to_write = length_to_write;
+
+	ret = device_send_request(device_p, (Packet *)&request, NULL);
+
+
+	return ret;
+}
+
+int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) {
+	DevicePrivate *device_p = red->p;
+	WriteFileAsync_ request;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_WRITE_FILE_ASYNC, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.file_id = leconvert_uint16_to(file_id);
+	memcpy(request.buffer, buffer, 61 * sizeof(uint8_t));
+	request.length_to_write = length_to_write;
+
+	ret = device_send_request(device_p, (Packet *)&request, NULL);
 
 
 	return ret;
@@ -1623,9 +1706,10 @@ int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_l
 	return ret;
 }
 
-int red_kill_process(RED *red, uint16_t process_id, uint8_t signal) {
+int red_kill_process(RED *red, uint16_t process_id, uint8_t signal, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	KillProcess_ request;
+	KillProcessResponse_ response;
 	int ret;
 
 	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_KILL_PROCESS, device_p->ipcon_p, device_p);
@@ -1637,7 +1721,13 @@ int red_kill_process(RED *red, uint16_t process_id, uint8_t signal) {
 	request.process_id = leconvert_uint16_to(process_id);
 	request.signal = signal;
 
-	ret = device_send_request(device_p, (Packet *)&request, NULL);
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
 
 
 	return ret;

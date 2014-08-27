@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-20.      *
+ * This file was automatically generated on 2014-08-27.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -111,7 +111,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_NAME 17
+#define RED_FUNCTION_CREATE_PIPE 17
 
 /**
  * \ingroup BrickRED
@@ -121,132 +121,142 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE 19
+#define RED_FUNCTION_GET_FILE_NAME 19
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_UNCHECKED 20
+#define RED_FUNCTION_GET_FILE_FLAGS 20
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_ASYNC 21
+#define RED_FUNCTION_READ_FILE 21
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE 22
+#define RED_FUNCTION_READ_FILE_ASYNC 22
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE_ASYNC 23
+#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 23
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 24
+#define RED_FUNCTION_WRITE_FILE 24
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_FILE_POSITION 25
+#define RED_FUNCTION_WRITE_FILE_UNCHECKED 25
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_POSITION 26
+#define RED_FUNCTION_WRITE_FILE_ASYNC 26
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_INFO 29
+#define RED_FUNCTION_SET_FILE_POSITION 27
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_SYMLINK_TARGET 30
+#define RED_FUNCTION_GET_FILE_POSITION 28
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 31
+#define RED_FUNCTION_GET_FILE_INFO 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 32
+#define RED_FUNCTION_GET_SYMLINK_TARGET 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 33
+#define RED_FUNCTION_OPEN_DIRECTORY 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 34
+#define RED_FUNCTION_GET_DIRECTORY_NAME 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 35
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 36
+#define RED_FUNCTION_REWIND_DIRECTORY 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 37
+#define RED_FUNCTION_SPAWN_PROCESS 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_ARGUMENTS 38
+#define RED_FUNCTION_KILL_PROCESS 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_ENVIRONMENT 39
+#define RED_FUNCTION_GET_PROCESS_COMMAND 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY 40
+#define RED_FUNCTION_GET_PROCESS_ARGUMENTS 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_USER_ID 41
+#define RED_FUNCTION_GET_PROCESS_ENVIRONMENT 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_GROUP_ID 42
+#define RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY 42
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIN 43
+#define RED_FUNCTION_GET_PROCESS_USER_ID 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDOUT 44
+#define RED_FUNCTION_GET_PROCESS_GROUP_ID 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDERR 45
+#define RED_FUNCTION_GET_PROCESS_STDIN 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 46
+#define RED_FUNCTION_GET_PROCESS_STDOUT 46
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_STDERR 47
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROCESS_STATE 48
 
 /**
  * \ingroup BrickRED
@@ -256,29 +266,29 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  *
- * Signature: \code void callback(uint16_t file_id, uint8_t error_code, uint8_t length_written, void *user_data) \endcode
- * 
- * This callback reports the result of a call to the {@link red_write_file_async}
- * function.
- */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 27
-
-/**
- * \ingroup BrickRED
- *
  * Signature: \code void callback(uint16_t file_id, uint8_t error_code, uint8_t ret_buffer[60], uint8_t length_read, void *user_data) \endcode
  * 
  * This callback reports the result of a call to the {@link red_read_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 28
+#define RED_CALLBACK_ASYNC_FILE_READ 29
+
+/**
+ * \ingroup BrickRED
+ *
+ * Signature: \code void callback(uint16_t file_id, uint8_t error_code, uint8_t length_written, void *user_data) \endcode
+ * 
+ * This callback reports the result of a call to the {@link red_write_file_async}
+ * function.
+ */
+#define RED_CALLBACK_ASYNC_FILE_WRITE 30
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 47
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 49
 
 
 /**
@@ -424,6 +434,16 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_PIPE_FLAG_NON_BLOCKING_READ 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PIPE_FLAG_NON_BLOCKING_WRITE 2
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_FILE_TYPE_UNKNOWN 0
 
 /**
@@ -460,6 +480,11 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_FILE_TYPE_SOCKET 7
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FILE_TYPE_PIPE 8
 
 /**
  * \ingroup BrickRED
@@ -784,9 +809,11 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
 /**
  * \ingroup BrickRED
  *
- * Returns the name of a file object and the resulting error code.
+ * Creates a new pipe and allocates a new file object for it.
+ * 
+ * Returns the object ID of the new file object and the resulting error code.
  */
-int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
+int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -798,31 +825,17 @@ int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
 /**
  * \ingroup BrickRED
  *
- * Writes up to 61 bytes to a file object.
- * 
- * Returns the actual number of bytes written and the resulting error code.
+ * Returns the name of a file object and the resulting error code.
  */
-int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written);
+int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * Writes up to 61 bytes to a file object.
- * 
- * Does neither report the actual number of bytes written nor the resulting error
- * code.
+ * Returns the flags used to open or create a file object and the resulting
+ * error code.
  */
-int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
-
-/**
- * \ingroup BrickRED
- *
- * Writes up to 61 bytes to a file object.
- * 
- * Reports the actual number of bytes written and the resulting error code via the
- * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
- */
-int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
+int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_flags);
 
 /**
  * \ingroup BrickRED
@@ -853,6 +866,35 @@ int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uin
  * Returns the resulting error code.
  */
 int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Writes up to 61 bytes to a file object.
+ * 
+ * Returns the actual number of bytes written and the resulting error code.
+ */
+int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Writes up to 61 bytes to a file object.
+ * 
+ * Does neither report the actual number of bytes written nor the resulting error
+ * code.
+ */
+int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
+
+/**
+ * \ingroup BrickRED
+ *
+ * Writes up to 61 bytes to a file object.
+ * 
+ * Reports the actual number of bytes written and the resulting error code via the
+ * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
+ */
+int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
 /**
  * \ingroup BrickRED
@@ -947,7 +989,7 @@ int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_l
  *
  * 
  */
-int red_kill_process(RED *red, uint16_t process_id, uint8_t signal);
+int red_kill_process(RED *red, uint16_t process_id, uint8_t signal, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
