@@ -48,6 +48,7 @@ typedef enum {
 	API_E_OUT_OF_RANGE,            // ERANGE
 	API_E_NAME_TOO_LONG,           // ENAMETOOLONG
 	API_E_INVALID_SEEK,            // ESPIPE
+	API_E_NOT_SUPPORTED            // ENOTSUP
 } APIE;
 
 #endif // REDAPID_API_ERROR_H

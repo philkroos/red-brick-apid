@@ -202,11 +202,23 @@ static off_t file_handle_seek(File *file, off_t offset, int whence) {
 
 // sets errno on error
 static int pipe_handle_read(File *file, void *buffer, int length) {
+	if ((file->flags & PIPE_FLAG_NON_BLOCKING_READ) == 0) {
+		errno = ENOTSUP;
+
+		return -1;
+	}
+
 	return pipe_read(&file->pipe, buffer, length);
 }
 
 // sets errno on error
 static int pipe_handle_write(File *file, void *buffer, int length) {
+	if ((file->flags & PIPE_FLAG_NON_BLOCKING_WRITE) == 0) {
+		errno = ENOTSUP;
+
+		return -1;
+	}
+
 	return pipe_write(&file->pipe, buffer, length);
 }
 
@@ -716,10 +728,19 @@ cleanup:
 }
 
 // public API
-APIE pipe_create_(ObjectID *id) {
+APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	int phase = 0;
 	APIE error_code;
 	File *file;
+
+	// check parameters
+	if ((flags & ~PIPE_FLAG_ALL) != 0) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Invalid pipe flags 0x%04X", flags);
+
+		goto cleanup;
+	}
 
 	// allocate file object
 	file = calloc(1, sizeof(File));
@@ -736,7 +757,7 @@ APIE pipe_create_(ObjectID *id) {
 	phase = 1;
 
 	// create pipe
-	if (pipe_create(&file->pipe, 0) < 0) {
+	if (pipe_create(&file->pipe, flags) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not create pipe: %s (%d)",
@@ -750,7 +771,7 @@ APIE pipe_create_(ObjectID *id) {
 	// create file object
 	file->type = FILE_TYPE_PIPE;
 	file->name = NULL;
-	file->flags = 0;
+	file->flags = flags;
 	file->fd = -1;
 	file->async_read_handle = file->pipe.read_end;
 	file->length_to_read_async = 0;

@@ -53,6 +53,9 @@ typedef enum { // bitmask
                        FILE_FLAG_NO_FOLLOW | \
                        FILE_FLAG_TRUNCATE)
 
+#define PIPE_FLAG_ALL (PIPE_FLAG_NON_BLOCKING_READ | \
+                       PIPE_FLAG_NON_BLOCKING_WRITE)
+
 typedef enum { // bitmask
 	FILE_PERMISSION_USER_READ      = 00400,
 	FILE_PERMISSION_USER_WRITE     = 00200,
@@ -116,7 +119,8 @@ struct _File {
 
 	FileType type;
 	String *name; // only valid if type != FILE_TYPE_PIPE
-	uint16_t flags;
+	uint16_t flags; // refers to PipeFlag if type == FILE_TYPE_PIPE,
+	                // refers to FileFlag otherwise
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	Pipe pipe; // only created if type == FILE_TYPE_PIPE
 	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR,
@@ -132,7 +136,7 @@ struct _File {
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t user_id, uint32_t group_id, ObjectID *id);
 
-APIE pipe_create_(ObjectID *id);
+APIE pipe_create_(ObjectID *id, uint16_t flags);
 
 APIE file_get_type(ObjectID id, uint8_t *type);
 APIE file_get_name(ObjectID id, ObjectID *name_id);

@@ -305,6 +305,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint16_t flags;
 } ATTRIBUTE_PACKED CreatePipeRequest;
 
 typedef struct {
@@ -913,7 +914,7 @@ static void api_create_pipe(CreatePipeRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = pipe_create_(&response.file_id);
+	response.error_code = pipe_create_(&response.file_id, request->flags);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -1370,6 +1371,7 @@ APIE api_get_error_code_from_errno(void) {
 	case ERANGE:       return API_E_OUT_OF_RANGE;
 	case ENAMETOOLONG: return API_E_NAME_TOO_LONG;
 	case ESPIPE:       return API_E_INVALID_SEEK;
+	case ENOTSUP:      return API_E_NOT_SUPPORTED;
 
 	default:           return API_E_UNKNOWN_ERROR;
 	}
