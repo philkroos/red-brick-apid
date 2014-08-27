@@ -1493,9 +1493,9 @@ enum object_type {
 	OBJECT_TYPE_PROGRAM
 }
 
-+ open_inventory           (uint8_t type)          -> uint8_t error_code, uint16_t inventory_id // you need to call release_object() when done with it
++ open_inventory           (uint8_t type)          -> uint8_t error_code, uint16_t inventory_id
 + get_inventory_type       (uint16_t inventory_id) -> uint8_t error_code, uint8_t type
-+ get_next_inventory_entry (uint16_t inventory_id) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-inventory, adds a reference to the object, you need to call release_object() when done with it
++ get_next_inventory_entry (uint16_t inventory_id) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-inventory
 + rewind_inventory         (uint16_t inventory_id) -> uint8_t error_code
 
 
@@ -1510,7 +1510,7 @@ struct string {
 	uint32_t allocated;
 }
 
-+ allocate_string   (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id // you need to call release_object() when done with it
++ allocate_string   (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id
 + truncate_string   (uint16_t string_id, uint32_t length)                  -> uint8_t error_code
 + get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
 + set_string_chuck  (uint16_t string_id, uint32_t offset, char buffer[58]) -> uint8_t error_code
@@ -1526,9 +1526,9 @@ struct list {
 	Array items;
 }
 
-+ allocate_list    (uint16_t length_to_reserve)                -> uint8_t error_code, uint16_t list_id // you need to call release_object() when done with it
++ allocate_list    (uint16_t length_to_reserve)                -> uint8_t error_code, uint16_t list_id
 + get_list_length  (uint16_t list_id)                          -> uint8_t error_code, uint16_t length
-+ get_list_item    (uint16_t list_id, uint16_t index)          -> uint8_t error_code, uint16_t item_object_id // adds a reference to the item, you need to call release_object() when done with it
++ get_list_item    (uint16_t list_id, uint16_t index)          -> uint8_t error_code, uint16_t item_object_id
 + append_to_list   (uint16_t list_id, uint16_t item_object_id) -> uint8_t error_code
 + remove_from_list (uint16_t list_id, uint16_t index)          -> uint8_t error_code
 
@@ -1588,11 +1588,17 @@ enum file_type {
 	FILE_TYPE_PIPE
 }
 
+enum pipe_flag { // bitmask
+	PIPE_FLAG_NON_BLOCKING_READ = 0x0001,
+	PIPE_FLAG_NON_BLOCKING_WRITE = 0x0002
+}
+
 + open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions,
-                         uint32_t user_id, uint32_t group_id)                           -> uint8_t error_code, uint16_t file_id // adds a reference to the name and locks it, you need to call release_object() when done with it
-? create_pipe           ()                                                              -> uint8_t error_code, uint16_t file_id // you need to call release_object() when done with it
-+ get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
+                         uint32_t user_id, uint32_t group_id)                           -> uint8_t error_code, uint16_t file_id
++ create_pipe           (uint16_t flags)                                                -> uint8_t error_code, uint16_t file_id
 + get_file_type         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type
++ get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id
++ get_file_flags        (uint16_t file_id)                                              -> uint8_t error_code, uint16_t flags
 + read_file             (uint16_t file_id, uint8_t length_to_read)                      -> uint8_t error_code, uint8_t buffer[62], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
 + read_file_async       (uint16_t file_id, uint64_t length_to_read)                     -> uint8_t error_code
 + abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
@@ -1621,14 +1627,8 @@ enum file_type {
  * directory
  */
 
-struct directory {
-	uint16_t directory_id;
-	uint16_t name_string_id;
-	DIR *dp;
-}
-
-+ open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id // adds a reference to the name and locks it, you need to call release_object() when done with it
-+ get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
++ open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id
++ get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id
 + get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 + rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
@@ -1659,20 +1659,7 @@ enum process_state {
 	PROCESS_STATE_STOPPED // stopped by signal
 }
 
-struct process {
-	uint16_t process_id;
-	uint16_t command_string_id;
-	uint16_t arguments_list_id;
-	uint16_t environment_list_id;
-	uint16_t working_directory_string_id;
-	uint32_t user_id;
-	uint32_t group_id;
-	uint16_t stdin_file_id;
-	uint16_t stdout_file_id;
-	uint16_t stderr_file_id;
-}
-
-? spawn_process                 (uint16_t command_string_id,
++ spawn_process                 (uint16_t command_string_id,
                                  uint16_t arguments_list_id,
                                  uint16_t environment_list_id,
                                  uint16_t working_directory_string_id,
@@ -1680,34 +1667,25 @@ struct process {
                                  uint32_t group_id,
                                  uint16_t stdin_file_id,
                                  uint16_t stdout_file_id,
-                                 uint16_t stderr_file_id)             -> uint8_t error_code, uint16_t process_id // adds a reference to the command, argument list, environment list and locks them, you need to call release_object() when done with it
-? kill_process                  (uint16_t process_id, uint8_t signal) -> uint8_t error_code
-? get_process_command           (uint16_t process_id)                 -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
-? get_process_arguments         (uint16_t process_id)                 -> uint8_t error_code, uint16_t arguments_list_id // adds a reference to the argument list, you need to call release_object() when done with it
-? get_process_environment       (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_list_id // adds a reference to the environment list, you need to call release_object() when done with it
-? get_process_working_directory (uint16_t process_id)                 -> uint8_t error_code, uint16_t working_directory_string_id // adds a reference to the working directory string, you need to call release_object() when done with it
-? get_process_user_id           (uint16_t process_id)                 -> uint8_t error_code, uint32_t user_id
-? get_process_group_id          (uint16_t process_id)                 -> uint8_t error_code, uint32_t group_id
-? get_process_stdin             (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
-? get_process_stdout            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
-? get_process_stderr            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
-? get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state, uint8_t exit_code
+                                 uint16_t stderr_file_id)             -> uint8_t error_code, uint16_t process_id
++ kill_process                  (uint16_t process_id, uint8_t signal) -> uint8_t error_code
++ get_process_command           (uint16_t process_id)                 -> uint8_t error_code, uint16_t command_string_id
++ get_process_arguments         (uint16_t process_id)                 -> uint8_t error_code, uint16_t arguments_list_id
++ get_process_environment       (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_list_id
++ get_process_working_directory (uint16_t process_id)                 -> uint8_t error_code, uint16_t working_directory_string_id
++ get_process_user_id           (uint16_t process_id)                 -> uint8_t error_code, uint32_t user_id
++ get_process_group_id          (uint16_t process_id)                 -> uint8_t error_code, uint32_t group_id
++ get_process_stdin             (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
++ get_process_stdout            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
++ get_process_stderr            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
++ get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state, uint8_t exit_code
 
-? callback: process_state_changed -> uint16_t process_id, uint8_t state, uint8_t exit_code
++ callback: process_state_changed -> uint16_t process_id, uint8_t state, uint8_t exit_code
 
 
 /*
  * (persistent) program configuration
  */
-
-struct program {
-	uint16_t program_id;
-	uint16_t name_string_id;
-	uint16_t command_string_id;
-	uint16_t argument_list_id;
-	uint16_t environment_list_id;
-	bool merged_output;
-}
 
 ? define_program            (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id // adds a reference to the name and locks it
 ? undefine_program          (uint16_t program_id)          -> uint8_t error_code
