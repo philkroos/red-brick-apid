@@ -116,7 +116,10 @@ struct _File {
 	String *name; // only valid if type != FILE_TYPE_PIPE
 	FileType type;
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
-	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR, otherwise set to fd
+	Pipe pipe; // only created if type == FILE_TYPE_PIPE
+	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR,
+	                            // set to pipe.read_end if type == FILE_TYPE_PIPE,
+	                            // set to fd otherwise
 	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
 	uint64_t length_to_read_async; // > 0 means async read in progress
 	FileWriteFunction read;
@@ -125,6 +128,8 @@ struct _File {
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t user_id, uint32_t group_id, ObjectID *id);
+
+APIE pipe_create_(ObjectID *id);
 
 APIE file_get_name(ObjectID id, ObjectID *name_id);
 APIE file_get_type(ObjectID id, uint8_t *type);

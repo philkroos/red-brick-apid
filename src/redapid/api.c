@@ -62,6 +62,7 @@ typedef enum {
 	FUNCTION_REMOVE_FROM_LIST,
 
 	FUNCTION_OPEN_FILE,
+	FUNCTION_CREATE_PIPE,
 	FUNCTION_GET_FILE_NAME,
 	FUNCTION_GET_FILE_TYPE,
 	FUNCTION_READ_FILE,
@@ -300,6 +301,16 @@ typedef struct {
 	uint8_t error_code;
 	uint16_t file_id;
 } ATTRIBUTE_PACKED OpenFileResponse;
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED CreatePipeRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED CreatePipeResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -885,6 +896,16 @@ static void api_open_file(OpenFileRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_create_pipe(CreatePipeRequest *request) {
+	CreatePipeResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = pipe_create_(&response.file_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 static void api_get_file_name(GetFileNameRequest *request) {
 	GetFileNameResponse response;
 
@@ -1264,6 +1285,7 @@ void api_handle_request(Packet *request) {
 
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                     OpenFile,                   open_file)
+	DISPATCH_FUNCTION(CREATE_PIPE,                   CreatePipe,                 create_pipe)
 	DISPATCH_FUNCTION(GET_FILE_NAME,                 GetFileName,                get_file_name)
 	DISPATCH_FUNCTION(GET_FILE_TYPE,                 GetFileType,                get_file_type)
 	DISPATCH_FUNCTION(READ_FILE,                     ReadFile,                   read_file)
@@ -1351,6 +1373,7 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_REMOVE_FROM_LIST:              return "remove-from-list";
 
 	case FUNCTION_OPEN_FILE:                     return "open-file";
+	case FUNCTION_CREATE_PIPE:                   return "create-pipe";
 	case FUNCTION_GET_FILE_NAME:                 return "get-file-name";
 	case FUNCTION_GET_FILE_TYPE:                 return "get-file-type";
 	case FUNCTION_READ_FILE:                     return "read-file";

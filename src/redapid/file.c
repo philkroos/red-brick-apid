@@ -167,13 +167,16 @@ static void file_destroy(File *file) {
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
-	if (file->type == FILE_TYPE_REGULAR) {
-		pipe_destroy(&file->async_read_pipe);
+	if (file->type == FILE_TYPE_PIPE) {
+		pipe_destroy(&file->pipe);
+	} else {
+		string_vacate(file->name);
+		close(file->fd);
+
+		if (file->type == FILE_TYPE_REGULAR) {
+			pipe_destroy(&file->async_read_pipe);
+		}
 	}
-
-	close(file->fd);
-
-	string_vacate(file->name);
 
 	free(file);
 }
@@ -184,6 +187,14 @@ static int file_handle_read(File *file, void *buffer, int length) {
 
 static int file_handle_write(File *file, void *buffer, int length) {
 	return write(file->fd, buffer, length);
+}
+
+static int pipe_handle_read(File *file, void *buffer, int length) {
+	return pipe_read(&file->pipe, buffer, length);
+}
+
+static int pipe_handle_write(File *file, void *buffer, int length) {
+	return pipe_write(&file->pipe, buffer, length);
 }
 
 static void file_handle_async_read(void *opaque) {
@@ -684,6 +695,76 @@ cleanup:
 }
 
 // public API
+APIE pipe_create_(ObjectID *id) {
+	int phase = 0;
+	APIE error_code;
+	File *file;
+
+	// allocate file object
+	file = calloc(1, sizeof(File));
+
+	if (file == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
+		log_error("Could not allocate file object: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// create pipe
+	if (pipe_create(&file->pipe, false) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create non-blocking pipe: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// create file object
+	file->name = NULL;
+	file->type = FILE_TYPE_PIPE;
+	file->fd = -1;
+	file->async_read_handle = file->pipe.read_end;
+	file->length_to_read_async = 0;
+	file->read = pipe_handle_read;
+	file->write = pipe_handle_write;
+
+	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
+	                           (ObjectDestroyFunction)file_destroy);
+
+	if (error_code != API_E_OK) {
+		goto cleanup;
+	}
+
+	*id = file->base.id;
+
+	log_debug("Created file object (id: %u, name: %s, type: %s)",
+	          file->base.id, file_get_name_buffer(file), file_get_type_name(file->type));
+
+	phase = 3;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
+		pipe_destroy(&file->pipe);
+
+	case 1:
+		free(file);
+
+	default:
+		break;
+	}
+
+	return phase == 3 ? API_E_OK : error_code;
+}
+
+// public API
 APIE file_get_name(ObjectID id, ObjectID *name_id) {
 	File *file;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
@@ -1069,11 +1150,19 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 }
 
 IOHandle file_get_read_handle(File *file) {
-	return file->fd;
+	if (file->type == FILE_TYPE_PIPE) {
+		return file->pipe.read_end;
+	} else {
+		return file->fd;
+	}
 }
 
 IOHandle file_get_write_handle(File *file) {
-	return file->fd;
+	if (file->type == FILE_TYPE_PIPE) {
+		return file->pipe.write_end;
+	} else {
+		return file->fd;
+	}
 }
 
 APIE file_occupy(ObjectID id, File **file) {
