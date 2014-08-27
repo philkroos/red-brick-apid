@@ -628,7 +628,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	process->alive = true;
 	process->pid = pid;
 
-	if (pipe_create(&process->state_change_pipe, false) < 0) {
+	if (pipe_create(&process->state_change_pipe, 0) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not create state change pipe child process (command: %s, pid: %u): %s (%d)",
