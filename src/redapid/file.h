@@ -109,6 +109,7 @@ typedef struct _File File;
 
 typedef int (*FileReadFunction)(File *file, void *buffer, int length);
 typedef int (*FileWriteFunction)(File *file, void *buffer, int length);
+typedef off_t (*FileSeekFunction)(File *file, off_t offset, int whence);
 
 struct _File {
 	Object base;
@@ -125,6 +126,7 @@ struct _File {
 	uint64_t length_to_read_async; // > 0 means async read in progress
 	FileWriteFunction read;
 	FileWriteFunction write;
+	FileSeekFunction seek;
 };
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,

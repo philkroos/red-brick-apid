@@ -1366,9 +1366,10 @@ APIE api_get_error_code_from_errno(void) {
 	case ENOTDIR:      return API_E_NOT_A_DIRECTORY;
 	case EWOULDBLOCK:  return API_E_WOULD_BLOCK;
 	case EOVERFLOW:    return API_E_OVERFLOW;
-	case EBADF:        return API_E_INVALID_FILE_DESCRIPTOR;
+	case EBADF:        return API_E_BAD_FILE_DESCRIPTOR;
 	case ERANGE:       return API_E_OUT_OF_RANGE;
 	case ENAMETOOLONG: return API_E_NAME_TOO_LONG;
+	case ESPIPE:       return API_E_INVALID_SEEK;
 
 	default:           return API_E_UNKNOWN_ERROR;
 	}

@@ -185,20 +185,40 @@ static void file_destroy(File *file) {
 	free(file);
 }
 
+// sets errno on error
 static int file_handle_read(File *file, void *buffer, int length) {
 	return read(file->fd, buffer, length);
 }
 
+// sets errno on error
 static int file_handle_write(File *file, void *buffer, int length) {
 	return write(file->fd, buffer, length);
 }
 
+// sets errno on error
+static off_t file_handle_seek(File *file, off_t offset, int whence) {
+	return lseek(file->fd, offset, whence);
+}
+
+// sets errno on error
 static int pipe_handle_read(File *file, void *buffer, int length) {
 	return pipe_read(&file->pipe, buffer, length);
 }
 
+// sets errno on error
 static int pipe_handle_write(File *file, void *buffer, int length) {
 	return pipe_write(&file->pipe, buffer, length);
+}
+
+// sets errno on error
+static off_t pipe_handle_seek(File *file, off_t offset, int whence) {
+	(void)file;
+	(void)offset;
+	(void)whence;
+
+	errno = ESPIPE;
+
+	return (off_t)-1;
 }
 
 static void file_handle_async_read(void *opaque) {
@@ -651,6 +671,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->length_to_read_async = 0;
 	file->read = file_handle_read;
 	file->write = file_handle_write;
+	file->seek = file_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
 	                           (ObjectDestroyFunction)file_destroy);
@@ -735,6 +756,7 @@ APIE pipe_create_(ObjectID *id) {
 	file->length_to_read_async = 0;
 	file->read = pipe_handle_read;
 	file->write = pipe_handle_write;
+	file->seek = pipe_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
 	                           (ObjectDestroyFunction)file_destroy);
@@ -1087,13 +1109,6 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (file->type == FILE_TYPE_PIPE) {
-		log_warn("File object ("FILE_SIGNATURE_FORMAT") is not seekable",
-		         file_expand_signature(file));
-
-		return API_E_INVALID_OPERATION;
-	}
-
 	if (file->length_to_read_async > 0) {
 		log_warn("Cannot set position (offset %"PRIi64", origin: %d) while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         offset, origin, file->length_to_read_async, file_expand_signature(file));
@@ -1101,7 +1116,7 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 		return API_E_INVALID_OPERATION;
 	}
 
-	rc = lseek(file->fd, offset, whence);
+	rc = file->seek(file, offset, whence);
 
 	if (rc == (off_t)-1) {
 		error_code = api_get_error_code_from_errno();
@@ -1128,14 +1143,7 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 		return error_code;
 	}
 
-	if (file->type == FILE_TYPE_PIPE) {
-		log_warn("File object ("FILE_SIGNATURE_FORMAT") is not seekable",
-		         file_expand_signature(file));
-
-		return API_E_INVALID_OPERATION;
-	}
-
-	rc = lseek(file->fd, 0, SEEK_CUR);
+	rc = file->seek(file, 0, SEEK_CUR);
 
 	if (rc == (off_t)-1) {
 		error_code = api_get_error_code_from_errno();
