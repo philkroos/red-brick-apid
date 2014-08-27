@@ -645,6 +645,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	// create file object
 	file->name = name;
+	file->flags = flags;
 	file->fd = fd;
 	file->length_to_read_async = 0;
 	file->read = file_handle_read;
@@ -729,6 +730,7 @@ APIE pipe_create_(ObjectID *id) {
 	// create file object
 	file->type = FILE_TYPE_PIPE;
 	file->name = NULL;
+	file->flags = 0;
 	file->fd = -1;
 	file->async_read_handle = file->pipe.read_end;
 	file->length_to_read_async = 0;
@@ -797,6 +799,20 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 	object_add_external_reference(&file->name->base);
 
 	*name_id = file->name->base.id;
+
+	return API_E_OK;
+}
+
+// public API
+APIE file_get_flags(ObjectID id, uint16_t *flags) {
+	File *file;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	*flags = file->flags;
 
 	return API_E_OK;
 }
