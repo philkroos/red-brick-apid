@@ -113,7 +113,7 @@ typedef int (*FileWriteFunction)(File *file, void *buffer, int length);
 struct _File {
 	Object base;
 
-	String *name;
+	String *name; // only valid if type != FILE_TYPE_PIPE
 	FileType type;
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR, otherwise set to fd
