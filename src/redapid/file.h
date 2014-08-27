@@ -113,8 +113,8 @@ typedef int (*FileWriteFunction)(File *file, void *buffer, int length);
 struct _File {
 	Object base;
 
-	String *name; // only valid if type != FILE_TYPE_PIPE
 	FileType type;
+	String *name; // only valid if type != FILE_TYPE_PIPE
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	Pipe pipe; // only created if type == FILE_TYPE_PIPE
 	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR,
@@ -131,8 +131,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 APIE pipe_create_(ObjectID *id);
 
-APIE file_get_name(ObjectID id, ObjectID *name_id);
 APIE file_get_type(ObjectID id, uint8_t *type);
+APIE file_get_name(ObjectID id, ObjectID *name_id);
 
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *length_read);
 APIE file_read_async(ObjectID id, uint64_t length_to_read);

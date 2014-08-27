@@ -63,8 +63,8 @@ typedef enum {
 
 	FUNCTION_OPEN_FILE,
 	FUNCTION_CREATE_PIPE,
-	FUNCTION_GET_FILE_NAME,
 	FUNCTION_GET_FILE_TYPE,
+	FUNCTION_GET_FILE_NAME,
 	FUNCTION_READ_FILE,
 	FUNCTION_READ_FILE_ASYNC,
 	FUNCTION_ABORT_ASYNC_FILE_READ,
@@ -315,17 +315,6 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileNameRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t name_string_id;
-} ATTRIBUTE_PACKED GetFileNameResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
 } ATTRIBUTE_PACKED GetFileTypeRequest;
 
 typedef struct {
@@ -333,6 +322,17 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t type;
 } ATTRIBUTE_PACKED GetFileTypeResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED GetFileNameRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetFileNameResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -906,22 +906,22 @@ static void api_create_pipe(CreatePipeRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
-static void api_get_file_name(GetFileNameRequest *request) {
-	GetFileNameResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = file_get_name(request->file_id, &response.name_string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
 static void api_get_file_type(GetFileTypeRequest *request) {
 	GetFileTypeResponse response;
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
 	response.error_code = file_get_type(request->file_id, &response.type);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_file_name(GetFileNameRequest *request) {
+	GetFileNameResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = file_get_name(request->file_id, &response.name_string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -1286,8 +1286,8 @@ void api_handle_request(Packet *request) {
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                     OpenFile,                   open_file)
 	DISPATCH_FUNCTION(CREATE_PIPE,                   CreatePipe,                 create_pipe)
-	DISPATCH_FUNCTION(GET_FILE_NAME,                 GetFileName,                get_file_name)
 	DISPATCH_FUNCTION(GET_FILE_TYPE,                 GetFileType,                get_file_type)
+	DISPATCH_FUNCTION(GET_FILE_NAME,                 GetFileName,                get_file_name)
 	DISPATCH_FUNCTION(READ_FILE,                     ReadFile,                   read_file)
 	DISPATCH_FUNCTION(READ_FILE_ASYNC,               ReadFileAsync,              read_file_async)
 	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,         AbortAsyncFileRead,         abort_async_file_read)
@@ -1374,8 +1374,8 @@ const char *api_get_function_name_from_id(int function_id) {
 
 	case FUNCTION_OPEN_FILE:                     return "open-file";
 	case FUNCTION_CREATE_PIPE:                   return "create-pipe";
-	case FUNCTION_GET_FILE_NAME:                 return "get-file-name";
 	case FUNCTION_GET_FILE_TYPE:                 return "get-file-type";
+	case FUNCTION_GET_FILE_NAME:                 return "get-file-name";
 	case FUNCTION_READ_FILE:                     return "read-file";
 	case FUNCTION_READ_FILE_ASYNC:               return "read-file-async";
 	case FUNCTION_ABORT_ASYNC_FILE_READ:         return "abort-async-file-read";
