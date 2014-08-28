@@ -41,7 +41,7 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_NETWORK
 
-static const char *_uds_filename;
+static const char *_socket_filename;
 static Socket _server_socket;
 static BrickDaemon _brickd;
 static bool _brickd_connected = false;
@@ -84,16 +84,16 @@ static void network_handle_accept(void *opaque) {
 	log_info("Brick Daemon connected");
 }
 
-int network_init(const char *uds_filename) {
+int network_init(const char *socket_filename) {
 	int phase = 0;
 	struct sockaddr_un address;
 
-	_uds_filename = uds_filename;
+	_socket_filename = socket_filename;
 
 	log_debug("Initializing network subsystem");
 
-	if (strlen(uds_filename) >= sizeof(address.sun_path)) {
-		log_error("UNIX domain socket filename '%s' is too long", uds_filename);
+	if (strlen(socket_filename) >= sizeof(address.sun_path)) {
+		log_error("UNIX domain socket filename '%s' is too long", socket_filename);
 
 		goto cleanup;
 	}
@@ -108,7 +108,7 @@ int network_init(const char *uds_filename) {
 
 	phase = 1;
 
-	log_debug("Opening UNIX domain server socket at '%s'", uds_filename);
+	log_debug("Opening UNIX domain server socket at '%s'", socket_filename);
 
 	if (socket_open(&_server_socket, AF_UNIX, SOCK_STREAM, 0) < 0) {
 		log_error("Could not open UNIX domain server socket: %s (%d)",
@@ -118,26 +118,26 @@ int network_init(const char *uds_filename) {
 	}
 
 	// bind socket and start to listen
-	unlink(uds_filename);
+	unlink(socket_filename);
 
 	address.sun_family = AF_UNIX;
-	strcpy(address.sun_path, uds_filename);
+	strcpy(address.sun_path, socket_filename);
 
 	if (socket_bind(&_server_socket, (struct sockaddr *)&address, sizeof(address)) < 0) {
 		log_error("Could not bind UNIX domain server socket to '%s': %s (%d)",
-		          uds_filename, get_errno_name(errno), errno);
+		          socket_filename, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
 
 	if (socket_listen(&_server_socket, 10, socket_create_allocated) < 0) {
 		log_error("Could not listen to UNIX domain server socket bound to '%s': %s (%d)",
-		          uds_filename, get_errno_name(errno), errno);
+		          socket_filename, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
 
-	log_debug("Started listening to '%s'", uds_filename);
+	log_debug("Started listening to '%s'", socket_filename);
 
 	if (event_add_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC,
 	                     EVENT_READ, network_handle_accept, NULL) < 0) {
@@ -168,7 +168,7 @@ void network_exit(void) {
 	event_remove_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC);
 	socket_destroy(&_server_socket);
 
-	unlink(_uds_filename);
+	unlink(_socket_filename);
 }
 
 void network_cleanup_brickd(void) {

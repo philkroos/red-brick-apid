@@ -47,7 +47,7 @@
 
 static char _config_filename[1024] = SYSCONFDIR "/redapid.conf";
 static char _pid_filename[1024] = LOCALSTATEDIR "/run/redapid.pid";
-static char _uds_filename[1024] = LOCALSTATEDIR "/run/redapid.uds";
+static char _socket_filename[1024] = LOCALSTATEDIR "/run/redapid.socket";
 static char _log_filename[1024] = LOCALSTATEDIR "/log/redapid.log";
 
 static int prepare_paths(void) {
@@ -84,7 +84,7 @@ static int prepare_paths(void) {
 	snprintf(redapid_dirname, sizeof(redapid_dirname), "%s/.redapid", home);
 	snprintf(_config_filename, sizeof(_config_filename), "%s/.redapid/redapid.conf", home);
 	snprintf(_pid_filename, sizeof(_pid_filename), "%s/.redapid/redapid.pid", home);
-	snprintf(_uds_filename, sizeof(_uds_filename), "%s/.redapid/redapid.uds", home);
+	snprintf(_socket_filename, sizeof(_socket_filename), "%s/.redapid/redapid.socket", home);
 	snprintf(_log_filename, sizeof(_log_filename), "%s/.redapid/redapid.log", home);
 
 	if (mkdir(redapid_dirname, 0755) < 0) {
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 		goto error_api;
 	}
 
-	if (network_init(_uds_filename) < 0) {
+	if (network_init(_socket_filename) < 0) {
 		goto error_network;
 	}
 

@@ -22,7 +22,7 @@
 #ifndef REDAPID_NETWORK_H
 #define REDAPID_NETWORK_H
 
-int network_init(const char *uds_filename);
+int network_init(const char *socket_filename);
 void network_exit(void);
 
 void network_cleanup_brickd(void);
