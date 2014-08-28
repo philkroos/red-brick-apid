@@ -19,7 +19,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _GNU_SOURCE // for execvpe() from unistd.h
+#define _GNU_SOURCE // for execvpe from unistd.h
 
 #include <errno.h>
 #include <signal.h>
@@ -277,7 +277,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 
 	phase = 2;
 
-	// prepare arguments array for execvp(e)
+	// prepare arguments array for execvpe
 	if (array_create(&arguments_array, 1 + arguments->items.count + 1, sizeof(char *), true) < 0) {
 		error_code = api_get_error_code_from_errno();
 
@@ -339,7 +339,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 
 	phase = 4;
 
-	// prepare environment array for execvp(e)
+	// prepare environment array for execvpe
 	if (array_create(&environment_array, environment->items.count + 1, sizeof(char *), true) < 0) {
 		error_code = api_get_error_code_from_errno();
 
@@ -362,6 +362,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 
 			goto cleanup;
 		}
+
+		// FIXME: if item ist not <name>=<value>, but just <name> then use the parent <value>
 
 		*item = (*(String **)array_get(&environment->items, i))->buffer;
 	}
@@ -548,12 +550,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 			close(i);
 		}
 
-		// execvp(e) only returns in case of an error
-		if (environment_array.count > 0) {
-			execvpe(command->buffer, (char **)arguments_array.bytes, (char **)environment_array.bytes);
-		} else {
-			execvp(command->buffer, (char **)arguments_array.bytes);
-		}
+		// execvpe only returns in case of an error
+		execvpe(command->buffer, (char **)arguments_array.bytes, (char **)environment_array.bytes);
 
 		if (errno == ENOENT) {
 			_exit(EXIT_ENOENT);
