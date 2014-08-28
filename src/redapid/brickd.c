@@ -118,8 +118,7 @@ static char *brickd_get_recipient_signature(char *signature, bool upper, void *o
 	(void)upper;
 	(void)opaque;
 
-	snprintf(signature, WRITER_MAX_RECIPIENT_SIGNATURE_LENGTH,
-	         "Brick Daemon");
+	snprintf(signature, WRITER_MAX_RECIPIENT_SIGNATURE_LENGTH, "Brick Daemon");
 
 	return signature;
 }

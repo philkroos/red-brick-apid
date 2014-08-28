@@ -47,7 +47,7 @@
 #define FILE_SIGNATURE_FORMAT "id: %u, type: %s, name: %s, flags: 0x%04X"
 
 #define file_expand_signature(file) (file)->base.id, \
-	file_get_type_name((file)->type), file_get_name_buffer(file), (file)->flags
+	file_get_type_name((file)->type), file_get_name_internal(file), (file)->flags
 
 static int sendfd(int socket_handle, int fd) {
 	uint8_t buffer[1] = { 0 };
@@ -155,7 +155,7 @@ static FileType file_get_type_from_stat_mode(mode_t mode) {
 	}
 }
 
-static const char *file_get_name_buffer(File *file) {
+static const char *file_get_name_internal(File *file) {
 	if (file->type == FILE_TYPE_PIPE) {
 		return "<unnamed>";
 	} else {
@@ -477,7 +477,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	mode_t open_mode = 0;
 	int fd;
 	File *file;
-	struct stat buffer;
+	struct stat st;
 	uint8_t byte = 0;
 
 	// check parameters
@@ -622,7 +622,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	phase = 2;
 
-	if (fstat(fd, &buffer) < 0) {
+	if (fstat(fd, &st) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not get information for file (name: %s): %s (%d)",
@@ -646,7 +646,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	phase = 3;
 
 	// create async read pipe for regular files
-	file->type = file_get_type_from_stat_mode(buffer.st_mode);
+	file->type = file_get_type_from_stat_mode(st.st_mode);
 
 	if (file->type == FILE_TYPE_REGULAR) {
 		// (e)poll doesn't supported regular files. use a pipe with one byte in
@@ -1211,7 +1211,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
                    uint64_t *modification_time, uint64_t *status_change_time) {
 	String *name;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
-	struct stat buffer;
+	struct stat st;
 	int rc;
 
 	if (error_code != API_E_OK) {
@@ -1219,9 +1219,9 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 	}
 
 	if (follow_symlink) {
-		rc = stat(name->buffer, &buffer);
+		rc = stat(name->buffer, &st);
 	} else {
-		rc = lstat(name->buffer, &buffer);
+		rc = lstat(name->buffer, &st);
 	}
 
 	if (rc < 0) {
@@ -1233,35 +1233,35 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 		return error_code;
 	}
 
-	*type = file_get_type_from_stat_mode(buffer.st_mode);
+	*type = file_get_type_from_stat_mode(st.st_mode);
 	*permissions = 0;
 
-	if ((buffer.st_mode & S_IRUSR) != 0) {
+	if ((st.st_mode & S_IRUSR) != 0) {
 		*permissions |= FILE_PERMISSION_USER_READ;
-	} else if ((buffer.st_mode & S_IWUSR) != 0) {
+	} else if ((st.st_mode & S_IWUSR) != 0) {
 		*permissions |= FILE_PERMISSION_USER_WRITE;
-	} else if ((buffer.st_mode & S_IXUSR) != 0) {
+	} else if ((st.st_mode & S_IXUSR) != 0) {
 		*permissions |= FILE_PERMISSION_USER_EXECUTE;
-	} else if ((buffer.st_mode & S_IRGRP) != 0) {
+	} else if ((st.st_mode & S_IRGRP) != 0) {
 		*permissions |= FILE_PERMISSION_GROUP_READ;
-	} else if ((buffer.st_mode & S_IWGRP) != 0) {
+	} else if ((st.st_mode & S_IWGRP) != 0) {
 		*permissions |= FILE_PERMISSION_GROUP_WRITE;
-	} else if ((buffer.st_mode & S_IXGRP) != 0) {
+	} else if ((st.st_mode & S_IXGRP) != 0) {
 		*permissions |= FILE_PERMISSION_GROUP_EXECUTE;
-	} else if ((buffer.st_mode & S_IROTH) != 0) {
+	} else if ((st.st_mode & S_IROTH) != 0) {
 		*permissions |= FILE_PERMISSION_OTHERS_READ;
-	} else if ((buffer.st_mode & S_IWOTH) != 0) {
+	} else if ((st.st_mode & S_IWOTH) != 0) {
 		*permissions |= FILE_PERMISSION_OTHERS_WRITE;
-	} else if ((buffer.st_mode & S_IXOTH) != 0) {
+	} else if ((st.st_mode & S_IXOTH) != 0) {
 		*permissions |= FILE_PERMISSION_OTHERS_EXECUTE;
 	}
 
-	*user_id = buffer.st_uid;
-	*group_id = buffer.st_gid;
-	*length = buffer.st_size;
-	*access_time = buffer.st_atime;
-	*modification_time = buffer.st_mtime;
-	*status_change_time = buffer.st_ctime;
+	*user_id = st.st_uid;
+	*group_id = st.st_gid;
+	*length = st.st_size;
+	*access_time = st.st_atime;
+	*modification_time = st.st_mtime;
+	*status_change_time = st.st_ctime;
 
 	return API_E_OK;
 }
