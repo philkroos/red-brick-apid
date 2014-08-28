@@ -88,27 +88,25 @@ static int prepare_paths(void) {
 	snprintf(_log_filename, sizeof(_log_filename), "%s/.redapid/redapid.log", home);
 
 	if (mkdir(redapid_dirname, 0755) < 0) {
-		if (errno == EEXIST) {
-			if (stat(redapid_dirname, &st) < 0) {
-				fprintf(stderr, "Could not stat '%s': %s (%d)\n",
-				        redapid_dirname, get_errno_name(errno), errno);
-
-				return -1;
-			}
-
-			if (!S_ISDIR(st.st_mode)) {
-				fprintf(stderr, "Expeting '%s' to be a directory\n", redapid_dirname);
-
-				return -1;
-			}
-
-			return 0;
-		} else {
-			fprintf(stderr, "Could not create '%s': %s (%d)\n",
+		if (errno != EEXIST) {
+			fprintf(stderr, "Could not create directory '%s': %s (%d)\n",
 			        redapid_dirname, get_errno_name(errno), errno);
+
+			return -1;
 		}
 
-		return -1;
+		if (stat(redapid_dirname, &st) < 0) {
+			fprintf(stderr, "Could not get information for '%s': %s (%d)\n",
+			        redapid_dirname, get_errno_name(errno), errno);
+
+			return -1;
+		}
+
+		if (!S_ISDIR(st.st_mode)) {
+			fprintf(stderr, "Expecting '%s' to be a directory\n", redapid_dirname);
+
+			return -1;
+		}
 	}
 
 	return 0;
