@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-27.      *
+ * This file was automatically generated on 2014-08-28.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -257,6 +257,21 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_FUNCTION_GET_PROCESS_STATE 48
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_DEFINE_PROGRAM 50
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_UNDEFINE_PROGRAM 51
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_NAME 52
 
 /**
  * \ingroup BrickRED
@@ -1060,6 +1075,27 @@ int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_cod
  * 
  */
 int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_define_program(RED *red, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_program_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_undefine_program(RED *red, uint16_t program_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_program_name(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
 /**
  * \ingroup BrickRED

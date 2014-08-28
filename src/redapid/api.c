@@ -33,6 +33,7 @@
 #include "list.h"
 #include "network.h"
 #include "process.h"
+#include "program.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -96,7 +97,11 @@ typedef enum {
 	FUNCTION_GET_PROCESS_STDOUT,
 	FUNCTION_GET_PROCESS_STDERR,
 	FUNCTION_GET_PROCESS_STATE,
-	CALLBACK_PROCESS_STATE_CHANGED
+	CALLBACK_PROCESS_STATE_CHANGED,
+
+	FUNCTION_DEFINE_PROGRAM,
+	FUNCTION_UNDEFINE_PROGRAM,
+	FUNCTION_GET_PROGRAM_NAME
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -678,6 +683,42 @@ typedef struct {
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED ProcessStateChangedCallback;
 
+//
+// program
+//
+
+typedef struct {
+	PacketHeader header;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED DefineProgramRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED DefineProgramResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED UndefineProgramRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED UndefineProgramResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramNameRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetProgramNameResponse;
+
 #include <daemonlib/packed_end.h>
 
 //
@@ -1231,6 +1272,40 @@ static void api_get_process_state(GetProcessStateRequest *request) {
 }
 
 //
+// program
+//
+
+static void api_define_program(DefineProgramRequest *request) {
+	DefineProgramResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = program_define(request->name_string_id, &response.program_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_undefine_program(UndefineProgramRequest *request) {
+	UndefineProgramResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = program_undefine(request->program_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+static void api_get_program_name(GetProgramNameRequest *request) {
+	GetProgramNameResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = program_get_name(request->program_id, &response.name_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
+//
 // api
 //
 
@@ -1343,6 +1418,11 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROCESS_STDERR,            GetProcessStderr,           get_process_stderr)
 	DISPATCH_FUNCTION(GET_PROCESS_STATE,             GetProcessState,            get_process_state)
 
+	// program
+	DISPATCH_FUNCTION(DEFINE_PROGRAM,                DefineProgram,              define_program)
+	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,              UndefineProgram,            undefine_program)
+	DISPATCH_FUNCTION(GET_PROGRAM_NAME,              GetProgramName,             get_program_name)
+
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
 
@@ -1435,6 +1515,10 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_PROCESS_STATE:             return "get-process-state";
 	case CALLBACK_PROCESS_STATE_CHANGED:         return "process-state-changed";
 
+	case FUNCTION_DEFINE_PROGRAM:                return "define-program";
+	case FUNCTION_UNDEFINE_PROGRAM:              return "undefine-program";
+	case FUNCTION_GET_PROGRAM_NAME:              return "get-program-name";
+
 	default:                                     return "<unknwon>";
 	}
 }
@@ -1503,13 +1587,6 @@ enum object_type {
  * string
  */
 
-struct string {
-	uint16_t string_id;
-	char *buffer;
-	uint32_t used;
-	uint32_t allocated;
-}
-
 + allocate_string   (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id
 + truncate_string   (uint16_t string_id, uint32_t length)                  -> uint8_t error_code
 + get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
@@ -1520,11 +1597,6 @@ struct string {
 /*
  * list (of objects)
  */
-
-struct list {
-	uint16_t list_id;
-	Array items;
-}
 
 + allocate_list    (uint16_t length_to_reserve)                -> uint8_t error_code, uint16_t list_id
 + get_list_length  (uint16_t list_id)                          -> uint8_t error_code, uint16_t length
@@ -1537,31 +1609,25 @@ struct list {
  * file (always non-blocking)
  */
 
-struct file {
-	uint16_t file_id;
-	uint16_t name_string_id;
-	int fd;
-}
-
 enum file_flag { // bitmask
-	FILE_FLAG_READ_ONLY = 0x0001,
+	FILE_FLAG_READ_ONLY  = 0x0001,
 	FILE_FLAG_WRITE_ONLY = 0x0002,
 	FILE_FLAG_READ_WRITE = 0x0004,
-	FILE_FLAG_APPEND = 0x0008,
-	FILE_FLAG_CREATE = 0x0010,
-	FILE_FLAG_EXCLUSIVE = 0x0020,
-	FILE_FLAG_TRUNCATE = 0x0040
+	FILE_FLAG_APPEND     = 0x0008,
+	FILE_FLAG_CREATE     = 0x0010,
+	FILE_FLAG_EXCLUSIVE  = 0x0020,
+	FILE_FLAG_TRUNCATE   = 0x0040
 }
 
 enum file_permission { // bitmask
-	FILE_PERMISSION_USER_READ = 00400,
-	FILE_PERMISSION_USER_WRITE = 00200,
-	FILE_PERMISSION_USER_EXECUTE = 00100,
-	FILE_PERMISSION_GROUP_READ = 00040,
-	FILE_PERMISSION_GROUP_WRITE = 00020,
-	FILE_PERMISSION_GROUP_EXECUTE = 00010,
-	FILE_PERMISSION_OTHERS_READ = 00004,
-	FILE_PERMISSION_OTHERS_WRITE = 00002,
+	FILE_PERMISSION_USER_READ      = 00400,
+	FILE_PERMISSION_USER_WRITE     = 00200,
+	FILE_PERMISSION_USER_EXECUTE   = 00100,
+	FILE_PERMISSION_GROUP_READ     = 00040,
+	FILE_PERMISSION_GROUP_WRITE    = 00020,
+	FILE_PERMISSION_GROUP_EXECUTE  = 00010,
+	FILE_PERMISSION_OTHERS_READ    = 00004,
+	FILE_PERMISSION_OTHERS_WRITE   = 00002,
 	FILE_PERMISSION_OTHERS_EXECUTE = 00001
 };
 
@@ -1572,7 +1638,7 @@ enum file_origin {
 }
 
 enum file_event { // bitmask
-	FILE_EVENT_READ = 0x01,
+	FILE_EVENT_READ  = 0x01,
 	FILE_EVENT_WRITE = 0x02
 }
 
@@ -1687,22 +1753,23 @@ enum process_state {
  * (persistent) program configuration
  */
 
-? define_program            (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id // adds a reference to the name and locks it
+? define_program            (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id
+? recover_program           (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id
 ? undefine_program          (uint16_t program_id)          -> uint8_t error_code
-? get_program_name          (uint16_t program_id)          -> uint8_t error_code, uint16_t name_string_id // adds a reference to the name, you need to call release_object() when done with it
+? get_program_name          (uint16_t program_id)          -> uint8_t error_code, uint16_t name_string_id
 ? set_program_command       (uint16_t program_id,
-                             uint16_t command_string_id)   -> uint8_t error_code // adds a reference to the command and locks it, unlocks and releases previous command, if any
-? get_program_command       (uint16_t program_id)          -> uint8_t error_code, uint16_t command_string_id // adds a reference to the command, you need to call release_object() when done with it
+                             uint16_t command_string_id)   -> uint8_t error_code
+? get_program_command       (uint16_t program_id)          -> uint8_t error_code, uint16_t command_string_id
 ? set_program_arguments     (uint16_t program_id,
-                             uint16_t arguments_list_id    -> uint8_t error_code // adds a reference to the argument list and locks it, unlocks and releases previous arguments, if any
-? get_program_arguments     (uint16_t program_id)          -> uint8_t error_code, uint16_t arguments_list_id // adds a reference to the argument list, you need to call release_object() when done with it
+                             uint16_t arguments_list_id    -> uint8_t error_code
+? get_program_arguments     (uint16_t program_id)          -> uint8_t error_code, uint16_t arguments_list_id
 ? set_program_environment   (uint16_t program_id,
-                             uint16_t environment_list_id) -> uint8_t error_code // adds a reference to the environment list and locks it, unlocks and releases previous environment, if any
-? get_program_environment   (uint16_t program_id)          -> uint8_t error_code, uint16_t environment_list_id // adds a reference to the environment list, you need to call release_object() when done with it
+                             uint16_t environment_list_id) -> uint8_t error_code
+? get_program_environment   (uint16_t program_id)          -> uint8_t error_code, uint16_t environment_list_id
 ? merge_program_output      (uint16_t program_id,
                              bool merge_output)            -> uint8_t error_code
 ? has_program_merged_output (uint16_t program_id)          -> uint8_t error_code, bool merged_output
-? execute_program           (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id // adds a reference to the program and locks it, you need to call release_object() when done with it
+? execute_program           (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
 
 
 /*
@@ -1712,5 +1779,10 @@ enum process_state {
 // FIXME: timezone? DST? etc?
 ? get_system_time ()                     -> uint8_t error_code, uint64_t system_time
 ? set_system_time (uint64_t system_time) -> uint8_t error_code
+
+// if the current session changed then all object IDs known to the client are invalid
+? get_session () -> uint64_t session
+
+? callback: session_changed -> uint64_t session
 
 #endif
