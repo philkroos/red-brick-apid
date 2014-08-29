@@ -399,7 +399,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 		default:      *type = FILE_TYPE_UNKNOWN;   break;
 		}
 
-		return string_wrap(directory->buffer, OBJECT_CREATE_FLAG_EXTERNAL, name_id);
+		return string_wrap(directory->buffer, OBJECT_CREATE_FLAG_EXTERNAL, name_id, NULL);
 	}
 }
 

@@ -46,7 +46,7 @@
 #define FILE_SIGNATURE_FORMAT "id: %u, type: %s, name: %s, flags: 0x%04X"
 
 #define file_expand_signature(file) (file)->base.id, \
-	file_get_type_name((file)->type), file_get_name_internal(file), (file)->flags
+	file_get_type_name((file)->type), (file)->name->buffer, (file)->flags
 
 static int sendfd(int socket_handle, int fd) {
 	uint8_t buffer[1] = { 0 };
@@ -154,14 +154,6 @@ static FileType file_get_type_from_stat_mode(mode_t mode) {
 	}
 }
 
-static const char *file_get_name_internal(File *file) {
-	if (file->type == FILE_TYPE_PIPE) {
-		return "<unnamed>";
-	} else {
-		return file->name->buffer;
-	}
-}
-
 static void file_destroy(File *file) {
 	if (file->length_to_read_async > 0) {
 		log_warn("Destroying file object ("FILE_SIGNATURE_FORMAT") while an asynchronous read for %"PRIu64" byte(s) is in progress",
@@ -173,13 +165,14 @@ static void file_destroy(File *file) {
 	if (file->type == FILE_TYPE_PIPE) {
 		pipe_destroy(&file->pipe);
 	} else {
-		string_vacate(file->name);
-		close(file->fd);
-
 		if (file->type == FILE_TYPE_REGULAR) {
 			pipe_destroy(&file->async_read_pipe);
 		}
+
+		close(file->fd);
 	}
+
+	string_vacate(file->name);
 
 	free(file);
 }
@@ -739,6 +732,7 @@ cleanup:
 APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	int phase = 0;
 	APIE error_code;
+	String *name;
 	File *file;
 
 	// check parameters
@@ -749,6 +743,17 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 
 		goto cleanup;
 	}
+
+	// create name string object
+	error_code = string_wrap("<unnamed>",
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED, NULL, &name);
+
+	if (error_code != API_E_OK) {
+		goto cleanup;
+	}
+
+	phase = 1;
 
 	// allocate file object
 	file = calloc(1, sizeof(File));
@@ -762,7 +767,7 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 		goto cleanup;
 	}
 
-	phase = 1;
+	phase = 2;
 
 	// create pipe
 	if (pipe_create(&file->pipe, flags) < 0) {
@@ -774,11 +779,11 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 		goto cleanup;
 	}
 
-	phase = 2;
+	phase = 3;
 
 	// create file object
 	file->type = FILE_TYPE_PIPE;
-	file->name = NULL;
+	file->name = name;
 	file->flags = flags;
 	file->fd = -1;
 	file->async_read_handle = file->pipe.read_end;
@@ -800,21 +805,24 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	log_debug("Created file object ("FILE_SIGNATURE_FORMAT")",
 	          file_expand_signature(file));
 
-	phase = 3;
+	phase = 4;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 2:
+	case 3:
 		pipe_destroy(&file->pipe);
 
-	case 1:
+	case 2:
 		free(file);
+
+	case 1:
+		string_vacate(name);
 
 	default:
 		break;
 	}
 
-	return phase == 3 ? API_E_OK : error_code;
+	return phase == 4 ? API_E_OK : error_code;
 }
 
 // public API
@@ -838,13 +846,6 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 
 	if (error_code != API_E_OK) {
 		return error_code;
-	}
-
-	if (file->type == FILE_TYPE_PIPE) {
-		log_warn("File object ("FILE_SIGNATURE_FORMAT") has no name",
-		         file_expand_signature(file));
-
-		return API_E_INVALID_OPERATION;
 	}
 
 	object_add_external_reference(&file->name->base);
@@ -1314,7 +1315,7 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 		target = buffer;
 	}
 
-	error_code = string_wrap(target, OBJECT_CREATE_FLAG_EXTERNAL, target_id);
+	error_code = string_wrap(target, OBJECT_CREATE_FLAG_EXTERNAL, target_id, NULL);
 
 	if (canonicalize) {
 		free(target);

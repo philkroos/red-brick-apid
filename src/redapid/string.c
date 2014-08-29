@@ -161,7 +161,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 	return API_E_OK;
 }
 
-APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id) {
+APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id, String **object) {
 	uint32_t length = strlen(buffer);
 	APIE error_code;
 	String *string;
@@ -183,7 +183,13 @@ APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id) {
 	string->length = length;
 	string->buffer[string->length] = '\0';
 
-	*id = string->base.id;
+	if (id != NULL) {
+		*id = string->base.id;
+	}
+
+	if (object != NULL) {
+		*object = string;
+	}
 
 	return error_code;
 }

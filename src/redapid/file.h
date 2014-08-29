@@ -119,7 +119,7 @@ struct _File {
 	Object base;
 
 	FileType type;
-	String *name; // only valid if type != FILE_TYPE_PIPE
+	String *name;
 	uint16_t flags; // refers to PipeFlag if type == FILE_TYPE_PIPE,
 	                // refers to FileFlag otherwise
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE

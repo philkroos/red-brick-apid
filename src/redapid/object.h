@@ -44,6 +44,7 @@ typedef enum {
 typedef enum { // bitmask
 	OBJECT_CREATE_FLAG_INTERNAL = 0x0001,
 	OBJECT_CREATE_FLAG_EXTERNAL = 0x0002,
+	OBJECT_CREATE_FLAG_OCCUPIED = 0x0004, // can only be used in combination with OBJECT_CREATE_FLAG_INTERNAL
 } ObjectCreateFlag;
 
 #define MAX_OBJECT_TYPES 7
