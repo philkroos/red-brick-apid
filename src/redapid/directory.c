@@ -122,6 +122,10 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 
 			return API_E_NOT_A_DIRECTORY;
 		}
+
+		log_warn("Could not create already existing directory '%s'", name);
+
+		return API_E_ALREADY_EXISTS;
 	}
 
 	return API_E_OK;
