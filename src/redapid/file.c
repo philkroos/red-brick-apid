@@ -692,7 +692,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->write = file_handle_write;
 	file->seek = file_handle_seek;
 
-	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
+	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)file_destroy);
 
 	if (error_code != API_E_OK) {
@@ -786,7 +787,8 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	file->write = pipe_handle_write;
 	file->seek = pipe_handle_seek;
 
-	error_code = object_create(&file->base, OBJECT_TYPE_FILE, false,
+	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)file_destroy);
 
 	if (error_code != API_E_OK) {
@@ -1312,7 +1314,7 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 		target = buffer;
 	}
 
-	error_code = string_wrap(target, target_id);
+	error_code = string_wrap(target, OBJECT_CREATE_FLAG_EXTERNAL, target_id);
 
 	if (canonicalize) {
 		free(target);

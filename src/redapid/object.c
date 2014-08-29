@@ -90,13 +90,21 @@ bool object_is_type_valid(ObjectType type) {
 	}
 }
 
-APIE object_create(Object *object, ObjectType type, bool with_internal_reference,
+APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
                    ObjectDestroyFunction destroy) {
 	object->type = type;
 	object->destroy = destroy;
-	object->internal_reference_count = with_internal_reference ? 1 : 0;
-	object->external_reference_count = 1;
+	object->internal_reference_count = 0;
+	object->external_reference_count = 0;
 	object->usage_count = 0;
+
+	if ((create_flags & OBJECT_CREATE_FLAG_INTERNAL) != 0) {
+		++object->internal_reference_count;
+	}
+
+	if ((create_flags & OBJECT_CREATE_FLAG_EXTERNAL) != 0) {
+		++object->external_reference_count;
+	}
 
 	return inventory_add_object(object);
 }

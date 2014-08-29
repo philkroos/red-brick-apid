@@ -97,10 +97,11 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	phase = 2;
 
-	// create process object
+	// create program object
 	program->identifier = identifier;
 
-	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM, true,
+	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM,
+	                           OBJECT_CREATE_FLAG_INTERNAL | OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)program_destroy);
 
 	if (error_code != API_E_OK) {

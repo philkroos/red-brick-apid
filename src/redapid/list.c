@@ -72,7 +72,8 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 
 	phase = 2;
 
-	error_code = object_create(&list->base, OBJECT_TYPE_LIST, false,
+	error_code = object_create(&list->base, OBJECT_TYPE_LIST,
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)list_destroy);
 
 	if (error_code != API_E_OK) {

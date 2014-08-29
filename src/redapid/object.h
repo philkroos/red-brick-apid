@@ -41,6 +41,11 @@ typedef enum {
 	OBJECT_TYPE_PROGRAM
 } ObjectType;
 
+typedef enum { // bitmask
+	OBJECT_CREATE_FLAG_INTERNAL = 0x0001,
+	OBJECT_CREATE_FLAG_EXTERNAL = 0x0002,
+} ObjectCreateFlag;
+
 #define MAX_OBJECT_TYPES 7
 
 typedef struct _Object Object;
@@ -59,7 +64,7 @@ struct _Object {
 const char *object_get_type_name(ObjectType type);
 bool object_is_type_valid(ObjectType type);
 
-APIE object_create(Object *object, ObjectType type, bool with_internal_reference,
+APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
                    ObjectDestroyFunction destroy);
 void object_destroy(Object *object);
 

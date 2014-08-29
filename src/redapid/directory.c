@@ -295,7 +295,8 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 		++directory->name->length;
 	}
 
-	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY, false,
+	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY,
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)directory_destroy);
 
 	if (error_code != API_E_OK) {
@@ -398,7 +399,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 		default:      *type = FILE_TYPE_UNKNOWN;   break;
 		}
 
-		return string_wrap(directory->buffer, name_id);
+		return string_wrap(directory->buffer, OBJECT_CREATE_FLAG_EXTERNAL, name_id);
 	}
 }
 

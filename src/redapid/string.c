@@ -71,40 +71,68 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	return API_E_OK;
 }
 
-static APIE string_create(uint32_t reserve, String **string) {
+static APIE string_create(uint32_t reserve, uint16_t create_flags, String **string) {
+	int phase = 0;
 	APIE error_code;
+	uint32_t allocated;
+	char *buffer;
 
+	// allocate buffer
+	allocated = GROW_ALLOCATION(reserve);
+	buffer = malloc(allocated);
+
+	if (buffer == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
+		log_error("Could not allocate buffer for %u bytes: %s (%d)",
+		          allocated, get_errno_name(ENOMEM), ENOMEM);
+
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// allocate string object
 	*string = calloc(1, sizeof(String));
 
 	if (*string == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
 		log_error("Could not allocate string object: %s (%d)",
 		          get_errno_name(ENOMEM), ENOMEM);
 
-		return API_E_NO_FREE_MEMORY;
+		goto cleanup;
 	}
 
-	(*string)->buffer = NULL;
-	(*string)->length = 0;
-	(*string)->allocated = 0;
+	phase = 2;
 
-	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, false,
+	// create string object
+	(*string)->buffer = buffer;
+	(*string)->length = 0;
+	(*string)->allocated = allocated;
+
+	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, create_flags,
 	                           (ObjectDestroyFunction)string_destroy);
 
 	if (error_code != API_E_OK) {
+		goto cleanup;
+	}
+
+	phase = 3;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
 		free(*string);
 
-		return error_code;
+	case 1:
+		free(buffer);
+
+	default:
+		break;
 	}
 
-	error_code = string_reserve(*string, reserve);
-
-	if (error_code != API_E_OK) {
-		object_remove_external_reference(&(*string)->base);
-
-		return error_code;
-	}
-
-	return API_E_OK;
+	return phase == 3 ? API_E_OK : error_code;
 }
 
 // public API
@@ -117,7 +145,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 		reserve = length;
 	}
 
-	error_code = string_create(reserve, &string);
+	error_code = string_create(reserve, OBJECT_CREATE_FLAG_EXTERNAL, &string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -133,7 +161,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 	return API_E_OK;
 }
 
-APIE string_wrap(char *buffer, ObjectID *id) {
+APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id) {
 	uint32_t length = strlen(buffer);
 	APIE error_code;
 	String *string;
@@ -144,7 +172,7 @@ APIE string_wrap(char *buffer, ObjectID *id) {
 		return API_E_OUT_OF_RANGE;
 	}
 
-	error_code = string_create(length, &string);
+	error_code = string_create(length, create_flags, &string);
 
 	if (error_code != API_E_OK) {
 		return error_code;
@@ -223,7 +251,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	length = strnlen(buffer, STRING_MAX_SET_CHUNK_BUFFER_LENGTH);
 
 	if (offset + length > INT32_MAX) {
-		log_warn("Offset + length of %u byte(s) exceeds maximum length of string object",
+		log_warn("Offset plus length of %u byte(s) exceeds maximum length of string object",
 		         offset + length);
 
 		return API_E_OUT_OF_RANGE;

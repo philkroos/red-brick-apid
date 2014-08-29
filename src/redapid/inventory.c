@@ -302,7 +302,8 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	inventory->type = type;
 	inventory->index = 0;
 
-	error_code = object_create(&inventory->base, OBJECT_TYPE_INVENTORY, false,
+	error_code = object_create(&inventory->base, OBJECT_TYPE_INVENTORY,
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)inventory_destroy);
 
 	if (error_code != API_E_OK) {
