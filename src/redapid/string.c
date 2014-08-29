@@ -200,7 +200,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 	if (string->base.usage_count > 0) {
 		log_warn("Cannot truncate string object (id: %u) in use", id);
 
-		return API_E_OBJECT_IS_LOCKED;
+		return API_E_OBJECT_IN_USE;
 	}
 
 	if (length < string->length) {
@@ -239,7 +239,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	if (string->base.usage_count > 0) {
 		log_warn("Cannot change string object (id: %u) in use", id);
 
-		return API_E_OBJECT_IS_LOCKED;
+		return API_E_OBJECT_IN_USE;
 	}
 
 	if (offset > INT32_MAX) {

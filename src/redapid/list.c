@@ -160,7 +160,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 		log_warn("Cannot append item (id: %u) to list object (id: %u) in use",
 		         item_id, id);
 
-		return API_E_OBJECT_IS_LOCKED;
+		return API_E_OBJECT_IN_USE;
 	}
 
 	if (list->items.count == UINT16_MAX) {
@@ -207,7 +207,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 		log_warn("Cannot remove item (index: %u) from list object (id: %u) in use",
 		         index, id);
 
-		return API_E_OBJECT_IS_LOCKED;
+		return API_E_OBJECT_IN_USE;
 	}
 
 	if (index >= list->items.count) {
