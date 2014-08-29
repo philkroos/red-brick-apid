@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-28.      *
+ * This file was automatically generated on 2014-08-29.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -201,77 +201,82 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 37
+#define RED_FUNCTION_CREATE_DIRECTORY 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 38
+#define RED_FUNCTION_SPAWN_PROCESS 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 39
+#define RED_FUNCTION_KILL_PROCESS 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_ARGUMENTS 40
+#define RED_FUNCTION_GET_PROCESS_COMMAND 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_ENVIRONMENT 41
+#define RED_FUNCTION_GET_PROCESS_ARGUMENTS 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY 42
+#define RED_FUNCTION_GET_PROCESS_ENVIRONMENT 42
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_USER_ID 43
+#define RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_GROUP_ID 44
+#define RED_FUNCTION_GET_PROCESS_USER_ID 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIN 45
+#define RED_FUNCTION_GET_PROCESS_GROUP_ID 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDOUT 46
+#define RED_FUNCTION_GET_PROCESS_STDIN 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDERR 47
+#define RED_FUNCTION_GET_PROCESS_STDOUT 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 48
+#define RED_FUNCTION_GET_PROCESS_STDERR 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 50
+#define RED_FUNCTION_GET_PROCESS_STATE 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 51
+#define RED_FUNCTION_DEFINE_PROGRAM 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_NAME 52
+#define RED_FUNCTION_UNDEFINE_PROGRAM 52
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_NAME 53
 
 /**
  * \ingroup BrickRED
@@ -303,7 +308,7 @@ typedef Device RED;
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 49
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 50
 
 
 /**
@@ -991,6 +996,13 @@ int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint8_t *ret_e
  * Rewinds a directory object and returns the resulting error code.
  */
 int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED

@@ -20,10 +20,12 @@
  */
 
 #include <errno.h>
+#include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <dirent.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <daemonlib/log.h>
 #include <daemonlib/utils.h>
@@ -33,6 +35,7 @@
 #include "api.h"
 #include "file.h"
 #include "inventory.h"
+#include "process.h"
 #include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
@@ -54,6 +57,173 @@ static void directory_destroy(Directory *directory) {
 	string_vacate(directory->name);
 
 	free(directory);
+}
+
+static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
+	char *p;
+	struct stat st;
+	APIE error_code;
+
+	if (*name != '/') {
+		log_warn("Cannot create relative directory '%s'", name);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	if (mkdir(name, mode) < 0) {
+		if (errno == ENOENT) {
+			if (!recursive) {
+				log_warn("Cannot create directory '%s' non-recursively", name);
+
+				return API_E_INVALID_OPERATION;
+			}
+
+			p = strrchr(name, '/');
+
+			if (p != name) {
+				*p = '\0';
+
+				// FIXME: if the directory name has really many parts
+				//        then this could trigger a stack overflow
+				error_code = directory_create_helper(name, recursive, mode);
+
+				*p = '/';
+
+				if (error_code != API_E_OK) {
+					return error_code;
+				}
+			}
+
+			if (mkdir(name, mode) >= 0) {
+				return API_E_OK;
+			}
+		}
+
+		if (errno != EEXIST) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not create directory '%s': %s (%d)",
+			         name, get_errno_name(errno), errno);
+
+			return error_code;
+		}
+
+		if (stat(name, &st) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not get information for '%s': %s (%d)",
+			          name, get_errno_name(errno), errno);
+
+			return error_code;
+		}
+
+		if (!S_ISDIR(st.st_mode)) {
+			log_warn("Expecting '%s' to be a directory", name);
+
+			return API_E_NOT_A_DIRECTORY;
+		}
+	}
+
+	return API_E_OK;
+}
+
+APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
+                               uint32_t user_id, uint32_t group_id) {
+	mode_t mode;
+	char *tmp;
+	APIE error_code;
+	pid_t pid;
+	int rc;
+	int status;
+
+	if ((permissions & ~FILE_PERMISSION_ALL) != 0) {
+		log_warn("Invalid file permissions %04o", permissions);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	mode = file_get_mode_from_permissions(permissions);
+
+	// duplicate name, because directory_create_helper might modify it
+	tmp = strdup(name);
+
+	if (tmp == NULL) {
+		log_error("Could not duplicate directory name: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		return API_E_NO_FREE_MEMORY;
+	}
+
+	if (geteuid() == user_id && getegid() == group_id) {
+		error_code = directory_create_helper(tmp, recursive, mode);
+	} else {
+		error_code = process_fork(&pid);
+
+		if (error_code != API_E_OK) {
+			goto cleanup;
+		}
+
+		if (pid == 0) { // child
+			// change group
+			if (setregid(group_id, group_id) < 0) {
+				error_code = api_get_error_code_from_errno();
+
+				log_error("Could not change to group %u for creating directory (name: %s): %s (%d)",
+				          group_id, name, get_errno_name(errno), errno);
+
+				goto child_cleanup;
+			}
+
+			// change user
+			if (setreuid(user_id, user_id) < 0) {
+				error_code = api_get_error_code_from_errno();
+
+				log_error("Could not change to user %u for creating directory (name: %s): %s (%d)",
+				          user_id, name, get_errno_name(errno), errno);
+
+				goto child_cleanup;
+			}
+
+			// create directory
+			error_code = directory_create_helper(tmp, recursive, mode);
+
+		child_cleanup:
+			// report error code as exit status
+			_exit(error_code);
+		}
+
+		// wait for child to exit
+		do {
+			rc = waitpid(pid, &status, 0);
+		} while (rc < 0 && errno == EINTR);
+
+		if (rc < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not wait for child process creating directory (name: %s) as %u:%u: %s (%d)",
+			          name, user_id, group_id, get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		// check if child exited normally
+		if (!WIFEXITED(status)) {
+			error_code = API_E_INTERNAL_ERROR;
+
+			log_error("Child process creating directory (name: %s) as %u:%u did not exit normally",
+			          name, user_id, group_id);
+
+			goto cleanup;
+		}
+
+		// get child error code from child exit status
+		error_code = WEXITSTATUS(status);
+	}
+
+cleanup:
+	free(tmp);
+
+	return error_code;
 }
 
 // public API
@@ -240,4 +410,19 @@ APIE directory_rewind(ObjectID id) {
 	rewinddir(directory->dp);
 
 	return API_E_OK;
+}
+
+
+// public API
+APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
+                      uint32_t user_id, uint32_t group_id) {
+	String *name;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	return directory_create_internal(name->buffer, recursive, permissions,
+	                                 user_id, group_id);
 }

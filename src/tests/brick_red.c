@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-28.      *
+ * This file was automatically generated on 2014-08-29.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -446,6 +446,20 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint16_t name_string_id;
+	bool recursive;
+	uint16_t permissions;
+	uint32_t user_id;
+	uint32_t group_id;
+} ATTRIBUTE_PACKED CreateDirectory_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED CreateDirectoryResponse_;
+
+typedef struct {
+	PacketHeader header;
 	uint16_t command_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
@@ -731,6 +745,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_DIRECTORY_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_REWIND_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_CREATE_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SPAWN_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_KILL_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -1693,6 +1708,36 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
 	}
 
 	request.directory_id = leconvert_uint16_to(directory_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
+int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	CreateDirectory_ request;
+	CreateDirectoryResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_CREATE_DIRECTORY, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.name_string_id = leconvert_uint16_to(name_string_id);
+	request.recursive = recursive;
+	request.permissions = leconvert_uint16_to(permissions);
+	request.user_id = leconvert_uint32_to(user_id);
+	request.group_id = leconvert_uint32_to(group_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 

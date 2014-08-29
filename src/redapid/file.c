@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -467,6 +466,48 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	return API_E_OK;
 }
 
+mode_t file_get_mode_from_permissions(uint16_t permissions) {
+	mode_t mode = 0;
+
+	if ((permissions & FILE_PERMISSION_USER_READ) != 0) {
+		mode |= S_IRUSR;
+	}
+
+	if ((permissions & FILE_PERMISSION_USER_WRITE) != 0) {
+		mode |= S_IWUSR;
+	}
+
+	if ((permissions & FILE_PERMISSION_USER_EXECUTE) != 0) {
+		mode |= S_IXUSR;
+	}
+
+	if ((permissions & FILE_PERMISSION_GROUP_READ) != 0) {
+		mode |= S_IRGRP;
+	}
+
+	if ((permissions & FILE_PERMISSION_GROUP_WRITE) != 0) {
+		mode |= S_IWGRP;
+	}
+
+	if ((permissions & FILE_PERMISSION_GROUP_EXECUTE) != 0) {
+		mode |= S_IXGRP;
+	}
+
+	if ((permissions & FILE_PERMISSION_OTHERS_READ) != 0) {
+		mode |= S_IROTH;
+	}
+
+	if ((permissions & FILE_PERMISSION_OTHERS_WRITE) != 0) {
+		mode |= S_IWOTH;
+	}
+
+	if ((permissions & FILE_PERMISSION_OTHERS_EXECUTE) != 0) {
+		mode |= S_IXOTH;
+	}
+
+	return mode;
+}
+
 // public API
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t user_id, uint32_t group_id, ObjectID *id) {
@@ -553,41 +594,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	// translate create permissions
 	if ((flags & FILE_FLAG_CREATE) != 0) {
-		if ((permissions & FILE_PERMISSION_USER_READ) != 0) {
-			open_mode |= S_IRUSR;
-		}
-
-		if ((permissions & FILE_PERMISSION_USER_WRITE) != 0) {
-			open_mode |= S_IWUSR;
-		}
-
-		if ((permissions & FILE_PERMISSION_USER_EXECUTE) != 0) {
-			open_mode |= S_IXUSR;
-		}
-
-		if ((permissions & FILE_PERMISSION_GROUP_READ) != 0) {
-			open_mode |= S_IRGRP;
-		}
-
-		if ((permissions & FILE_PERMISSION_GROUP_WRITE) != 0) {
-			open_mode |= S_IWGRP;
-		}
-
-		if ((permissions & FILE_PERMISSION_GROUP_EXECUTE) != 0) {
-			open_mode |= S_IXGRP;
-		}
-
-		if ((permissions & FILE_PERMISSION_OTHERS_READ) != 0) {
-			open_mode |= S_IROTH;
-		}
-
-		if ((permissions & FILE_PERMISSION_OTHERS_WRITE) != 0) {
-			open_mode |= S_IWOTH;
-		}
-
-		if ((permissions & FILE_PERMISSION_OTHERS_EXECUTE) != 0) {
-			open_mode |= S_IXOTH;
-		}
+		open_mode |= file_get_mode_from_permissions(permissions);
 	}
 
 	// occupy name string object

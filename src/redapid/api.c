@@ -84,6 +84,7 @@ typedef enum {
 	FUNCTION_GET_DIRECTORY_NAME,
 	FUNCTION_GET_NEXT_DIRECTORY_ENTRY,
 	FUNCTION_REWIND_DIRECTORY,
+	FUNCTION_CREATE_DIRECTORY,
 
 	FUNCTION_SPAWN_PROCESS,
 	FUNCTION_KILL_PROCESS,
@@ -530,6 +531,20 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED RewindDirectoryResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t name_string_id;
+	tfpbool recursive;
+	uint16_t permissions;
+	uint32_t user_id;
+	uint32_t group_id;
+} ATTRIBUTE_PACKED CreateDirectoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED CreateDirectoryResponse;
 
 //
 // process
@@ -1138,6 +1153,18 @@ static void api_rewind_directory(RewindDirectoryRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_create_directory(CreateDirectoryRequest *request) {
+	CreateDirectoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = directory_create(request->name_string_id,
+	                                       request->recursive, request->permissions,
+	                                       request->user_id, request->group_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 //
 // process
 //
@@ -1403,6 +1430,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_DIRECTORY_NAME,            GetDirectoryName,           get_directory_name)
 	DISPATCH_FUNCTION(GET_NEXT_DIRECTORY_ENTRY,      GetNextDirectoryEntry,      get_next_directory_entry)
 	DISPATCH_FUNCTION(REWIND_DIRECTORY,              RewindDirectory,            rewind_directory)
+	DISPATCH_FUNCTION(CREATE_DIRECTORY,              CreateDirectory,            create_directory)
 
 	// process
 	DISPATCH_FUNCTION(SPAWN_PROCESS,                 SpawnProcess,               spawn_process)
@@ -1500,6 +1528,7 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_DIRECTORY_NAME:            return "get-directory-name";
 	case FUNCTION_GET_NEXT_DIRECTORY_ENTRY:      return "get-next-directory-entry";
 	case FUNCTION_REWIND_DIRECTORY:              return "rewind-directory";
+	case FUNCTION_CREATE_DIRECTORY:              return "create-directory";
 
 	case FUNCTION_SPAWN_PROCESS:                 return "spawn-process";
 	case FUNCTION_KILL_PROCESS:                  return "kill-process";
@@ -1698,7 +1727,7 @@ enum pipe_flag { // bitmask
 + get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
 + rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-? create_directory (uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id) -> uint8_t error_code
++ create_directory (uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id) -> uint8_t error_code
 
 
 /*

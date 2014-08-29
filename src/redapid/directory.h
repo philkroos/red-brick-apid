@@ -24,11 +24,17 @@
 
 #include "object.h"
 
+APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
+                               uint32_t user_id, uint32_t group_id);
+
 APIE directory_open(ObjectID name_id, ObjectID *id);
 
 APIE directory_get_name(ObjectID id, ObjectID *name_id);
 
 APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type);
 APIE directory_rewind(ObjectID id);
+
+APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
+                      uint32_t user_id, uint32_t group_id);
 
 #endif // REDAPID_DIRECTORY_H

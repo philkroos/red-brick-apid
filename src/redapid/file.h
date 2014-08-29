@@ -23,6 +23,7 @@
 #define REDAPID_FILE_H
 
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #include <daemonlib/io.h>
 #include <daemonlib/packet.h>
@@ -132,6 +133,8 @@ struct _File {
 	FileWriteFunction write;
 	FileSeekFunction seek;
 };
+
+mode_t file_get_mode_from_permissions(uint16_t permissions);
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t user_id, uint32_t group_id, ObjectID *id);
