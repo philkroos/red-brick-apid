@@ -22,12 +22,15 @@
 #ifndef REDAPID_PROGRAM_H
 #define REDAPID_PROGRAM_H
 
+#include <stdbool.h>
+
 #include "object.h"
 #include "string.h"
 
 typedef struct {
 	Object base;
 
+	bool defined;
 	String *identifier;
 } Program;
 

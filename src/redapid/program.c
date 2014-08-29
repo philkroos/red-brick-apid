@@ -98,6 +98,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	phase = 2;
 
 	// create program object
+	program->defined = true;
 	program->identifier = identifier;
 
 	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM,
@@ -139,11 +140,13 @@ APIE program_undefine(ObjectID id) {
 		return error_code;
 	}
 
-	if (program->base.internal_reference_count == 0) {
+	if (!program->defined) {
 		log_warn("Cannot undefine already undefined program object (id: %u)", id);
 
 		return API_E_INVALID_OPERATION;
 	}
+
+	program->defined = false;
 
 	// FIXME: need to mark persistent configuration on disk as undefined
 
