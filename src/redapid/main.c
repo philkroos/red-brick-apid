@@ -75,7 +75,7 @@ static int prepare_paths(void) {
 		home = pw->pw_dir;
 	}
 
-	if (strlen(home) + strlen("/.redapid/redapid.conf") >= sizeof(redapid_dirname)) {
+	if (strlen(home) + strlen("/.redapid/redapid.socket") >= sizeof(redapid_dirname)) {
 		fprintf(stderr, "Home directory name is too long\n");
 
 		return -1;
