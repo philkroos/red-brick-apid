@@ -11,6 +11,8 @@
 
 #include "utils.c"
 
+#define STRING_MAX_GET_CHUNK_BUFFER_LENGTH 63
+
 int main() {
 	uint8_t ec;
 	int rc;
@@ -63,7 +65,7 @@ int main() {
 			break;
 		}
 
-		char buffer[63 + 1];
+		char buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH + 1];
 		rc = red_get_string_chunk(&red, nid, 0, &ec, buffer);
 		if (rc < 0) {
 			printf("red_get_string_chunk -> rc %d\n", rc);
@@ -74,7 +76,7 @@ int main() {
 			break;
 		}
 
-		buffer[63] = '\0';
+		buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH] = '\0';
 		printf("* %s", buffer);
 
 		if (type == RED_FILE_TYPE_SYMLINK) {

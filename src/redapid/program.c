@@ -236,3 +236,19 @@ APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 
 	return API_E_OK;
 }
+
+// public API
+APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
+	Program *program;
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+
+	if (error_code != API_E_OK) {
+		return error_code;
+	}
+
+	object_add_external_reference(&program->directory->base);
+
+	*directory_id = program->directory->base.id;
+
+	return API_E_OK;
+}

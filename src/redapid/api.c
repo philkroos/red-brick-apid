@@ -102,7 +102,8 @@ typedef enum {
 
 	FUNCTION_DEFINE_PROGRAM,
 	FUNCTION_UNDEFINE_PROGRAM,
-	FUNCTION_GET_PROGRAM_IDENTIFIER
+	FUNCTION_GET_PROGRAM_IDENTIFIER,
+	FUNCTION_GET_PROGRAM_DIRECTORY
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -734,6 +735,17 @@ typedef struct {
 	uint16_t identifier_string_id;
 } ATTRIBUTE_PACKED GetProgramIdentifierResponse;
 
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramDirectoryRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t directory_string_id;
+} ATTRIBUTE_PACKED GetProgramDirectoryResponse;
+
 #include <daemonlib/packed_end.h>
 
 //
@@ -1333,6 +1345,17 @@ static void api_get_program_identifier(GetProgramIdentifierRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
+static void api_get_program_directory(GetProgramDirectoryRequest *request) {
+	GetProgramDirectoryResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	response.error_code = program_get_directory(request->program_id,
+	                                            &response.directory_string_id);
+
+	network_dispatch_response((Packet *)&response);
+}
+
 //
 // api
 //
@@ -1451,6 +1474,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(DEFINE_PROGRAM,                DefineProgram,              define_program)
 	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,              UndefineProgram,            undefine_program)
 	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,        GetProgramIdentifier,       get_program_identifier)
+	DISPATCH_FUNCTION(GET_PROGRAM_DIRECTORY,         GetProgramDirectory,        get_program_directory)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -1548,6 +1572,7 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_DEFINE_PROGRAM:                return "define-program";
 	case FUNCTION_UNDEFINE_PROGRAM:              return "undefine-program";
 	case FUNCTION_GET_PROGRAM_IDENTIFIER:        return "get-program-identifier";
+	case FUNCTION_GET_PROGRAM_DIRECTORY:         return "get-program-directory";
 
 	default:                                     return "<unknwon>";
 	}
@@ -1783,10 +1808,11 @@ enum process_state {
  * (persistent) program configuration
  */
 
-? define_program            (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
++ define_program            (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 ? recover_program           (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
-? undefine_program          (uint16_t program_id)           -> uint8_t error_code
-? get_program_identifier    (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
++ undefine_program          (uint16_t program_id)           -> uint8_t error_code
++ get_program_identifier    (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
++ get_program_directory     (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
 ? set_program_command       (uint16_t program_id,
                              uint16_t command_string_id)    -> uint8_t error_code
 ? get_program_command       (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id

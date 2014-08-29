@@ -39,5 +39,6 @@ APIE program_define(ObjectID identifier_id, ObjectID *id);
 APIE program_undefine(ObjectID id);
 
 APIE program_get_identifier(ObjectID id, ObjectID *identifier_id);
+APIE program_get_directory(ObjectID id, ObjectID *directory_id);
 
 #endif // REDAPID_PROGRAM_H

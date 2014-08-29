@@ -608,7 +608,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t name_string_id;
+	uint16_t identifier_string_id;
 } ATTRIBUTE_PACKED DefineProgram_;
 
 typedef struct {
@@ -630,13 +630,24 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramName_;
+} ATTRIBUTE_PACKED GetProgramIdentifier_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t name_string_id;
-} ATTRIBUTE_PACKED GetProgramNameResponse_;
+	uint16_t identifier_string_id;
+} ATTRIBUTE_PACKED GetProgramIdentifierResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramDirectory_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t directory_string_id;
+} ATTRIBUTE_PACKED GetProgramDirectoryResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -761,7 +772,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_CALLBACK_PROCESS_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_DEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_UNDEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_IDENTIFIER] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
@@ -2084,7 +2096,7 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
 	return ret;
 }
 
-int red_define_program(RED *red, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_program_id) {
+int red_define_program(RED *red, uint16_t identifier_string_id, uint8_t *ret_error_code, uint16_t *ret_program_id) {
 	DevicePrivate *device_p = red->p;
 	DefineProgram_ request;
 	DefineProgramResponse_ response;
@@ -2096,7 +2108,7 @@ int red_define_program(RED *red, uint16_t name_string_id, uint8_t *ret_error_cod
 		return ret;
 	}
 
-	request.name_string_id = leconvert_uint16_to(name_string_id);
+	request.identifier_string_id = leconvert_uint16_to(identifier_string_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2137,13 +2149,13 @@ int red_undefine_program(RED *red, uint16_t program_id, uint8_t *ret_error_code)
 	return ret;
 }
 
-int red_get_program_name(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id) {
+int red_get_program_identifier(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_identifier_string_id) {
 	DevicePrivate *device_p = red->p;
-	GetProgramName_ request;
-	GetProgramNameResponse_ response;
+	GetProgramIdentifier_ request;
+	GetProgramIdentifierResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_NAME, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_IDENTIFIER, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2157,7 +2169,34 @@ int red_get_program_name(RED *red, uint16_t program_id, uint8_t *ret_error_code,
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_name_string_id = leconvert_uint16_from(response.name_string_id);
+	*ret_identifier_string_id = leconvert_uint16_from(response.identifier_string_id);
+
+
+
+	return ret;
+}
+
+int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_directory_string_id) {
+	DevicePrivate *device_p = red->p;
+	GetProgramDirectory_ request;
+	GetProgramDirectoryResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_DIRECTORY, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_directory_string_id = leconvert_uint16_from(response.directory_string_id);
 
 
 

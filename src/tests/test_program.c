@@ -11,6 +11,8 @@
 
 #include "utils.c"
 
+#define STRING_MAX_GET_CHUNK_BUFFER_LENGTH 63
+
 int main() {
 	uint8_t ec;
 	int rc;
@@ -39,26 +41,57 @@ int main() {
 	rc = red_define_program(&red, sid, &ec, &pid);
 	if (rc < 0) {
 		printf("red_define_program -> rc %d\n", rc);
-		goto cleanup;
+		goto cleanup2;
 	}
 	if (ec != 0) {
 		printf("red_define_program -> ec %u\n", ec);
-		goto cleanup;
+		goto cleanup2;
 	}
 	printf("red_define_program -> pid %u\n", pid);
+
+	uint16_t pdsid;
+	rc = red_get_program_directory(&red, pid, &ec, &pdsid);
+	if (rc < 0) {
+		printf("red_get_program_directory -> rc %d\n", rc);
+		goto cleanup1;
+	}
+	if (ec != 0) {
+		printf("red_get_program_directory -> ec %u\n", ec);
+		goto cleanup1;
+	}
+	printf("red_get_program_directory -> pdsid %u\n", pdsid);
+
+	char buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH + 1];
+	rc = red_get_string_chunk(&red, pdsid, 0, &ec, buffer);
+	if (rc < 0) {
+		printf("red_get_string_chunk -> rc %d\n", rc);
+		goto cleanup1;
+	}
+	if (ec != 0) {
+		printf("red_get_string_chunk -> ec %u\n", ec);
+		goto cleanup1;
+	}
+
+	buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH] = '\0';
+	printf("red_get_string_chunk '%s'\n", buffer);
 
 	rc = red_undefine_program(&red, pid, &ec);
 	if (rc < 0) {
 		printf("red_undefine_program -> rc %d\n", rc);
-		goto cleanup;
+		goto cleanup0;
 	}
 	if (ec != 0) {
 		printf("red_undefine_program -> ec %u\n", ec);
-		goto cleanup;
+		goto cleanup0;
 	}
 
-cleanup:
+cleanup0:
+	release_object(&red, pdsid, "string");
+
+cleanup1:
 	release_object(&red, pid, "program");
+
+cleanup2:
 	release_object(&red, sid, "string");
 
 	red_destroy(&red);
