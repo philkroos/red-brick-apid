@@ -32,6 +32,7 @@ typedef struct {
 
 	bool defined;
 	String *identifier;
+	String *directory; // <home>/programs/<identifier>
 } Program;
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
