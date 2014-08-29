@@ -102,7 +102,7 @@ typedef enum {
 
 	FUNCTION_DEFINE_PROGRAM,
 	FUNCTION_UNDEFINE_PROGRAM,
-	FUNCTION_GET_PROGRAM_NAME
+	FUNCTION_GET_PROGRAM_IDENTIFIER
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -704,7 +704,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t name_string_id;
+	uint16_t identifier_string_id;
 } ATTRIBUTE_PACKED DefineProgramRequest;
 
 typedef struct {
@@ -726,13 +726,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramNameRequest;
+} ATTRIBUTE_PACKED GetProgramIdentifierRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t name_string_id;
-} ATTRIBUTE_PACKED GetProgramNameResponse;
+	uint16_t identifier_string_id;
+} ATTRIBUTE_PACKED GetProgramIdentifierResponse;
 
 #include <daemonlib/packed_end.h>
 
@@ -1307,7 +1307,7 @@ static void api_define_program(DefineProgramRequest *request) {
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = program_define(request->name_string_id, &response.program_id);
+	response.error_code = program_define(request->identifier_string_id, &response.program_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -1322,12 +1322,13 @@ static void api_undefine_program(UndefineProgramRequest *request) {
 	network_dispatch_response((Packet *)&response);
 }
 
-static void api_get_program_name(GetProgramNameRequest *request) {
-	GetProgramNameResponse response;
+static void api_get_program_identifier(GetProgramIdentifierRequest *request) {
+	GetProgramIdentifierResponse response;
 
 	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
 
-	response.error_code = program_get_name(request->program_id, &response.name_string_id);
+	response.error_code = program_get_identifier(request->program_id,
+	                                             &response.identifier_string_id);
 
 	network_dispatch_response((Packet *)&response);
 }
@@ -1449,7 +1450,7 @@ void api_handle_request(Packet *request) {
 	// program
 	DISPATCH_FUNCTION(DEFINE_PROGRAM,                DefineProgram,              define_program)
 	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,              UndefineProgram,            undefine_program)
-	DISPATCH_FUNCTION(GET_PROGRAM_NAME,              GetProgramName,             get_program_name)
+	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,        GetProgramIdentifier,       get_program_identifier)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -1546,7 +1547,7 @@ const char *api_get_function_name_from_id(int function_id) {
 
 	case FUNCTION_DEFINE_PROGRAM:                return "define-program";
 	case FUNCTION_UNDEFINE_PROGRAM:              return "undefine-program";
-	case FUNCTION_GET_PROGRAM_NAME:              return "get-program-name";
+	case FUNCTION_GET_PROGRAM_IDENTIFIER:        return "get-program-identifier";
 
 	default:                                     return "<unknwon>";
 	}
@@ -1782,23 +1783,23 @@ enum process_state {
  * (persistent) program configuration
  */
 
-? define_program            (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id
-? recover_program           (uint16_t name_string_id)      -> uint8_t error_code, uint16_t program_id
-? undefine_program          (uint16_t program_id)          -> uint8_t error_code
-? get_program_name          (uint16_t program_id)          -> uint8_t error_code, uint16_t name_string_id
+? define_program            (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
+? recover_program           (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
+? undefine_program          (uint16_t program_id)           -> uint8_t error_code
+? get_program_identifier    (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
 ? set_program_command       (uint16_t program_id,
-                             uint16_t command_string_id)   -> uint8_t error_code
-? get_program_command       (uint16_t program_id)          -> uint8_t error_code, uint16_t command_string_id
+                             uint16_t command_string_id)    -> uint8_t error_code
+? get_program_command       (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id
 ? set_program_arguments     (uint16_t program_id,
-                             uint16_t arguments_list_id    -> uint8_t error_code
-? get_program_arguments     (uint16_t program_id)          -> uint8_t error_code, uint16_t arguments_list_id
+                             uint16_t arguments_list_id     -> uint8_t error_code
+? get_program_arguments     (uint16_t program_id)           -> uint8_t error_code, uint16_t arguments_list_id
 ? set_program_environment   (uint16_t program_id,
-                             uint16_t environment_list_id) -> uint8_t error_code
-? get_program_environment   (uint16_t program_id)          -> uint8_t error_code, uint16_t environment_list_id
+                             uint16_t environment_list_id)  -> uint8_t error_code
+? get_program_environment   (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
 ? merge_program_output      (uint16_t program_id,
-                             bool merge_output)            -> uint8_t error_code
-? has_program_merged_output (uint16_t program_id)          -> uint8_t error_code, bool merged_output
-? execute_program           (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
+                             bool merge_output)             -> uint8_t error_code
+? has_program_merged_output (uint16_t program_id)           -> uint8_t error_code, bool merged_output
+? execute_program           (uint16_t program_id)           -> uint8_t error_code, uint16_t process_id
 
 
 /*

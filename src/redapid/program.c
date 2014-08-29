@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <daemonlib/log.h>
 #include <daemonlib/utils.h>
@@ -32,27 +33,53 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
+static const char *_identifier_alphabet =
+	"abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789._-";
+
+static bool program_is_valid_identifier(const char *identifier) {
+	// identifier cannot start with a dash
+	if (*identifier == '-') {
+		return false;
+	}
+
+	// identifier cannot be equal to . or ..
+	if (strcmp(identifier, ".") == 0 || strcmp(identifier, "..") == 0) {
+		return false;
+	}
+
+	// identifier must not contain characters outside its alphabet
+	return identifier[strspn(identifier, _identifier_alphabet)] == '\0';
+}
+
 static void program_destroy(Program *program) {
-	string_vacate(program->name);
+	string_vacate(program->identifier);
 
 	free(program);
 }
 
 // public API
-APIE program_define(ObjectID name_id, ObjectID *id) {
+APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
-	String *name;
+	String *identifier;
 	Program *program;
 
-	// occupy name string object
-	error_code = string_occupy(name_id, &name);
+	// occupy identifier string object
+	error_code = string_occupy(identifier_id, &identifier);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
 	phase = 1;
+
+	if (!program_is_valid_identifier(identifier->buffer)) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_error("Program identifier '%s' is invalid", identifier->buffer);
+
+		goto cleanup;
+	}
 
 	// FIXME: create persistent program configuration on disk
 
@@ -71,7 +98,7 @@ APIE program_define(ObjectID name_id, ObjectID *id) {
 	phase = 2;
 
 	// create process object
-	program->name = name;
+	program->identifier = identifier;
 
 	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM, true,
 	                           (ObjectDestroyFunction)program_destroy);
@@ -82,8 +109,8 @@ APIE program_define(ObjectID name_id, ObjectID *id) {
 
 	*id = program->base.id;
 
-	log_debug("Defined program object (id: %u, name: %s)",
-	          program->base.id, name->buffer);
+	log_debug("Defined program object (id: %u, identifier: %s)",
+	          program->base.id, identifier->buffer);
 
 	phase = 3;
 
@@ -93,7 +120,7 @@ cleanup:
 		free(program);
 
 	case 1:
-		string_vacate(name);
+		string_vacate(identifier);
 
 	default:
 		break;
@@ -125,7 +152,7 @@ APIE program_undefine(ObjectID id) {
 }
 
 // public API
-APIE program_get_name(ObjectID id, ObjectID *name_id) {
+APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
@@ -133,9 +160,9 @@ APIE program_get_name(ObjectID id, ObjectID *name_id) {
 		return error_code;
 	}
 
-	object_add_external_reference(&program->name->base);
+	object_add_external_reference(&program->identifier->base);
 
-	*name_id = program->name->base.id;
+	*identifier_id = program->identifier->base.id;
 
 	return API_E_OK;
 }
