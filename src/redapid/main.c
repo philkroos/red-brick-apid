@@ -37,6 +37,7 @@
 #include <daemonlib/pid_file.h>
 #include <daemonlib/signal.h>
 #include <daemonlib/utils.h>
+#include <daemonlib/red_led.h>
 
 #include "api.h"
 #include "inventory.h"
@@ -236,6 +237,9 @@ int main(int argc, char **argv) {
 	if (network_init(_socket_filename) < 0) {
 		goto error_network;
 	}
+
+	led_set_trigger(LED_GREEN, LED_TRIGGER_HEARTBEAT);
+	led_set_trigger(LED_RED,   LED_TRIGGER_OFF);
 
 	if (event_run(network_cleanup_brickd) < 0) {
 		goto error_run;
