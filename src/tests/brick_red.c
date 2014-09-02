@@ -651,6 +651,72 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED SetProgramCommand_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t command_string_id;
+} ATTRIBUTE_PACKED SetProgramCommandResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramCommand_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t command_string_id;
+} ATTRIBUTE_PACKED GetProgramCommandResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED SetProgramArguments_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t arguments_list_id;
+} ATTRIBUTE_PACKED SetProgramArgumentsResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramArguments_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t arguments_list_id;
+} ATTRIBUTE_PACKED GetProgramArgumentsResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED SetProgramEnvironment_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t environment_list_id;
+} ATTRIBUTE_PACKED SetProgramEnvironmentResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramEnvironment_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t environment_list_id;
+} ATTRIBUTE_PACKED GetProgramEnvironmentResponse_;
+
+typedef struct {
+	PacketHeader header;
 } ATTRIBUTE_PACKED GetIdentity_;
 
 typedef struct {
@@ -774,6 +840,12 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_UNDEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_IDENTIFIER] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
@@ -2197,6 +2269,168 @@ int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_
 	}
 	*ret_error_code = response.error_code;
 	*ret_directory_string_id = leconvert_uint16_from(response.directory_string_id);
+
+
+
+	return ret;
+}
+
+int red_set_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id) {
+	DevicePrivate *device_p = red->p;
+	SetProgramCommand_ request;
+	SetProgramCommandResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_COMMAND, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_command_string_id = leconvert_uint16_from(response.command_string_id);
+
+
+
+	return ret;
+}
+
+int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id) {
+	DevicePrivate *device_p = red->p;
+	GetProgramCommand_ request;
+	GetProgramCommandResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_COMMAND, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_command_string_id = leconvert_uint16_from(response.command_string_id);
+
+
+
+	return ret;
+}
+
+int red_set_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id) {
+	DevicePrivate *device_p = red->p;
+	SetProgramArguments_ request;
+	SetProgramArgumentsResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_ARGUMENTS, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_arguments_list_id = leconvert_uint16_from(response.arguments_list_id);
+
+
+
+	return ret;
+}
+
+int red_get_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id) {
+	DevicePrivate *device_p = red->p;
+	GetProgramArguments_ request;
+	GetProgramArgumentsResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_ARGUMENTS, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_arguments_list_id = leconvert_uint16_from(response.arguments_list_id);
+
+
+
+	return ret;
+}
+
+int red_set_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id) {
+	DevicePrivate *device_p = red->p;
+	SetProgramEnvironment_ request;
+	SetProgramEnvironmentResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_ENVIRONMENT, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_environment_list_id = leconvert_uint16_from(response.environment_list_id);
+
+
+
+	return ret;
+}
+
+int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id) {
+	DevicePrivate *device_p = red->p;
+	GetProgramEnvironment_ request;
+	GetProgramEnvironmentResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_ENVIRONMENT, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_environment_list_id = leconvert_uint16_from(response.environment_list_id);
 
 
 

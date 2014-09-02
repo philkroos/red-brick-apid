@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 
+#include "list.h"
 #include "object.h"
 #include "string.h"
 
@@ -33,6 +34,9 @@ typedef struct {
 	bool defined;
 	String *identifier;
 	String *directory; // <home>/programs/<identifier>
+	String *command;
+	List *arguments;
+	List *environment;
 } Program;
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
@@ -40,5 +44,14 @@ APIE program_undefine(ObjectID id);
 
 APIE program_get_identifier(ObjectID id, ObjectID *identifier_id);
 APIE program_get_directory(ObjectID id, ObjectID *directory_id);
+
+APIE program_set_command(ObjectID id, ObjectID command_id);
+APIE program_get_command(ObjectID id, ObjectID *command_id);
+
+APIE program_set_arguments(ObjectID id, ObjectID arguments_id);
+APIE program_get_arguments(ObjectID id, ObjectID *arguments_id);
+
+APIE program_set_environment(ObjectID id, ObjectID environment_id);
+APIE program_get_environment(ObjectID id, ObjectID *environment_id);
 
 #endif // REDAPID_PROGRAM_H

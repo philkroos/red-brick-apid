@@ -103,7 +103,13 @@ typedef enum {
 	FUNCTION_DEFINE_PROGRAM,
 	FUNCTION_UNDEFINE_PROGRAM,
 	FUNCTION_GET_PROGRAM_IDENTIFIER,
-	FUNCTION_GET_PROGRAM_DIRECTORY
+	FUNCTION_GET_PROGRAM_DIRECTORY,
+	FUNCTION_SET_PROGRAM_COMMAND,
+	FUNCTION_GET_PROGRAM_COMMAND,
+	FUNCTION_SET_PROGRAM_ARGUMENTS,
+	FUNCTION_GET_PROGRAM_ARGUMENTS,
+	FUNCTION_SET_PROGRAM_ENVIRONMENT,
+	FUNCTION_GET_PROGRAM_ENVIRONMENT
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -746,6 +752,72 @@ typedef struct {
 	uint16_t directory_string_id;
 } ATTRIBUTE_PACKED GetProgramDirectoryResponse;
 
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t command_string_id;
+} ATTRIBUTE_PACKED SetProgramCommandRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetProgramCommandResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramCommandRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t command_string_id;
+} ATTRIBUTE_PACKED GetProgramCommandResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t arguments_list_id;
+} ATTRIBUTE_PACKED SetProgramArgumentsRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetProgramArgumentsResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramArgumentsRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t arguments_list_id;
+} ATTRIBUTE_PACKED GetProgramArgumentsResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t environment_list_id;
+} ATTRIBUTE_PACKED SetProgramEnvironmentRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetProgramEnvironmentResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramEnvironmentRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t environment_list_id;
+} ATTRIBUTE_PACKED GetProgramEnvironmentResponse;
+
 #include <daemonlib/packed_end.h>
 
 //
@@ -1098,6 +1170,36 @@ FORWARD_FUNCTION(GetProgramDirectory, get_program_directory, {
 	                                            &response.directory_string_id);
 })
 
+FORWARD_FUNCTION(SetProgramCommand, set_program_command, {
+	response.error_code = program_set_command(request->program_id,
+	                                          request->command_string_id);
+})
+
+FORWARD_FUNCTION(GetProgramCommand, get_program_command, {
+	response.error_code = program_get_command(request->program_id,
+	                                          &response.command_string_id);
+})
+
+FORWARD_FUNCTION(SetProgramArguments, set_program_arguments, {
+	response.error_code = program_set_arguments(request->program_id,
+	                                            request->arguments_list_id);
+})
+
+FORWARD_FUNCTION(GetProgramArguments, get_program_arguments, {
+	response.error_code = program_get_arguments(request->program_id,
+	                                            &response.arguments_list_id);
+})
+
+FORWARD_FUNCTION(SetProgramEnvironment, set_program_environment, {
+	response.error_code = program_set_environment(request->program_id,
+	                                              request->environment_list_id);
+})
+
+FORWARD_FUNCTION(GetProgramEnvironment, get_program_environment, {
+	response.error_code = program_get_environment(request->program_id,
+	                                              &response.environment_list_id);
+})
+
 #undef FORWARD_FUNCTION
 
 //
@@ -1223,6 +1325,12 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,              UndefineProgram,            undefine_program)
 	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,        GetProgramIdentifier,       get_program_identifier)
 	DISPATCH_FUNCTION(GET_PROGRAM_DIRECTORY,         GetProgramDirectory,        get_program_directory)
+	DISPATCH_FUNCTION(SET_PROGRAM_COMMAND,           SetProgramCommand,          set_program_command)
+	DISPATCH_FUNCTION(GET_PROGRAM_COMMAND,           GetProgramCommand,          get_program_command)
+	DISPATCH_FUNCTION(SET_PROGRAM_ARGUMENTS,         SetProgramArguments,        set_program_arguments)
+	DISPATCH_FUNCTION(GET_PROGRAM_ARGUMENTS,         GetProgramArguments,        get_program_arguments)
+	DISPATCH_FUNCTION(SET_PROGRAM_ENVIRONMENT,       SetProgramEnvironment,      set_program_environment)
+	DISPATCH_FUNCTION(GET_PROGRAM_ENVIRONMENT,       GetProgramEnvironment,      get_program_environment)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -1329,6 +1437,12 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_UNDEFINE_PROGRAM:              return "undefine-program";
 	case FUNCTION_GET_PROGRAM_IDENTIFIER:        return "get-program-identifier";
 	case FUNCTION_GET_PROGRAM_DIRECTORY:         return "get-program-directory";
+	case FUNCTION_SET_PROGRAM_COMMAND:           return "set-program-command";
+	case FUNCTION_GET_PROGRAM_COMMAND:           return "get-program-command";
+	case FUNCTION_SET_PROGRAM_ARGUMENTS:         return "set-program-arguments";
+	case FUNCTION_GET_PROGRAM_ARGUMENTS:         return "get-program-arguments";
+	case FUNCTION_SET_PROGRAM_ENVIRONMENT:       return "set-program-environment";
+	case FUNCTION_GET_PROGRAM_ENVIRONMENT:       return "get-program-environment";
 
 	default:                                     return "<unknown>";
 	}
@@ -1588,17 +1702,18 @@ enum program_schedule_type {
 + define_program                (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 ? recover_program               (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 + undefine_program              (uint16_t program_id)           -> uint8_t error_code
+? purge_program                 (uint16_t identifier_string_id) -> uint8_t error_code
 + get_program_identifier        (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
 + get_program_directory         (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
-? set_program_command           (uint16_t program_id,
++ set_program_command           (uint16_t program_id,
                                  uint16_t command_string_id)    -> uint8_t error_code
-? get_program_command           (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id
-? set_program_arguments         (uint16_t program_id,
++ get_program_command           (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id
++ set_program_arguments         (uint16_t program_id,
                                  uint16_t arguments_list_id     -> uint8_t error_code
-? get_program_arguments         (uint16_t program_id)           -> uint8_t error_code, uint16_t arguments_list_id
-? set_program_environment       (uint16_t program_id,
++ get_program_arguments         (uint16_t program_id)           -> uint8_t error_code, uint16_t arguments_list_id
++ set_program_environment       (uint16_t program_id,
                                  uint16_t environment_list_id)  -> uint8_t error_code
-? get_program_environment       (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
++ get_program_environment       (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
 ? set_program_stdio_option      (uint16_t program_id,
                                  uint8_t stdio,
                                  uint8_t option)                -> uint8_t error_code

@@ -43,7 +43,7 @@ static void list_destroy(List *list) {
 	free(list);
 }
 
-APIE list_allocate(uint16_t reserve, ObjectID *id) {
+APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **object) {
 	int phase = 0;
 	APIE error_code;
 	List *list;
@@ -72,15 +72,20 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 
 	phase = 2;
 
-	error_code = object_create(&list->base, OBJECT_TYPE_LIST,
-	                           OBJECT_CREATE_FLAG_EXTERNAL,
+	error_code = object_create(&list->base, OBJECT_TYPE_LIST, create_flags,
 	                           (ObjectDestroyFunction)list_destroy);
 
 	if (error_code != API_E_OK) {
 		goto cleanup;
 	}
 
-	*id = list->base.id;
+	if (id != NULL) {
+		*id = list->base.id;
+	}
+
+	if (object != NULL) {
+		*object = list;
+	}
 
 	phase = 3;
 
@@ -97,6 +102,11 @@ cleanup:
 	}
 
 	return phase == 3 ? API_E_OK : error_code;
+}
+
+// public API
+APIE list_allocate(uint16_t reserve, ObjectID *id) {
+	return list_create(reserve, OBJECT_CREATE_FLAG_EXTERNAL, id, NULL);
 }
 
 // public API

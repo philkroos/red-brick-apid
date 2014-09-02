@@ -286,6 +286,36 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 55
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 56
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SET_PROGRAM_ARGUMENTS 57
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_ARGUMENTS 58
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SET_PROGRAM_ENVIRONMENT 59
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_ENVIRONMENT 60
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_FUNCTION_GET_IDENTITY 255
 
 /**
@@ -1269,6 +1299,48 @@ int red_get_program_identifier(RED *red, uint16_t program_id, uint8_t *ret_error
  * 
  */
 int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_directory_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
 
 /**
  * \ingroup BrickRED

@@ -32,6 +32,7 @@ typedef struct {
 	Array items;
 } List;
 
+APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **object);
 APIE list_allocate(uint16_t reserve, ObjectID *id);
 
 APIE list_get_length(ObjectID id, uint16_t *length);
