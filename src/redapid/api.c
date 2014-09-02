@@ -794,270 +794,145 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 	network_dispatch_response((Packet *)&response);
 }
 
+#define FORWARD_FUNCTION(packet_prefix, function_suffix, call) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		call \
+		network_dispatch_response((Packet *)&response); \
+	}
+
 //
 // object
 //
 
-static void api_release_object(ReleaseObjectRequest *request) {
-	ReleaseObjectResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(ReleaseObject, release_object, {
 	response.error_code = object_release(request->object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
+})
 
 //
 // inventory
 //
 
-static void api_open_inventory(OpenInventoryRequest *request) {
-	OpenInventoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(OpenInventory, open_inventory, {
 	response.error_code = inventory_open(request->type, &response.inventory_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetInventoryType, get_inventory_type, {
+	response.error_code = inventory_get_type(request->inventory_id,
+	                                         &response.type);
+})
 
-static void api_get_inventory_type(GetInventoryTypeRequest *request) {
-	GetInventoryTypeResponse response;
+FORWARD_FUNCTION(GetNextInventoryEntry, get_next_inventory_entry, {
+	response.error_code = inventory_get_next_entry(request->inventory_id,
+	                                               &response.object_id);
+})
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = inventory_get_type(request->inventory_id, &response.type);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_next_inventory_entry(GetNextInventoryEntryRequest *request) {
-	GetNextInventoryEntryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = inventory_get_next_entry(request->inventory_id, &response.object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_rewind_inventory(RewindInventoryRequest *request) {
-	RewindInventoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(RewindInventory, rewind_inventory, {
 	response.error_code = inventory_rewind(request->inventory_id);
-
-	network_dispatch_response((Packet *)&response);
-}
+})
 
 //
 // string
 //
 
-static void api_allocate_string(AllocateStringRequest *request) {
-	AllocateStringResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(AllocateString, allocate_string, {
 	response.error_code = string_allocate(request->length_to_reserve,
 	                                      request->buffer, &response.string_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_truncate_string(TruncateStringRequest *request) {
-	TruncateStringResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(TruncateString, truncate_string, {
 	response.error_code = string_truncate(request->string_id, request->length);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_string_length(GetStringLengthRequest *request) {
-	GetStringLengthResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetStringLength, get_string_length, {
 	response.error_code = string_get_length(request->string_id, &response.length);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(SetStringChunk, set_string_chunk, {
+	response.error_code = string_set_chunk(request->string_id, request->offset,
+	                                       request->buffer);
+})
 
-static void api_set_string_chunk(SetStringChunkRequest *request) {
-	SetStringChunkResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = string_set_chunk(request->string_id, request->offset, request->buffer);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_string_chunk(GetStringChunkRequest *request) {
-	GetStringChunkResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = string_get_chunk(request->string_id, request->offset, response.buffer);
-
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetStringChunk, get_string_chunk, {
+	response.error_code = string_get_chunk(request->string_id, request->offset,
+	                                       response.buffer);
+})
 
 //
 // list
 //
 
-static void api_allocate_list(AllocateListRequest *request) {
-	AllocateListResponse response;
+FORWARD_FUNCTION(AllocateList, allocate_list, {
+	response.error_code = list_allocate(request->length_to_reserve,
+	                                    &response.list_id);
+})
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = list_allocate(request->length_to_reserve, &response.list_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_list_length(GetListLengthRequest *request) {
-	GetListLengthResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetListLength, get_list_length, {
 	response.error_code = list_get_length(request->list_id, &response.length);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetListItem, get_list_item, {
+	response.error_code = list_get_item(request->list_id, request->index,
+	                                    &response.item_object_id);
+})
 
-static void api_get_list_item(GetListItemRequest *request) {
-	GetListItemResponse response;
+FORWARD_FUNCTION(AppendToList, append_to_list, {
+	response.error_code = list_append_to(request->list_id,
+	                                     request->item_object_id);
+})
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = list_get_item(request->list_id, request->index, &response.item_object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_append_to_list(AppendToListRequest *request) {
-	AppendToListResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = list_append_to(request->list_id, request->item_object_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_remove_from_list(RemoveFromListRequest *request) {
-	RemoveFromListResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(RemoveFromList, remove_from_list, {
 	response.error_code = list_remove_from(request->list_id, request->index);
-
-	network_dispatch_response((Packet *)&response);
-}
+})
 
 //
 // file
 //
 
-static void api_open_file(OpenFileRequest *request) {
-	OpenFileResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(OpenFile, open_file, {
 	response.error_code = file_open(request->name_string_id, request->flags,
 	                                request->permissions, request->user_id,
 	                                request->group_id, &response.file_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_create_pipe(CreatePipeRequest *request) {
-	CreatePipeResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(CreatePipe, create_pipe, {
 	response.error_code = pipe_create_(&response.file_id, request->flags);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_file_type(GetFileTypeRequest *request) {
-	GetFileTypeResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetFileType, get_file_type, {
 	response.error_code = file_get_type(request->file_id, &response.type);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetFileName, get_file_name, {
+	response.error_code = file_get_name(request->file_id,
+	                                    &response.name_string_id);
+})
 
-static void api_get_file_name(GetFileNameRequest *request) {
-	GetFileNameResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = file_get_name(request->file_id, &response.name_string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_file_flags(GetFileFlagsRequest *request) {
-	GetFileFlagsResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetFileFlags, get_file_flags, {
 	response.error_code = file_get_flags(request->file_id, &response.flags);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_read_file(ReadFileRequest *request) {
-	ReadFileResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(ReadFile, read_file, {
 	response.error_code = file_read(request->file_id, response.buffer,
-	                                request->length_to_read, &response.length_read);
+	                                request->length_to_read,
+	                                &response.length_read);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(ReadFileAsync, read_file_async, {
+	response.error_code = file_read_async(request->file_id,
+	                                      request->length_to_read);
+})
 
-static void api_read_file_async(ReadFileAsyncRequest *request) {
-	ReadFileAsyncResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = file_read_async(request->file_id, request->length_to_read);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_abort_async_file_read(AbortAsyncFileReadRequest *request) {
-	AbortAsyncFileReadResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(AbortAsyncFileRead, abort_async_file_read, {
 	response.error_code = file_abort_async_read(request->file_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_write_file(WriteFileRequest *request) {
-	WriteFileResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(WriteFile, write_file, {
 	response.error_code = file_write(request->file_id, request->buffer,
-	                                 request->length_to_write, &response.length_written);
-
-	network_dispatch_response((Packet *)&response);
-}
+	                                 request->length_to_write,
+	                                 &response.length_written);
+})
 
 static void api_write_file_unchecked(WriteFileUncheckedRequest *request) {
 	ErrorCode error_code = file_write_unchecked(request->file_id, request->buffer,
@@ -1073,119 +948,66 @@ static void api_write_file_async(WriteFileAsyncRequest *request) {
 	api_send_response_if_expected((Packet *)request, error_code);
 }
 
-static void api_set_file_position(SetFilePositionRequest *request) {
-	SetFilePositionResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(SetFilePosition, set_file_position, {
 	response.error_code = file_set_position(request->file_id, request->offset,
 	                                        request->origin, &response.position);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_file_position(GetFilePositionRequest *request) {
-	GetFilePositionResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetFilePosition, get_file_position, {
 	response.error_code = file_get_position(request->file_id, &response.position);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_file_info(GetFileInfoRequest *request) {
-	GetFileInfoResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = file_get_info(request->name_string_id, request->follow_symlink,
+FORWARD_FUNCTION(GetFileInfo, get_file_info, {
+	response.error_code = file_get_info(request->name_string_id,
+	                                    request->follow_symlink,
 	                                    &response.type, &response.permissions,
 	                                    &response.user_id, &response.group_id,
 	                                    &response.length, &response.access_time,
 	                                    &response.modification_time,
 	                                    &response.status_change_time);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_symlink_target(GetSymlinkTargetRequest *request) {
-	GetSymlinkTargetResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = symlink_get_target(request->name_string_id, request->canonicalize,
+FORWARD_FUNCTION(GetSymlinkTarget, get_symlink_target, {
+	response.error_code = symlink_get_target(request->name_string_id,
+	                                         request->canonicalize,
 	                                         &response.target_string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
+})
 
 //
 // directory
 //
 
-static void api_open_directory(OpenDirectoryRequest *request) {
-	OpenDirectoryResponse response;
+FORWARD_FUNCTION(OpenDirectory, open_directory, {
+	response.error_code = directory_open(request->name_string_id,
+	                                     &response.directory_id);
+})
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+FORWARD_FUNCTION(GetDirectoryName, get_directory_name, {
+	response.error_code = directory_get_name(request->directory_id,
+	                                         &response.name_string_id);
+})
 
-	response.error_code = directory_open(request->name_string_id, &response.directory_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_directory_name(GetDirectoryNameRequest *request) {
-	GetDirectoryNameResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = directory_get_name(request->directory_id, &response.name_string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_next_directory_entry(GetNextDirectoryEntryRequest *request) {
-	GetNextDirectoryEntryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetNextDirectoryEntry, get_next_directory_entry, {
 	response.error_code = directory_get_next_entry(request->directory_id,
-	                                               &response.name_string_id, &response.type);
+	                                               &response.name_string_id,
+	                                               &response.type);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_rewind_directory(RewindDirectoryRequest *request) {
-	RewindDirectoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(RewindDirectory, rewind_directory, {
 	response.error_code = directory_rewind(request->directory_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_create_directory(CreateDirectoryRequest *request) {
-	CreateDirectoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(CreateDirectory, create_directory, {
 	response.error_code = directory_create(request->name_string_id,
 	                                       request->recursive, request->permissions,
 	                                       request->user_id, request->group_id);
-
-	network_dispatch_response((Packet *)&response);
-}
+})
 
 //
 // process
 //
 
-static void api_spawn_process(SpawnProcessRequest *request) {
-	SpawnProcessResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(SpawnProcess, spawn_process, {
 	response.error_code = process_spawn(request->command_string_id,
 	                                    request->arguments_list_id,
 	                                    request->environment_list_id,
@@ -1196,131 +1018,66 @@ static void api_spawn_process(SpawnProcessRequest *request) {
 	                                    request->stdout_file_id,
 	                                    request->stderr_file_id,
 	                                    &response.process_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_kill_process(KillProcessRequest *request) {
-	KillProcessResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(KillProcess, kill_process, {
 	response.error_code = process_kill(request->process_id, request->signal);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetProcessCommand, get_process_command, {
+	response.error_code = process_get_command(request->process_id,
+	                                          &response.command_string_id);
+})
 
-static void api_get_process_command(GetProcessCommandRequest *request) {
-	GetProcessCommandResponse response;
+FORWARD_FUNCTION(GetProcessArguments, get_process_arguments, {
+	response.error_code = process_get_arguments(request->process_id,
+	                                            &response.arguments_list_id);
+})
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+FORWARD_FUNCTION(GetProcessEnvironment, get_process_environment, {
+	response.error_code = process_get_environment(request->process_id,
+	                                              &response.environment_list_id);
+})
 
-	response.error_code = process_get_command(request->process_id, &response.command_string_id);
+FORWARD_FUNCTION(GetProcessWorkingDirectory, get_process_working_directory, {
+	response.error_code = process_get_working_directory(request->process_id,
+	                                                    &response.working_directory_string_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetProcessUserID, get_process_user_id, {
+	response.error_code = process_get_user_id(request->process_id,
+	                                          &response.user_id);
+})
 
-static void api_get_process_arguments(GetProcessArgumentsRequest *request) {
-	GetProcessArgumentsResponse response;
+FORWARD_FUNCTION(GetProcessGroupID, get_process_group_id, {
+	response.error_code = process_get_group_id(request->process_id,
+	                                           &response.group_id);
+})
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+FORWARD_FUNCTION(GetProcessStdin, get_process_stdin, {
+	response.error_code = process_get_stdin(request->process_id,
+	                                        &response.stdin_file_id);
+})
 
-	response.error_code = process_get_arguments(request->process_id, &response.arguments_list_id);
+FORWARD_FUNCTION(GetProcessStdout, get_process_stdout, {
+	response.error_code = process_get_stdout(request->process_id,
+	                                         &response.stdout_file_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetProcessStderr, get_process_stderr, {
+	response.error_code = process_get_stderr(request->process_id,
+	                                         &response.stderr_file_id);
+})
 
-static void api_get_process_environment(GetProcessEnvironmentRequest *request) {
-	GetProcessEnvironmentResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_environment(request->process_id, &response.environment_list_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_working_directory(GetProcessWorkingDirectoryRequest *request) {
-	GetProcessWorkingDirectoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_working_directory(request->process_id, &response.working_directory_string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_user_id(GetProcessUserIDRequest *request) {
-	GetProcessUserIDResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_user_id(request->process_id, &response.user_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_group_id(GetProcessGroupIDRequest *request) {
-	GetProcessGroupIDResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_group_id(request->process_id, &response.group_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_stdin(GetProcessStdinRequest *request) {
-	GetProcessStdinResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_stdin(request->process_id, &response.stdin_file_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_stdout(GetProcessStdoutRequest *request) {
-	GetProcessStdoutResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_stdout(request->process_id, &response.stdout_file_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_stderr(GetProcessStderrRequest *request) {
-	GetProcessStderrResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_stderr(request->process_id, &response.stderr_file_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_process_state(GetProcessStateRequest *request) {
-	GetProcessStateResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
-	response.error_code = process_get_state(request->process_id, &response.state, &response.exit_code);
-
-	network_dispatch_response((Packet *)&response);
-}
+FORWARD_FUNCTION(GetProcessState, get_process_state, {
+	response.error_code = process_get_state(request->process_id,
+	                                        &response.state,
+	                                        &response.exit_code);
+})
 
 //
 // program
 //
-
-#define FORWARD_FUNCTION(packet_prefix, function_suffix, call) \
-	static void api_##function_suffix(packet_prefix##Request *request) { \
-		packet_prefix##Response response; \
-		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
-		call \
-		network_dispatch_response((Packet *)&response); \
-	}
 
 FORWARD_FUNCTION(DefineProgram, define_program, {
 	response.error_code = program_define(request->identifier_string_id,
@@ -1340,6 +1097,8 @@ FORWARD_FUNCTION(GetProgramDirectory, get_program_directory, {
 	response.error_code = program_get_directory(request->program_id,
 	                                            &response.directory_string_id);
 })
+
+#undef FORWARD_FUNCTION
 
 //
 // api
