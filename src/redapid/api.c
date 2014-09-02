@@ -1516,25 +1516,30 @@ APIE api_get_error_code_from_errno(void) {
 
 const char *api_get_function_name_from_id(int function_id) {
 	switch (function_id) {
+	// object
 	case FUNCTION_RELEASE_OBJECT:                return "release-object";
 
+	// inventory
 	case FUNCTION_OPEN_INVENTORY:                return "open-inventory";
 	case FUNCTION_GET_INVENTORY_TYPE:            return "get-inventory-type";
 	case FUNCTION_GET_NEXT_INVENTORY_ENTRY:      return "get-next-inventory-entry";
 	case FUNCTION_REWIND_INVENTORY:              return "rewind-inventory";
 
+	// string
 	case FUNCTION_ALLOCATE_STRING:               return "allocate-string";
 	case FUNCTION_TRUNCATE_STRING:               return "truncate-string";
 	case FUNCTION_GET_STRING_LENGTH:             return "get-string-length";
 	case FUNCTION_SET_STRING_CHUNK:              return "set-string-chunk";
 	case FUNCTION_GET_STRING_CHUNK:              return "get-string-chunk";
 
+	// list
 	case FUNCTION_ALLOCATE_LIST:                 return "allocate-list";
 	case FUNCTION_GET_LIST_LENGTH:               return "get-list-length";
 	case FUNCTION_GET_LIST_ITEM:                 return "get-list-item";
 	case FUNCTION_APPEND_TO_LIST:                return "append-to-list";
 	case FUNCTION_REMOVE_FROM_LIST:              return "remove-from-list";
 
+	// file
 	case FUNCTION_OPEN_FILE:                     return "open-file";
 	case FUNCTION_CREATE_PIPE:                   return "create-pipe";
 	case FUNCTION_GET_FILE_TYPE:                 return "get-file-type";
@@ -1553,12 +1558,14 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_FILE_INFO:                 return "get-file-info";
 	case FUNCTION_GET_SYMLINK_TARGET:            return "get-symlink-target";
 
+	// directory
 	case FUNCTION_OPEN_DIRECTORY:                return "open-directory";
 	case FUNCTION_GET_DIRECTORY_NAME:            return "get-directory-name";
 	case FUNCTION_GET_NEXT_DIRECTORY_ENTRY:      return "get-next-directory-entry";
 	case FUNCTION_REWIND_DIRECTORY:              return "rewind-directory";
 	case FUNCTION_CREATE_DIRECTORY:              return "create-directory";
 
+	// process
 	case FUNCTION_SPAWN_PROCESS:                 return "spawn-process";
 	case FUNCTION_KILL_PROCESS:                  return "kill-process";
 	case FUNCTION_GET_PROCESS_COMMAND:           return "get-process-command";
@@ -1573,12 +1580,13 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_PROCESS_STATE:             return "get-process-state";
 	case CALLBACK_PROCESS_STATE_CHANGED:         return "process-state-changed";
 
+	// program
 	case FUNCTION_DEFINE_PROGRAM:                return "define-program";
 	case FUNCTION_UNDEFINE_PROGRAM:              return "undefine-program";
 	case FUNCTION_GET_PROGRAM_IDENTIFIER:        return "get-program-identifier";
 	case FUNCTION_GET_PROGRAM_DIRECTORY:         return "get-program-directory";
 
-	default:                                     return "<unknwon>";
+	default:                                     return "<unknown>";
 	}
 }
 
@@ -1691,7 +1699,7 @@ enum file_permission { // bitmask
 	FILE_PERMISSION_OTHERS_READ    = 00004,
 	FILE_PERMISSION_OTHERS_WRITE   = 00002,
 	FILE_PERMISSION_OTHERS_EXECUTE = 00001
-};
+}
 
 enum file_origin {
 	FILE_ORIGIN_BEGINNING = 0,
@@ -1812,7 +1820,7 @@ enum process_state {
 
 
 /*
- * (persistent) program configuration
+ * (persistent) program (configuration)
  */
 
 + define_program            (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
@@ -1839,9 +1847,8 @@ enum process_state {
  * misc
  */
 
-// FIXME: timezone? DST? etc?
 ? set_system_time (uint64_t system_time) -> uint8_t error_code
-? get_system_time ()                     -> uint8_t error_code, uint64_t system_time
+? get_system_time ()                     -> uint8_t error_code, uint64_t system_time // UNIX timestamp (UTC)
 
 // if the current session changed then all object IDs known to the client are invalid
 ? get_session () -> uint64_t session
