@@ -1665,17 +1665,20 @@ enum object_type {
 
 
 /*
- * file (always non-blocking)
+ * file
  */
 
 enum file_flag { // bitmask
-	FILE_FLAG_READ_ONLY  = 0x0001,
-	FILE_FLAG_WRITE_ONLY = 0x0002,
-	FILE_FLAG_READ_WRITE = 0x0004,
-	FILE_FLAG_APPEND     = 0x0008,
-	FILE_FLAG_CREATE     = 0x0010,
-	FILE_FLAG_EXCLUSIVE  = 0x0020,
-	FILE_FLAG_TRUNCATE   = 0x0040
+	FILE_FLAG_READ_ONLY      = 0x0001,
+	FILE_FLAG_WRITE_ONLY     = 0x0002,
+	FILE_FLAG_READ_WRITE     = 0x0004,
+	FILE_FLAG_APPEND         = 0x0008,
+	FILE_FLAG_CREATE         = 0x0010,
+	FILE_FLAG_EXCLUSIVE      = 0x0020, // can only be used in combination with FILE_FLAG_CREATE
+	FILE_FLAG_NO_ACCESS_TIME = 0x0040,
+	FILE_FLAG_NO_FOLLOW      = 0x0080,
+	FILE_FLAG_NON_BLOCKING   = 0x0100,
+	FILE_FLAG_TRUNCATE       = 0x0200
 }
 
 enum file_permission { // bitmask
@@ -1837,8 +1840,8 @@ enum process_state {
  */
 
 // FIXME: timezone? DST? etc?
-? get_system_time ()                     -> uint8_t error_code, uint64_t system_time
 ? set_system_time (uint64_t system_time) -> uint8_t error_code
+? get_system_time ()                     -> uint8_t error_code, uint64_t system_time
 
 // if the current session changed then all object IDs known to the client are invalid
 ? get_session () -> uint64_t session

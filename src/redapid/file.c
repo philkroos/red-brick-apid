@@ -179,11 +179,23 @@ static void file_destroy(File *file) {
 
 // sets errno on error
 static int file_handle_read(File *file, void *buffer, int length) {
+	if ((file->flags & FILE_FLAG_NON_BLOCKING) == 0) {
+		errno = ENOTSUP;
+
+		return -1;
+	}
+
 	return read(file->fd, buffer, length);
 }
 
 // sets errno on error
 static int file_handle_write(File *file, void *buffer, int length) {
+	if ((file->flags & FILE_FLAG_NON_BLOCKING) == 0) {
+		errno = ENOTSUP;
+
+		return -1;
+	}
+
 	return write(file->fd, buffer, length);
 }
 
@@ -507,7 +519,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	int phase = 0;
 	APIE error_code;
 	String *name;
-	int open_flags = O_NONBLOCK | O_NOCTTY;
+	int open_flags = O_NOCTTY;
 	mode_t open_mode = 0;
 	int fd;
 	File *file;
@@ -579,6 +591,10 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	if ((flags & FILE_FLAG_NO_FOLLOW) != 0) {
 		open_flags |= O_NOFOLLOW;
+	}
+
+	if ((flags & FILE_FLAG_NON_BLOCKING) != 0) {
+		open_flags |= O_NONBLOCK;
 	}
 
 	if ((flags & FILE_FLAG_TRUNCATE) != 0) {

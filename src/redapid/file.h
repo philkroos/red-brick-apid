@@ -41,7 +41,8 @@ typedef enum { // bitmask
 	FILE_FLAG_EXCLUSIVE      = 0x0020, // can only be used in combination with FILE_FLAG_CREATE
 	FILE_FLAG_NO_ACCESS_TIME = 0x0040,
 	FILE_FLAG_NO_FOLLOW      = 0x0080,
-	FILE_FLAG_TRUNCATE       = 0x0100
+	FILE_FLAG_NON_BLOCKING   = 0x0100,
+	FILE_FLAG_TRUNCATE       = 0x0200
 } FileFlag;
 
 #define FILE_FLAG_ALL (FILE_FLAG_READ_ONLY | \
@@ -52,6 +53,7 @@ typedef enum { // bitmask
                        FILE_FLAG_EXCLUSIVE | \
                        FILE_FLAG_NO_ACCESS_TIME | \
                        FILE_FLAG_NO_FOLLOW | \
+                       FILE_FLAG_NON_BLOCKING | \
                        FILE_FLAG_TRUNCATE)
 
 #define PIPE_FLAG_ALL (PIPE_FLAG_NON_BLOCKING_READ | \
