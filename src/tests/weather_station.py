@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
     if sys.version_info < (3, 0):
         input = raw_input # Compatibility for Python 2.x
-    input('Press key to exit\n')
+    log.info("input: " + repr(input('Press key to exit\n')))
 
     if weather_station.ipcon != None:
         weather_station.ipcon.disconnect()

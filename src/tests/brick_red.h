@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-08-29.      *
+ * This file was automatically generated on 2014-09-02.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -394,7 +394,12 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FILE_FLAG_TRUNCATE 256
+#define RED_FILE_FLAG_NON_BLOCKING 256
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FILE_FLAG_TRUNCATE 512
 
 /**
  * \ingroup BrickRED
@@ -699,6 +704,16 @@ int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
  * Opens the inventory for a specific object type and allocates a new inventory
  * object for it.
  * 
+ * Possible object types are:
+ * 
+ * * Inventory = 0
+ * * String = 1
+ * * List = 2
+ * * File = 3
+ * * Directory = 4
+ * * Process = 5
+ * * Program = 6
+ * 
  * Returns the object ID of the new directory object and the resulting error code.
  */
 int red_open_inventory(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_inventory_id);
@@ -706,7 +721,10 @@ int red_open_inventory(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t
 /**
  * \ingroup BrickRED
  *
- * Returns the object type of a inventory object and the resulting error code.
+ * Returns the object type of a inventory object, as passed to
+ * {@link red_open_inventory}, and the resulting error code.
+ * 
+ * See {@link red_open_inventory} for possible object types.
  */
 int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint8_t *ret_type);
 
@@ -714,9 +732,10 @@ int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_c
  * \ingroup BrickRED
  *
  * Returns the object ID of the next object in an inventory object and the
- * resulting error code. If there is not next object then error code
- * ``API_E_NO_MORE_DATA`` is returned. To rewind an inventory object call
- * {@link red_rewind_inventory}.
+ * resulting error code.
+ * 
+ * If there is not next object then error code ``API_E_NO_MORE_DATA`` is returned.
+ * To rewind an inventory object call {@link red_rewind_inventory}.
  */
 int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_object_id);
 
@@ -827,6 +846,33 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * decreased by one. Also the name string object is locked and cannot be modified
  * while the file object holds a reference to it.
  * 
+ * The ``flags`` parameter takes a ORed combination of the following possible file
+ * flags (in hexadecimal notation):
+ * 
+ * * ReadOnly = 0x0001 (O_RDONLY)
+ * * WriteOnly = 0x0002 (O_WRONLY)
+ * * ReadWrite = 0x0004 (O_RDWR)
+ * * Append = 0x0008 (O_APPEND)
+ * * Create = 0x0010 (O_CREAT)
+ * * Exclusive = 0x0020 (O_EXCL)
+ * * NoAccessTime = 0x0040 (O_NOATIME)
+ * * NoFollow = 0x0080 (O_NOFOLLOW)
+ * * NonBlocking = 0x0100 (O_NONBLOCK)
+ * * Truncate = 0x0200 (O_TRUNC)
+ * 
+ * The ``permissions`` parameter takes a ORed combination of the following possible
+ * file permissions (in octal notation) that match the common UNIX permission bits:
+ * 
+ * * UserRead = 00400
+ * * UserWrite = 00200
+ * * UserExecute = 00100
+ * * GroupRead = 00040
+ * * GroupWrite = 00020
+ * * GroupExecute = 00010
+ * * OthersRead = 00004
+ * * OthersWrite = 00002
+ * * OthersExecute = 00001
+ * 
  * Returns the object ID of the new file object and the resulting error code.
  */
 int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
@@ -836,6 +882,12 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
  *
  * Creates a new pipe and allocates a new file object for it.
  * 
+ * The ``flags`` parameter takes a ORed combination of the following possible
+ * pipe flags (in hexadecimal notation):
+ * 
+ * * NonBlockingRead = 0x0001
+ * * NonBlockingWrite = 0x0002
+ * 
  * Returns the object ID of the new file object and the resulting error code.
  */
 int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t *ret_file_id);
@@ -844,21 +896,40 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
  * \ingroup BrickRED
  *
  * Returns the type of a file object and the resulting error code.
+ * 
+ * Possible file types are:
+ * 
+ * * Unknown = 0
+ * * Regular = 1
+ * * Directory = 2
+ * * Character = 3
+ * * Block = 4
+ * * FIFO = 5
+ * * Symlink = 6
+ * * Socket = 7
+ * * Pipe = 8
  */
 int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type);
 
 /**
  * \ingroup BrickRED
  *
- * Returns the name of a file object and the resulting error code.
+ * Returns the name of a file object, as passed to {@link red_open_file}, and the
+ * resulting error code.
+ * 
+ * If the file object was created by {@link red_create_pipe} then it has no name and
+ * the error code ``API_E_NOT_SUPPORTED`` is returned.
  */
 int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * Returns the flags used to open or create a file object and the resulting
- * error code.
+ * Returns the flags used to open or create a file object, as passed to
+ * {@link red_open_file} or {@link red_create_pipe}, and the resulting error code.
+ * 
+ * See {@link red_open_file} and {@link red_create_pipe} for a list of possible file and
+ * pipe flags.
  */
 int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_flags);
 
@@ -868,18 +939,27 @@ int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint
  * Reads up to 62 bytes from a file object.
  * 
  * Returns the read bytes and the resulting error code.
+ * 
+ * If the file object was created by {@link red_open_file} without the
+ * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingRead* flag
+ * then the error code ``API_E_NOT_SUPPORTED`` is returned.
  */
 int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *ret_error_code, uint8_t ret_buffer[62], uint8_t *ret_length_read);
 
 /**
  * \ingroup BrickRED
  *
- * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object.
+ * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object asynchronously.
  * 
  * Returns the resulting error code.
  * 
- * Reports the read bytes in 60 byte chunks and the resulting error code of the
- * read operation via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
+ * The read bytes in 60 byte chunks and the resulting error codes of the read
+ * operations are reported via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
+ * 
+ * If the file object was created by {@link red_open_file} without the
+ * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingRead* flag
+ * then the error code ``API_E_NOT_SUPPORTED`` is reported via the
+ * {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
  */
 int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uint8_t *ret_error_code);
 
@@ -898,6 +978,10 @@ int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_cod
  * Writes up to 61 bytes to a file object.
  * 
  * Returns the actual number of bytes written and the resulting error code.
+ * 
+ * If the file object was created by {@link red_open_file} without the
+ * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag
+ * then the error code ``API_E_NOT_SUPPORTED`` is returned.
  */
 int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written);
 
@@ -908,6 +992,10 @@ int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t lengt
  * 
  * Does neither report the actual number of bytes written nor the resulting error
  * code.
+ * 
+ * If the file object was created by {@link red_open_file} without the
+ * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag
+ * then the write operation will fail silently.
  */
 int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
@@ -918,6 +1006,11 @@ int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uin
  * 
  * Reports the actual number of bytes written and the resulting error code via the
  * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
+ * 
+ * If the file object was created by {@link red_open_file} without the
+ * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag
+ * then the error code ``API_E_NOT_SUPPORTED`` is reported via the
+ * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
  */
 int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
@@ -926,7 +1019,16 @@ int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t
  *
  * Set the current seek position of a file object in bytes relative to ``origin``.
  * 
+ * Possible file origins are:
+ * 
+ * * Beginning = 0
+ * * Current = 1
+ * * End = 2
+ * 
  * Returns the resulting absolute seek position and error code.
+ * 
+ * If the file object was created by {@link red_create_pipe} then it has no seek
+ * position and the error code ``API_E_INVALID_SEEK`` is returned.
  */
 int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t origin, uint8_t *ret_error_code, uint64_t *ret_position);
 
@@ -935,6 +1037,9 @@ int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t or
  *
  * Returns the current seek position of a file object in bytes and returns the
  * resulting error code.
+ * 
+ * If the file object was created by {@link red_create_pipe} then it has no seek
+ * position and the error code ``API_E_INVALID_SEEK`` is returned.
  */
 int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint64_t *ret_position);
 
@@ -948,16 +1053,19 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
  * function. If ``follow_symlink`` is *false* then the
  * `lstat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
  * function is used instead.
+ * 
+ * See {@link red_get_file_type} for a list of possible file types and see
+ * {@link red_open_file} for a list of possible file permissions.
  */
 int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time);
 
 /**
  * \ingroup BrickRED
  *
- * Returns the target of a symlink and the resulting error code.
+ * Returns the target of a symbolic link and the resulting error code.
  * 
- * If ``canonicalize`` is *false* then the target of the symlink is resolved one
- * level via the
+ * If ``canonicalize`` is *false* then the target of the symbolic link is resolved
+ * one level via the
  * `readlink() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/readlink.html>`__
  * function, otherwise it is fully resolved using the
  * `realpath() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/realpath.html>`__
@@ -982,7 +1090,8 @@ int red_open_directory(RED *red, uint16_t name_string_id, uint8_t *ret_error_cod
 /**
  * \ingroup BrickRED
  *
- * Returns the name of a directory object and the resulting error code.
+ * Returns the name of a directory object, as passed to {@link red_open_directory}, and
+ * the resulting error code.
  */
 int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
@@ -990,8 +1099,11 @@ int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_c
  * \ingroup BrickRED
  *
  * Returns the next entry in a directory object and the resulting error code.
+ * 
  * If there is not next entry then error code ``API_E_NO_MORE_DATA`` is returned.
  * To rewind a directory object call {@link red_rewind_directory}.
+ * 
+ * See {@link red_get_file_type} for a list of possible file types.
  */
 int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id, uint8_t *ret_type);
 
@@ -1019,77 +1131,114 @@ int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_l
 /**
  * \ingroup BrickRED
  *
+ * Sends a UNIX signal to a process object and returns the resulting error code.
  * 
+ * Possible UNIX signals are:
+ * 
+ * * Interrupt = 2
+ * * Quit = 3
+ * * Abort = 6
+ * * Kill = 9
+ * * User1 = 10
+ * * User2 = 12
+ * * Terminate = 15
+ * * Continue =  18
+ * * Stop = 19
  */
 int red_kill_process(RED *red, uint16_t process_id, uint8_t signal, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the command used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the arguments used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_arguments(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the environment used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_environment(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the working directory used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_working_directory(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_working_directory_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the user ID used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_user_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the group ID used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_group_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_group_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the stdin file used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_stdin(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the stdout file used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_stdout(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdout_file_id);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * Returns the stderr file used to spawn a process object, as passed to
+ * {@link red_spawn_process}, and the resulting error code.
  */
 int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stderr_file_id);
 
 /**
  * \ingroup BrickRED
  *
+ * Returns the current state and exit code of a process object, and the resulting
+ * error code.
  * 
+ * Possible process states are:
+ * 
+ * * Unknown = 0
+ * * Running = 1
+ * * Exited = 2
+ * * Killed = 3
+ * * Stopped = 4
+ * 
+ * The exit code is only valid if the state is *Exited*, *Killed* or *Stopped* and
+ * has different meanings depending on the state:
+ * 
+ * * Exited: exit status of the process
+ * * Killed: UNIX signal number used to kill the process
+ * * Stopped: UNIX signal number used to stop the process
  */
 int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
 

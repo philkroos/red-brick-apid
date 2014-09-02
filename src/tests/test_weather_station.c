@@ -90,10 +90,10 @@ int main() {
 	uint16_t stdin_fid;
 	rc = red_create_pipe(&red, RED_PIPE_FLAG_NON_BLOCKING_WRITE, &ec, &stdin_fid);
 	if (rc < 0) {
-		printf("red_open_file -> rc %d\n", rc);
+		printf("red_create_pipe -> rc %d\n", rc);
 	}
 	if (ec != 0) {
-		printf("red_open_file -> ec %u\n", ec);
+		printf("red_create_pipe -> ec %u\n", ec);
 	}
 	printf("red_create_pipe -> fid %u\n", stdin_fid);
 

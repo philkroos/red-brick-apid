@@ -83,11 +83,11 @@ int main() {
 	}
 
 	uint16_t sid;
-	if (allocate_string(&red, "/tmp/foobar", &sid)) {
+	if (allocate_string(&red, "/tmp/foobar_fast", &sid)) {
 		return -1;
 	}
 
-	rc = red_open_file(&red, sid, RED_FILE_FLAG_READ_ONLY, 0, 0, 0, &ec, &fid);
+	rc = red_open_file(&red, sid, RED_FILE_FLAG_READ_ONLY | RED_FILE_FLAG_NON_BLOCKING, 0, 0, 0, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
 		goto cleanup;

@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &ec, &fid);
+	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_NON_BLOCKING | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
 		goto cleanup;
