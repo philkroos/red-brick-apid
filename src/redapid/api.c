@@ -1314,47 +1314,32 @@ static void api_get_process_state(GetProcessStateRequest *request) {
 // program
 //
 
-static void api_define_program(DefineProgramRequest *request) {
-	DefineProgramResponse response;
+#define FORWARD_FUNCTION(packet_prefix, function_suffix, call) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		call \
+		network_dispatch_response((Packet *)&response); \
+	}
 
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+FORWARD_FUNCTION(DefineProgram, define_program, {
+	response.error_code = program_define(request->identifier_string_id,
+	                                     &response.program_id);
+})
 
-	response.error_code = program_define(request->identifier_string_id, &response.program_id);
-
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_undefine_program(UndefineProgramRequest *request) {
-	UndefineProgramResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(UndefineProgram, undefine_program, {
 	response.error_code = program_undefine(request->program_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_program_identifier(GetProgramIdentifierRequest *request) {
-	GetProgramIdentifierResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetProgramIdentifier, get_program_identifier, {
 	response.error_code = program_get_identifier(request->program_id,
 	                                             &response.identifier_string_id);
+})
 
-	network_dispatch_response((Packet *)&response);
-}
-
-static void api_get_program_directory(GetProgramDirectoryRequest *request) {
-	GetProgramDirectoryResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+FORWARD_FUNCTION(GetProgramDirectory, get_program_directory, {
 	response.error_code = program_get_directory(request->program_id,
 	                                            &response.directory_string_id);
-
-	network_dispatch_response((Packet *)&response);
-}
+})
 
 //
 // api
@@ -1823,24 +1808,77 @@ enum process_state {
  * (persistent) program (configuration)
  */
 
-+ define_program            (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
-? recover_program           (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
-+ undefine_program          (uint16_t program_id)           -> uint8_t error_code
-+ get_program_identifier    (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
-+ get_program_directory     (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
-? set_program_command       (uint16_t program_id,
-                             uint16_t command_string_id)    -> uint8_t error_code
-? get_program_command       (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id
-? set_program_arguments     (uint16_t program_id,
-                             uint16_t arguments_list_id     -> uint8_t error_code
-? get_program_arguments     (uint16_t program_id)           -> uint8_t error_code, uint16_t arguments_list_id
-? set_program_environment   (uint16_t program_id,
-                             uint16_t environment_list_id)  -> uint8_t error_code
-? get_program_environment   (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
-? merge_program_output      (uint16_t program_id,
-                             bool merge_output)             -> uint8_t error_code
-? has_program_merged_output (uint16_t program_id)           -> uint8_t error_code, bool merged_output
-? execute_program           (uint16_t program_id)           -> uint8_t error_code, uint16_t process_id
+enum program_stdio {
+	PROGRAM_STDIO_INPUT = 0,
+	PROGRAM_STDIO_OUTPUT,
+	PROGRAM_STDIO_ERROR
+}
+
+enum program_stdio_option {
+	PROGRAM_STDIO_OPTION_NULL = 0,
+	PROGRAM_STDIO_OPTION_PIPE,
+	PROGRAM_STDIO_OPTION_FILE
+}
+
+enum program_schedule_type {
+	PROGRAM_SCHEDULE_TYPE_MANUAL = 0,
+	PROGRAM_SCHEDULE_TYPE_RELATIVE,
+	PROGRAM_SCHEDULE_TYPE_ABSOLUTE
+}
+
++ define_program                (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
+? recover_program               (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
++ undefine_program              (uint16_t program_id)           -> uint8_t error_code
++ get_program_identifier        (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
++ get_program_directory         (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
+? set_program_command           (uint16_t program_id,
+                                 uint16_t command_string_id)    -> uint8_t error_code
+? get_program_command           (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id
+? set_program_arguments         (uint16_t program_id,
+                                 uint16_t arguments_list_id     -> uint8_t error_code
+? get_program_arguments         (uint16_t program_id)           -> uint8_t error_code, uint16_t arguments_list_id
+? set_program_environment       (uint16_t program_id,
+                                 uint16_t environment_list_id)  -> uint8_t error_code
+? get_program_environment       (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
+? set_program_stdio_option      (uint16_t program_id,
+                                 uint8_t stdio,
+                                 uint8_t option)                -> uint8_t error_code
+? get_program_stdio_option      (uint16_t program_id,
+                                 uint8_t stdio)                 -> uint8_t error_code, uint8_t option
+? set_program_stdio_file_name   (uint16_t program_id,
+                                 uint8_t stdio,
+                                 uint16_t file_name_string_id)  -> uint8_t error_code
+? get_program_stdio_file_name   (uint16_t program_id),
+                                 uint8_t stdio                  -> uint8_t error_code, uint16_t file_name_string_id
+? set_manual_program_schedule   (uint16_t program_id)           -> uint8_t error_code
+? set_relative_program_schedule (uint16_t program_id,
+                                 uint64_t start_time,
+                                 uint32_t start_delay,
+                                 uint32_t interval)             -> uint8_t error_code
+? get_relative_program_schedule (uint16_t program_id)           -> uint8_t error_code,
+                                                                   uint64_t start_time,
+                                                                   uint32_t start_delay,
+                                                                   uint32_t interval
+? set_absolute_program_schedule (uint16_t program_id,
+                                 uint64_t start_time,
+                                 uint32_t start_delay,
+                                 uint64_t second_mask,
+                                 uint64_t minute_mask,
+                                 uint32_t hour_mask,
+                                 uint32_t day_mask,
+                                 uint16_t month_mask,
+                                 uint8_t weekday_mask)          -> uint8_t error_code
+? get_absolute_program_schedule (uint16_t program_id)           -> uint8_t error_code,
+                                                                   uint64_t start_time,
+                                                                   uint32_t start_delay,
+                                                                   uint64_t second_mask,
+                                                                   uint64_t minute_mask,
+                                                                   uint32_t hour_mask,
+                                                                   uint32_t day_mask,
+                                                                   uint16_t month_mask,
+                                                                   uint8_t weekday_mask
+? get_program_schedule_type     (uint16_t program_id)           -> uint8_t error_code, uint8_t type
+? execute_program               (uint16_t program_id)           -> uint8_t error_code, uint16_t process_id
 
 
 /*
