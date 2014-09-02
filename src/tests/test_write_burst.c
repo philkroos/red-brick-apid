@@ -7,7 +7,7 @@
 
 #define HOST "localhost"
 #define PORT 4223
-#define UID "3hG4aq"
+#define UID "3hG6BK" // Change to your UID
 
 #include "utils.c"
 
