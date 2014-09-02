@@ -848,6 +848,13 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 		return error_code;
 	}
 
+	if (file->type == FILE_TYPE_PIPE) {
+		log_warn("File object ("FILE_SIGNATURE_FORMAT") has no name",
+		         file_expand_signature(file));
+
+		return API_E_NOT_SUPPORTED;
+	}
+
 	object_add_external_reference(&file->name->base);
 
 	*name_id = file->name->base.id;

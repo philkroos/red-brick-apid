@@ -153,7 +153,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 	if (item_id == id) {
 		log_warn("Cannot append list object (id: %u) as item to itself", id);
 
-		return API_E_INVALID_OPERATION;
+		return API_E_NOT_SUPPORTED;
 	}
 
 	if (list->base.usage_count > 0) {
