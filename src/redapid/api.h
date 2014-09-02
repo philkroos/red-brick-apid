@@ -30,6 +30,8 @@
 int api_init(void);
 void api_exit(void);
 
+uint32_t api_get_uid(void);
+
 void api_handle_request(Packet *request);
 
 APIE api_get_error_code_from_errno(void);

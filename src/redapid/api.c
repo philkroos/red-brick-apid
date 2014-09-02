@@ -1396,6 +1396,10 @@ void api_exit(void) {
 	log_debug("Shutting down API subsystem");
 }
 
+uint32_t api_get_uid(void) {
+	return _uid;
+}
+
 void api_handle_request(Packet *request) {
 	#define DISPATCH_FUNCTION(function_id_suffix, packet_prefix, function_suffix) \
 		case FUNCTION_##function_id_suffix: \

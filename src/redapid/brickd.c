@@ -98,7 +98,12 @@ static void brickd_handle_read(void *opaque) {
 			break;
 		}
 
-		// FIXME: filter requests by RED Brick UID
+		if (brickd->request.header.uid != api_get_uid()) {
+			log_debug("Received unknown request (%s) from Brick Daemon with mismatching UID, dropping request",
+			          packet_get_request_signature(packet_signature, &brickd->request));
+
+			continue;
+		}
 
 		log_debug("Received %s request (%s) from Brick Daemon",
 		          api_get_function_name_from_id(brickd->request.header.function_id),
