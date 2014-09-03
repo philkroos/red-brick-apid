@@ -144,7 +144,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 		return API_E_OUT_OF_RANGE;
 	}
 
-	item = array_get(&list->items, index);
+	item = *(Object **)array_get(&list->items, index);
 
 	object_add_external_reference(item);
 
