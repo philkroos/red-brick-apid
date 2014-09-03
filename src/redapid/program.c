@@ -59,9 +59,9 @@ static bool program_is_valid_identifier(const char *identifier) {
 }
 
 static void program_destroy(Program *program) {
-	string_vacate(program->command);
-	list_vacate(program->arguments);
 	list_vacate(program->environment);
+	list_vacate(program->arguments);
+	string_vacate(program->command);
 	string_vacate(program->directory);
 	string_vacate(program->identifier);
 
@@ -331,9 +331,7 @@ APIE program_set_command(ObjectID id, ObjectID command_id) {
 	}
 
 	// vacate old command string object
-	if (program->command != NULL) {
-		string_vacate(program->command);
-	}
+	string_vacate(program->command);
 
 	// store new command string object
 	program->command = command;
@@ -375,9 +373,7 @@ APIE program_set_arguments(ObjectID id, ObjectID arguments_id) {
 	}
 
 	// vacate old arguments list object
-	if (program->arguments != NULL) {
-		list_vacate(program->arguments);
-	}
+	list_vacate(program->arguments);
 
 	// store new arguments list object
 	program->arguments = arguments;
@@ -419,9 +415,7 @@ APIE program_set_environment(ObjectID id, ObjectID environment_id) {
 	}
 
 	// vacate old environment list object
-	if (program->environment != NULL) {
-		list_vacate(program->environment);
-	}
+	list_vacate(program->environment);
 
 	// store new environment list object
 	program->environment = environment;
