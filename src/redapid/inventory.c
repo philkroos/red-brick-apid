@@ -64,6 +64,10 @@ static void inventory_destroy(Inventory *inventory) {
 	free(inventory);
 }
 
+static APIE inventory_get(ObjectID id, Inventory **inventory) {
+	return inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)inventory);
+}
+
 static void inventory_destroy_object(Object **object) {
 	object_destroy(*object);
 }
@@ -323,7 +327,7 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 // public API
 APIE inventory_get_type(ObjectID id, uint8_t *type) {
 	Inventory *inventory;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
+	APIE error_code = inventory_get(id, &inventory);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -337,7 +341,7 @@ APIE inventory_get_type(ObjectID id, uint8_t *type) {
 // public API
 APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 	Inventory *inventory;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
+	APIE error_code = inventory_get(id, &inventory);
 	Object **object;
 
 	if (error_code != API_E_SUCCESS) {
@@ -363,7 +367,7 @@ APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 // public API
 APIE inventory_rewind(ObjectID id) {
 	Inventory *inventory;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
+	APIE error_code = inventory_get(id, &inventory);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

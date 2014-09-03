@@ -43,6 +43,10 @@ static void list_destroy(List *list) {
 	free(list);
 }
 
+static APIE list_get(ObjectID id, List **list) {
+	return inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
+}
+
 APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **object) {
 	int phase = 0;
 	APIE error_code;
@@ -112,7 +116,7 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 // public API
 APIE list_get_length(ObjectID id, uint16_t *length) {
 	List *list;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = list_get(id, &list);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -126,7 +130,7 @@ APIE list_get_length(ObjectID id, uint16_t *length) {
 // public API
 APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 	List *list;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = list_get(id, &list);
 	Object *item;
 
 	if (error_code != API_E_SUCCESS) {
@@ -152,7 +156,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 // public API
 APIE list_append_to(ObjectID id, ObjectID item_id) {
 	List *list;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = list_get(id, &list);
 	Object *item;
 	Object **appended_item;
 
@@ -207,7 +211,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 // public API
 APIE list_remove_from(ObjectID id, uint16_t index) {
 	List *list;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
+	APIE error_code = list_get(id, &list);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

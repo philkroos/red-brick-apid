@@ -68,6 +68,10 @@ static void program_destroy(Program *program) {
 	free(program);
 }
 
+static APIE program_get(ObjectID id, Program **program) {
+	return inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)program);
+}
+
 // public API
 APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	int phase = 0;
@@ -202,7 +206,8 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->environment = environment;
 
 	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM,
-	                           OBJECT_CREATE_FLAG_INTERNAL | OBJECT_CREATE_FLAG_EXTERNAL,
+	                           OBJECT_CREATE_FLAG_INTERNAL |
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)program_destroy);
 
 	if (error_code != API_E_SUCCESS) {
@@ -254,7 +259,7 @@ cleanup:
 // public API
 APIE program_undefine(ObjectID id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -279,7 +284,7 @@ APIE program_undefine(ObjectID id) {
 // public API
 APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -295,7 +300,7 @@ APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 // public API
 APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -311,7 +316,7 @@ APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
 // public API
 APIE program_set_command(ObjectID id, ObjectID command_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 	String *command;
 
 	if (error_code != API_E_SUCCESS) {
@@ -339,7 +344,7 @@ APIE program_set_command(ObjectID id, ObjectID command_id) {
 // public API
 APIE program_get_command(ObjectID id, ObjectID *command_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -355,7 +360,7 @@ APIE program_get_command(ObjectID id, ObjectID *command_id) {
 // public API
 APIE program_set_arguments(ObjectID id, ObjectID arguments_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 	List *arguments;
 
 	if (error_code != API_E_SUCCESS) {
@@ -383,7 +388,7 @@ APIE program_set_arguments(ObjectID id, ObjectID arguments_id) {
 // public API
 APIE program_get_arguments(ObjectID id, ObjectID *arguments_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -399,7 +404,7 @@ APIE program_get_arguments(ObjectID id, ObjectID *arguments_id) {
 // public API
 APIE program_set_environment(ObjectID id, ObjectID environment_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 	List *environment;
 
 	if (error_code != API_E_SUCCESS) {
@@ -427,7 +432,7 @@ APIE program_set_environment(ObjectID id, ObjectID environment_id) {
 // public API
 APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
 	Program *program;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
+	APIE error_code = program_get(id, &program);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

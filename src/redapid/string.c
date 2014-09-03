@@ -197,7 +197,7 @@ APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id, String **obj
 // public API
 APIE string_truncate(ObjectID id, uint32_t length) {
 	String *string;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = string_get(id, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -220,7 +220,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 // public API
 APIE string_get_length(ObjectID id, uint32_t *length) {
 	String *string;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = string_get(id, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -234,7 +234,7 @@ APIE string_get_length(ObjectID id, uint32_t *length) {
 // public API
 APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	String *string;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = string_get(id, &string);
 	uint32_t length;
 	uint32_t i;
 
@@ -297,7 +297,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 // public API
 APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	String *string;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
+	APIE error_code = string_get(id, &string);
 	uint32_t length;
 
 	if (error_code != API_E_SUCCESS) {
@@ -340,6 +340,10 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	          length, offset, id);
 
 	return API_E_SUCCESS;
+}
+
+APIE string_get(ObjectID id, String **string) {
+	return inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
 APIE string_occupy(ObjectID id, String **string) {

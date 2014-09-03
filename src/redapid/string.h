@@ -45,6 +45,7 @@ APIE string_get_length(ObjectID id, uint32_t *length);
 APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer);
 APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer);
 
+APIE string_get(ObjectID id, String **string);
 APIE string_occupy(ObjectID id, String **string);
 void string_vacate(String *string);
 

@@ -94,6 +94,10 @@ static void process_destroy(Process *process) {
 	free(process);
 }
 
+static APIE process_get(ObjectID id, Process **process) {
+	return inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)process);
+}
+
 static void process_wait(void *opaque) {
 	Process *process = opaque;
 	int status;
@@ -646,7 +650,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 
 	// create process object
 	error_code = object_create(&process->base, OBJECT_TYPE_PROCESS,
-	                           OBJECT_CREATE_FLAG_INTERNAL | OBJECT_CREATE_FLAG_EXTERNAL,
+	                           OBJECT_CREATE_FLAG_INTERNAL |
+	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)process_destroy);
 
 	if (error_code != API_E_SUCCESS) {
@@ -723,7 +728,7 @@ cleanup:
 // public API
 APIE process_kill(ObjectID id, ProcessSignal signal) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 	int rc;
 
 	if (error_code != API_E_SUCCESS) {
@@ -754,7 +759,7 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 // public API
 APIE process_get_command(ObjectID id, ObjectID *command_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -770,7 +775,7 @@ APIE process_get_command(ObjectID id, ObjectID *command_id) {
 // public API
 APIE process_get_arguments(ObjectID id, ObjectID *arguments_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -786,7 +791,7 @@ APIE process_get_arguments(ObjectID id, ObjectID *arguments_id) {
 // public API
 APIE process_get_environment(ObjectID id, ObjectID *environment_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -802,7 +807,7 @@ APIE process_get_environment(ObjectID id, ObjectID *environment_id) {
 // public API
 APIE process_get_working_directory(ObjectID id, ObjectID *working_directory_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -818,7 +823,7 @@ APIE process_get_working_directory(ObjectID id, ObjectID *working_directory_id) 
 // public API
 APIE process_get_user_id(ObjectID id, uint32_t *user_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -832,7 +837,7 @@ APIE process_get_user_id(ObjectID id, uint32_t *user_id) {
 // public API
 APIE process_get_group_id(ObjectID id, uint32_t *group_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -846,7 +851,7 @@ APIE process_get_group_id(ObjectID id, uint32_t *group_id) {
 // public API
 APIE process_get_stdin(ObjectID id, ObjectID *stdin_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -862,7 +867,7 @@ APIE process_get_stdin(ObjectID id, ObjectID *stdin_id) {
 // public API
 APIE process_get_stdout(ObjectID id, ObjectID *stdout_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -878,7 +883,7 @@ APIE process_get_stdout(ObjectID id, ObjectID *stdout_id) {
 // public API
 APIE process_get_stderr(ObjectID id, ObjectID *stderr_id) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -894,7 +899,7 @@ APIE process_get_stderr(ObjectID id, ObjectID *stderr_id) {
 // public API
 APIE process_get_state(ObjectID id, uint8_t *state, uint8_t *exit_code) {
 	Process *process;
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
+	APIE error_code = process_get(id, &process);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
