@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-02.      *
+ * This file was automatically generated on 2014-09-03.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -312,6 +312,26 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_FUNCTION_GET_PROGRAM_ENVIRONMENT 60
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SET_PROGRAM_STDIO_OPTION 61
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_STDIO_OPTION 62
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SET_PROGRAM_STDIO_FILE_NAME 63
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_STDIO_FILE_NAME 64
 
 /**
  * \ingroup BrickRED
@@ -633,6 +653,36 @@ typedef Device RED;
 
 /**
  * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_INPUT 0
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_OUTPUT 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_ERROR 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_OPTION_NULL 0
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_OPTION_PIPE 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_OPTION_FILE 2
+
+/**
+ * \ingroup BrickRED
  *
  * This constant is used to identify a RED Brick.
  *
@@ -724,7 +774,7 @@ int red_get_api_version(RED *red, uint8_t ret_api_version[3]);
  * \ingroup BrickRED
  *
  * Decreases the reference count of an object by one and returns the resulting
- * error code. If the reference count reaches zero the object is destroyed.
+ * error code. If the reference count reaches zero the object gets destroyed.
  */
 int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
 
@@ -764,8 +814,8 @@ int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_c
  * Returns the object ID of the next object in an inventory object and the
  * resulting error code.
  * 
- * If there is not next object then error code ``API_E_NO_MORE_DATA`` is returned.
- * To rewind an inventory object call {@link red_rewind_inventory}.
+ * If there is not next object then error code *NoMoreData* is returned. To rewind
+ * an inventory object call {@link red_rewind_inventory}.
  */
 int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_object_id);
 
@@ -822,11 +872,14 @@ int red_get_string_chunk(RED *red, uint16_t string_id, uint32_t offset, uint8_t 
 /**
  * \ingroup BrickRED
  *
- * Allocates a new list object and reserves memory for ``length_to_reserve`` items.
- * Set ``length_to_reserve`` to the number of items that should be stored in the
- * list object.
+ * Allocates a new list object and reserves memory for ``length_to_reserve``
+ * items. Set ``length_to_reserve`` to the number of items that should be stored
+ * in the list object.
  * 
  * Returns the object ID of the new list object and the resulting error code.
+ * 
+ * When a list object gets destroyed then the reference count of each object in
+ * the list object is decreased by one.
  */
 int red_allocate_list(RED *red, uint16_t length_to_reserve, uint8_t *ret_error_code, uint16_t *ret_list_id);
 
@@ -872,7 +925,7 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * for it.
  * 
  * The reference count of the name string object is increased by one. When the
- * file object is destroyed then the reference count of the name string object is
+ * file object gets destroyed then the reference count of the name string object is
  * decreased by one. Also the name string object is locked and cannot be modified
  * while the file object holds a reference to it.
  * 
@@ -890,8 +943,9 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * * NonBlocking = 0x0100 (O_NONBLOCK)
  * * Truncate = 0x0200 (O_TRUNC)
  * 
- * The ``permissions`` parameter takes a ORed combination of the following possible
- * file permissions (in octal notation) that match the common UNIX permission bits:
+ * The ``permissions`` parameter takes a ORed combination of the following
+ * possible file permissions (in octal notation) that match the common UNIX
+ * permission bits:
  * 
  * * UserRead = 00400
  * * UserWrite = 00200
@@ -948,7 +1002,7 @@ int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
  * resulting error code.
  * 
  * If the file object was created by {@link red_create_pipe} then it has no name and
- * the error code ``API_E_NOT_SUPPORTED`` is returned.
+ * the error code *NotSupported* is returned.
  */
 int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
@@ -970,9 +1024,9 @@ int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint
  * 
  * Returns the read bytes and the resulting error code.
  * 
- * If the file object was created by {@link red_open_file} without the
- * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingRead* flag
- * then the error code ``API_E_NOT_SUPPORTED`` is returned.
+ * If the file object was created by {@link red_open_file} without the *NonBlocking*
+ * flag or by {@link red_create_pipe} without the *NonBlockingRead* flag then the
+ * error code *NotSupported* is returned.
  */
 int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *ret_error_code, uint8_t ret_buffer[62], uint8_t *ret_length_read);
 
@@ -986,10 +1040,9 @@ int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *r
  * The read bytes in 60 byte chunks and the resulting error codes of the read
  * operations are reported via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
  * 
- * If the file object was created by {@link red_open_file} without the
- * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingRead* flag
- * then the error code ``API_E_NOT_SUPPORTED`` is reported via the
- * {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
+ * If the file object was created by {@link red_open_file} without the *NonBlocking*
+ * flag or by {@link red_create_pipe} without the *NonBlockingRead* flag then the error
+ * code *NotSupported* is reported via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
  */
 int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uint8_t *ret_error_code);
 
@@ -1009,9 +1062,9 @@ int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_cod
  * 
  * Returns the actual number of bytes written and the resulting error code.
  * 
- * If the file object was created by {@link red_open_file} without the
- * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag
- * then the error code ``API_E_NOT_SUPPORTED`` is returned.
+ * If the file object was created by {@link red_open_file} without the *NonBlocking*
+ * flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag then the
+ * error code *NotSupported* is returned.
  */
 int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write, uint8_t *ret_error_code, uint8_t *ret_length_written);
 
@@ -1023,9 +1076,9 @@ int red_write_file(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t lengt
  * Does neither report the actual number of bytes written nor the resulting error
  * code.
  * 
- * If the file object was created by {@link red_open_file} without the
- * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag
- * then the write operation will fail silently.
+ * If the file object was created by {@link red_open_file} without the *NonBlocking*
+ * flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag then the
+ * write operation will fail silently.
  */
 int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
@@ -1037,10 +1090,9 @@ int red_write_file_unchecked(RED *red, uint16_t file_id, uint8_t buffer[61], uin
  * Reports the actual number of bytes written and the resulting error code via the
  * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
  * 
- * If the file object was created by {@link red_open_file} without the
- * *NonBlocking* flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag
- * then the error code ``API_E_NOT_SUPPORTED`` is reported via the
- * {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
+ * If the file object was created by {@link red_open_file} without the *NonBlocking*
+ * flag or by {@link red_create_pipe} without the *NonBlockingWrite* flag then the
+ * error code *NotSupported* is reported via the {@link RED_CALLBACK_ASYNC_FILE_WRITE} callback.
  */
 int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write);
 
@@ -1058,7 +1110,7 @@ int red_write_file_async(RED *red, uint16_t file_id, uint8_t buffer[61], uint8_t
  * Returns the resulting absolute seek position and error code.
  * 
  * If the file object was created by {@link red_create_pipe} then it has no seek
- * position and the error code ``API_E_INVALID_SEEK`` is returned.
+ * position and the error code *InvalidSeek* is returned.
  */
 int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t origin, uint8_t *ret_error_code, uint64_t *ret_position);
 
@@ -1069,7 +1121,7 @@ int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t or
  * resulting error code.
  * 
  * If the file object was created by {@link red_create_pipe} then it has no seek
- * position and the error code ``API_E_INVALID_SEEK`` is returned.
+ * position and the error code *InvalidSeek* is returned.
  */
 int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint64_t *ret_position);
 
@@ -1130,8 +1182,8 @@ int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_c
  *
  * Returns the next entry in a directory object and the resulting error code.
  * 
- * If there is not next entry then error code ``API_E_NO_MORE_DATA`` is returned.
- * To rewind a directory object call {@link red_rewind_directory}.
+ * If there is not next entry then error code *NoMoreData* is returned. To rewind
+ * a directory object call {@link red_rewind_directory}.
  * 
  * See {@link red_get_file_type} for a list of possible file types.
  */
@@ -1341,6 +1393,34 @@ int red_set_program_environment(RED *red, uint16_t program_id, uint8_t *ret_erro
  * 
  */
 int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, uint8_t option, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_option);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint16_t file_name_string_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint16_t *ret_file_name_string_id);
 
 /**
  * \ingroup BrickRED

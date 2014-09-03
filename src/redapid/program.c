@@ -58,7 +58,34 @@ static bool program_is_valid_identifier(const char *identifier) {
 	return identifier[strspn(identifier, _identifier_alphabet)] == '\0';
 }
 
+static bool program_is_valid_stdio(ProgramStdio stdio) {
+	switch (stdio) {
+	case PROGRAM_STDIO_INPUT:
+	case PROGRAM_STDIO_OUTPUT:
+	case PROGRAM_STDIO_ERROR:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static bool program_is_valid_stdio_option(ProgramStdioOption option) {
+	switch (option) {
+	case PROGRAM_STDIO_OPTION_NULL:
+	case PROGRAM_STDIO_OPTION_PIPE:
+	case PROGRAM_STDIO_OPTION_FILE:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 static void program_destroy(Program *program) {
+	string_vacate(program->stdio_file_names[PROGRAM_STDIO_ERROR]);
+	string_vacate(program->stdio_file_names[PROGRAM_STDIO_OUTPUT]);
+	string_vacate(program->stdio_file_names[PROGRAM_STDIO_INPUT]);
 	list_vacate(program->environment);
 	list_vacate(program->arguments);
 	string_vacate(program->command);
@@ -83,6 +110,9 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	String *command;
 	List *arguments;
 	List *environment;
+	String *stdin_file_name;
+	String *stdout_file_name;
+	String *stderr_file_name;
 	Program *program;
 
 	// occupy identifier string object
@@ -138,6 +168,42 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	phase = 4;
 
+	// create stdin file name string object
+	error_code = string_wrap("",
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &stdin_file_name);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 5;
+
+	// create stdout file name string object
+	error_code = string_wrap("",
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &stdout_file_name);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 6;
+
+	// create stderr file name string object
+	error_code = string_wrap("",
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &stderr_file_name);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 7;
+
 	// get home directory of the default user (UID 1000)
 	pw = getpwuid(1000);
 
@@ -160,7 +226,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 8;
 
 	error_code = string_wrap(buffer,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
@@ -170,7 +236,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 6;
+	phase = 9;
 
 	// create program directory as default user (UID 1000, GID 1000)
 	error_code = directory_create_internal(directory->buffer, true, 0755, 1000, 1000);
@@ -179,7 +245,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 7;
+	phase = 10;
 
 	// FIXME: create persistent program configuration on disk
 
@@ -195,7 +261,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 8;
+	phase = 11;
 
 	// create program object
 	program->defined = true;
@@ -204,6 +270,12 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->command = command;
 	program->arguments = arguments;
 	program->environment = environment;
+	program->stdio_options[PROGRAM_STDIO_INPUT] = PROGRAM_STDIO_OPTION_NULL;
+	program->stdio_options[PROGRAM_STDIO_OUTPUT] = PROGRAM_STDIO_OPTION_NULL;
+	program->stdio_options[PROGRAM_STDIO_ERROR] = PROGRAM_STDIO_OPTION_NULL;
+	program->stdio_file_names[PROGRAM_STDIO_INPUT] = stdin_file_name;
+	program->stdio_file_names[PROGRAM_STDIO_OUTPUT] = stdout_file_name;
+	program->stdio_file_names[PROGRAM_STDIO_ERROR] = stderr_file_name;
 
 	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
@@ -219,23 +291,32 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	log_debug("Defined program object (id: %u, identifier: %s)",
 	          program->base.id, identifier->buffer);
 
-	phase = 9;
+	phase = 12;
 
 	free(buffer);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 8:
+	case 11:
 		free(program);
 
-	case 7:
+	case 10:
 		rmdir(directory->buffer);
 
-	case 6:
+	case 9:
 		string_vacate(directory);
 
-	case 5:
+	case 8:
 		free(buffer);
+
+	case 7:
+		string_vacate(stderr_file_name);
+
+	case 6:
+		string_vacate(stdout_file_name);
+
+	case 5:
+		string_vacate(stdin_file_name);
 
 	case 4:
 		list_vacate(environment);
@@ -253,7 +334,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 9 ? API_E_SUCCESS : error_code;
+	return phase == 12 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -435,6 +516,109 @@ APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
 	object_add_external_reference(&program->environment->base);
 
 	*environment_id = program->environment->base.id;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_set_stdio_option(ObjectID id, ProgramStdio stdio,
+                              ProgramStdioOption option) {
+	Program *program;
+	APIE error_code = program_get(id, &program);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	if (!program_is_valid_stdio(stdio)) {
+		log_warn("Invalid program stdio %d", stdio);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	if (!program_is_valid_stdio_option(option)) {
+		log_warn("Invalid program stdio option %d", option);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	program->stdio_options[stdio] = option;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_get_stdio_option(ObjectID id, ProgramStdio stdio, uint8_t *option) {
+	Program *program;
+	APIE error_code = program_get(id, &program);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	if (!program_is_valid_stdio(stdio)) {
+		log_warn("Invalid program stdio %d", stdio);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	*option = program->stdio_options[stdio];
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_set_stdio_file_name(ObjectID id, ProgramStdio stdio,
+                                 ObjectID file_name_id) {
+	Program *program;
+	APIE error_code = program_get(id, &program);
+	String *file_name;
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	if (!program_is_valid_stdio(stdio)) {
+		log_warn("Invalid program stdio %d", stdio);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	// occupy new stdio file name string object
+	error_code = string_occupy(file_name_id, &file_name);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	// vacate old stdio file name string object
+	string_vacate(program->stdio_file_names[stdio]);
+
+	// store new stdio file name string object
+	program->stdio_file_names[stdio] = file_name;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_get_stdio_file_name(ObjectID id, ProgramStdio stdio,
+                                 ObjectID *file_name_id) {
+	Program *program;
+	APIE error_code = program_get(id, &program);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	if (!program_is_valid_stdio(stdio)) {
+		log_warn("Invalid program stdio %d", stdio);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	object_add_external_reference(&program->stdio_file_names[stdio]->base);
+
+	*file_name_id = program->stdio_file_names[stdio]->base.id;
 
 	return API_E_SUCCESS;
 }

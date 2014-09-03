@@ -28,6 +28,20 @@
 #include "object.h"
 #include "string.h"
 
+typedef enum {
+	PROGRAM_STDIO_INPUT = 0,
+	PROGRAM_STDIO_OUTPUT,
+	PROGRAM_STDIO_ERROR
+} ProgramStdio;
+
+#define PROGRAM_MAX_STDIOS 3
+
+typedef enum {
+	PROGRAM_STDIO_OPTION_NULL = 0,
+	PROGRAM_STDIO_OPTION_PIPE,
+	PROGRAM_STDIO_OPTION_FILE
+} ProgramStdioOption;
+
 typedef struct {
 	Object base;
 
@@ -37,6 +51,8 @@ typedef struct {
 	String *command;
 	List *arguments;
 	List *environment;
+	ProgramStdioOption stdio_options[PROGRAM_MAX_STDIOS];
+	String *stdio_file_names[PROGRAM_MAX_STDIOS];
 } Program;
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
@@ -53,5 +69,14 @@ APIE program_get_arguments(ObjectID id, ObjectID *arguments_id);
 
 APIE program_set_environment(ObjectID id, ObjectID environment_id);
 APIE program_get_environment(ObjectID id, ObjectID *environment_id);
+
+APIE program_set_stdio_option(ObjectID id, ProgramStdio stdio,
+                              ProgramStdioOption option);
+APIE program_get_stdio_option(ObjectID id, ProgramStdio stdio, uint8_t *option);
+
+APIE program_set_stdio_file_name(ObjectID id, ProgramStdio stdio,
+                                 ObjectID file_name_id);
+APIE program_get_stdio_file_name(ObjectID id, ProgramStdio stdio,
+                                 ObjectID *file_name_id);
 
 #endif // REDAPID_PROGRAM_H
