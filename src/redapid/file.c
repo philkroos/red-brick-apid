@@ -297,7 +297,7 @@ static void file_handle_async_read(void *opaque) {
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
-	api_send_async_file_read_callback(file->base.id, API_E_OK, buffer, length_read);
+	api_send_async_file_read_callback(file->base.id, API_E_SUCCESS, buffer, length_read);
 
 	if (file->length_to_read_async == 0) {
 		log_debug("Finished asynchronous reading from file object ("FILE_SIGNATURE_FORMAT")",
@@ -326,7 +326,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 
 	error_code = process_fork(&pid);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -366,7 +366,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 			goto child_cleanup;
 		}
 
-		error_code = API_E_OK;
+		error_code = API_E_SUCCESS;
 
 	child_cleanup:
 		// send FD to parent in all cases
@@ -449,7 +449,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	// get child error code from child exit status
 	error_code = WEXITSTATUS(status);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		if (fd >= 0) {
 			close(fd);
 		}
@@ -468,7 +468,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 
 	*fd_ = fd;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 mode_t file_get_mode_from_permissions(uint16_t permissions) {
@@ -609,7 +609,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	// occupy name string object
 	error_code = string_occupy(name_id, &name);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -631,7 +631,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		error_code = file_open_as(name->buffer, open_flags, open_mode,
 		                          user_id, group_id, &fd);
 
-		if (error_code != API_E_OK) {
+		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
 	}
@@ -705,7 +705,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)file_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -741,7 +741,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 5 ? API_E_OK : error_code;
+	return phase == 5 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -765,7 +765,7 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_OCCUPIED, NULL, &name);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -812,7 +812,7 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)file_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -838,7 +838,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 4 ? API_E_OK : error_code;
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -846,13 +846,13 @@ APIE file_get_type(ObjectID id, uint8_t *type) {
 	File *file;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*type = file->type;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -860,7 +860,7 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 	File *file;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -875,7 +875,7 @@ APIE file_get_name(ObjectID id, ObjectID *name_id) {
 
 	*name_id = file->name->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -883,13 +883,13 @@ APIE file_get_flags(ObjectID id, uint16_t *flags) {
 	File *file;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*flags = file->flags;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -898,7 +898,7 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	ssize_t rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -930,7 +930,7 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read, uint8_t *le
 
 	*length_read = rc;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -939,7 +939,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -959,9 +959,9 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 
 	if (length_to_read == 0) {
 		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_read_callback(file->base.id, API_E_OK, buffer, 0);
+		api_send_async_file_read_callback(file->base.id, API_E_SUCCESS, buffer, 0);
 
-		return API_E_OK;
+		return API_E_SUCCESS;
 	}
 
 	file->length_to_read_async = length_to_read;
@@ -978,7 +978,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 	log_debug("Started reading of %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 	          length_to_read, file_expand_signature(file));
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -987,13 +987,13 @@ APIE file_abort_async_read(ObjectID id) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	if (file->length_to_read_async == 0) {
 		// nothing to abort
-		return API_E_OK;
+		return API_E_SUCCESS;
 	}
 
 	event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
@@ -1003,7 +1003,7 @@ APIE file_abort_async_read(ObjectID id) {
 	// FIXME: this callback should be delivered after the response of this function
 	api_send_async_file_read_callback(file->base.id, API_E_OPERATION_ABORTED, buffer, 0);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -1012,7 +1012,7 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	ssize_t rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -1044,7 +1044,7 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write, uint8_t *
 
 	*length_written = rc;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -1054,7 +1054,7 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 
 	if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
 		return ERROR_CODE_INVALID_PARAMETER;
-	} else if (error_code != API_E_OK) {
+	} else if (error_code != API_E_SUCCESS) {
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
@@ -1089,7 +1089,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	ssize_t length_written;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		// FIXME: this callback should be delivered after the response of this function
 		api_send_async_file_write_callback(id, error_code, 0);
 
@@ -1136,7 +1136,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 	}
 
 	// FIXME: this callback should be delivered after the response of this function
-	api_send_async_file_write_callback(id, API_E_OK, length_written);
+	api_send_async_file_write_callback(id, API_E_SUCCESS, length_written);
 
 	return ERROR_CODE_OK;
 }
@@ -1148,7 +1148,7 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 	int whence;
 	off_t rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -1184,7 +1184,7 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin, uint64_t 
 
 	*position = rc;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -1193,7 +1193,7 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)&file);
 	off_t rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -1210,7 +1210,7 @@ APIE file_get_position(ObjectID id, uint64_t *position) {
 
 	*position = rc;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 IOHandle file_get_read_handle(File *file) {
@@ -1247,7 +1247,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 	struct stat st;
 	int rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -1296,7 +1296,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 	*modification_time = st.st_mtime;
 	*status_change_time = st.st_ctime;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -1307,7 +1307,7 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 	char buffer[1024 + 1];
 	ssize_t rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 

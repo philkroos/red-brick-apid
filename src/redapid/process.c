@@ -207,7 +207,7 @@ APIE process_fork(pid_t *pid) {
 	} else if (*pid != 0) { // parent
 		pthread_sigmask(SIG_SETMASK, &oldmask, NULL);
 
-		return API_E_OK;
+		return API_E_SUCCESS;
 	} else { // child
 		// reset all signal handlers from parent so nothing unexpected can
 		// happen in the child once signals are unblocked
@@ -230,7 +230,7 @@ APIE process_fork(pid_t *pid) {
 			_exit(EXIT_CANCELED);
 		}
 
-		return API_E_OK;
+		return API_E_SUCCESS;
 	}
 }
 
@@ -262,7 +262,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy command string object
 	error_code = string_occupy(command_id, &command);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -271,7 +271,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy arguments list object
 	error_code = list_occupy(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -333,7 +333,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy environment list object
 	error_code = list_occupy(environment_id, OBJECT_TYPE_STRING, &environment);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -384,7 +384,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy working directory string object
 	error_code = string_occupy(working_directory_id, &working_directory);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -393,7 +393,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy stdin file object
 	error_code = file_occupy(stdin_id, &stdin);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -402,7 +402,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy stdout file object
 	error_code = file_occupy(stdout_id, &stdout);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -411,7 +411,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// occupy stderr file object
 	error_code = file_occupy(stderr_id, &stderr);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -434,7 +434,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 
 	error_code = process_fork(&pid);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -593,7 +593,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		goto cleanup;
 	}
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -649,7 +649,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	                           OBJECT_CREATE_FLAG_INTERNAL | OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)process_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -717,7 +717,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 15 ? API_E_OK : error_code;
+	return phase == 15 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -726,7 +726,7 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 	int rc;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -748,7 +748,7 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 		return error_code;
 	}
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -756,7 +756,7 @@ APIE process_get_command(ObjectID id, ObjectID *command_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -764,7 +764,7 @@ APIE process_get_command(ObjectID id, ObjectID *command_id) {
 
 	*command_id = process->command->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -772,7 +772,7 @@ APIE process_get_arguments(ObjectID id, ObjectID *arguments_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -780,7 +780,7 @@ APIE process_get_arguments(ObjectID id, ObjectID *arguments_id) {
 
 	*arguments_id = process->arguments->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -788,7 +788,7 @@ APIE process_get_environment(ObjectID id, ObjectID *environment_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -796,7 +796,7 @@ APIE process_get_environment(ObjectID id, ObjectID *environment_id) {
 
 	*environment_id = process->environment->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -804,7 +804,7 @@ APIE process_get_working_directory(ObjectID id, ObjectID *working_directory_id) 
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -812,7 +812,7 @@ APIE process_get_working_directory(ObjectID id, ObjectID *working_directory_id) 
 
 	*working_directory_id = process->working_directory->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -820,13 +820,13 @@ APIE process_get_user_id(ObjectID id, uint32_t *user_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*user_id = process->user_id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -834,13 +834,13 @@ APIE process_get_group_id(ObjectID id, uint32_t *group_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*group_id = process->group_id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -848,7 +848,7 @@ APIE process_get_stdin(ObjectID id, ObjectID *stdin_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -856,7 +856,7 @@ APIE process_get_stdin(ObjectID id, ObjectID *stdin_id) {
 
 	*stdin_id = process->stdin->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -864,7 +864,7 @@ APIE process_get_stdout(ObjectID id, ObjectID *stdout_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -872,7 +872,7 @@ APIE process_get_stdout(ObjectID id, ObjectID *stdout_id) {
 
 	*stdout_id = process->stdout->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -880,7 +880,7 @@ APIE process_get_stderr(ObjectID id, ObjectID *stderr_id) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -888,7 +888,7 @@ APIE process_get_stderr(ObjectID id, ObjectID *stderr_id) {
 
 	*stderr_id = process->stderr->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -896,12 +896,12 @@ APIE process_get_state(ObjectID id, uint8_t *state, uint8_t *exit_code) {
 	Process *process;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)&process);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*state = process->state;
 	*exit_code = process->exit_code;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }

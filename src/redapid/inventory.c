@@ -158,7 +158,7 @@ APIE inventory_add_object(Object *object) {
 	log_debug("Added %s object (id: %u)",
 	          object_get_type_name(object->type), object->id);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 void inventory_remove_object(Object *object) {
@@ -225,7 +225,7 @@ APIE inventory_get_object(ObjectID id, Object **object) {
 			if ((*candidate)->id == id) {
 				*object = *candidate;
 
-				return API_E_OK;
+				return API_E_SUCCESS;
 			}
 		}
 	}
@@ -245,7 +245,7 @@ APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
 		if ((*candidate)->id == id) {
 			*object = *candidate;
 
-			return API_E_OK;
+			return API_E_SUCCESS;
 		}
 	}
 
@@ -257,25 +257,25 @@ APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
 APIE inventory_occupy_object(ObjectID id, Object **object) {
 	APIE error_code = inventory_get_object(id, object);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	object_occupy(*object);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object) {
 	APIE error_code = inventory_get_typed_object(type, id, object);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	object_occupy(*object);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -306,7 +306,7 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)inventory_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		free(inventory);
 
 		return error_code;
@@ -317,7 +317,7 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	log_debug("Opened inventory object (id: %u, type: %s)",
 	          inventory->base.id, object_get_type_name(inventory->type));
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -325,13 +325,13 @@ APIE inventory_get_type(ObjectID id, uint8_t *type) {
 	Inventory *inventory;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*type = inventory->type;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -340,7 +340,7 @@ APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
 	Object **object;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -357,7 +357,7 @@ APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 
 	*object_id = (*object)->id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -365,11 +365,11 @@ APIE inventory_rewind(ObjectID id) {
 	Inventory *inventory;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)&inventory);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	inventory->index = 0;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }

@@ -89,13 +89,13 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 
 				*p = '/';
 
-				if (error_code != API_E_OK) {
+				if (error_code != API_E_SUCCESS) {
 					return error_code;
 				}
 			}
 
 			if (mkdir(name, mode) >= 0) {
-				return API_E_OK;
+				return API_E_SUCCESS;
 			}
 		}
 
@@ -128,7 +128,7 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 		return API_E_ALREADY_EXISTS;
 	}
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
@@ -163,7 +163,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 	} else {
 		error_code = process_fork(&pid);
 
-		if (error_code != API_E_OK) {
+		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
 
@@ -241,7 +241,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	// occupy name string object
 	error_code = string_occupy(name_id, &name);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -299,7 +299,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)directory_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -325,7 +325,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 4 ? API_E_OK : error_code;
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -333,7 +333,7 @@ APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 	Directory *directory;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -341,7 +341,7 @@ APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 
 	*name_id = directory->name->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -350,7 +350,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 	struct dirent *dirent;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -408,13 +408,13 @@ APIE directory_rewind(ObjectID id) {
 	Directory *directory;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)&directory);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	rewinddir(directory->dp);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 
@@ -424,7 +424,7 @@ APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
 	String *name;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, name_id, (Object **)&name);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 

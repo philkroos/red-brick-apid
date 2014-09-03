@@ -23,20 +23,20 @@
 #define REDAPID_API_ERROR_H
 
 /*
- * API_E_INVALID_OPERATION is used if the requested operation cannot be
+ * API_E_INVALID_OPERATION is returned if the requested operation cannot be
  * performed because the current state of the object does not allow it. for
  * example, trying to append an item to a full list object, trying to undefine
  * an already undefined program.
  *
- * API_E_NOT_SUPPORTED is used if the request operation can never be performed.
- * for example, trying to append a list object to itself, trying to get the
- * name of a file object with type FILE_TYPE_PIPE, trying to create a directory
- * non-recursively with more than the last part of the directory name referring
- * to non-existing directories.
+ * API_E_NOT_SUPPORTED is returned if the requested operation can never be
+ * performed. for example, trying to append a list object to itself, trying to
+ * get the name of a file object with type FILE_TYPE_PIPE, trying to create a
+ * directory non-recursively with more than the last part of the directory name
+ * referring to non-existing directories.
  */
 
 typedef enum {
-	API_E_OK = 0,
+	API_E_SUCCESS = 0,
 	API_E_UNKNOWN_ERROR,
 	API_E_INVALID_OPERATION,
 	API_E_OPERATION_ABORTED,

@@ -75,7 +75,7 @@ APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **o
 	error_code = object_create(&list->base, OBJECT_TYPE_LIST, create_flags,
 	                           (ObjectDestroyFunction)list_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -101,7 +101,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 3 ? API_E_OK : error_code;
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -114,13 +114,13 @@ APIE list_get_length(ObjectID id, uint16_t *length) {
 	List *list;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*length = list->items.count;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -129,7 +129,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 	Object *item;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -146,7 +146,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 
 	*item_id = item->id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -156,7 +156,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 	Object *item;
 	Object **appended_item;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -182,7 +182,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 
 	error_code = inventory_occupy_object(item_id, &item);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -201,7 +201,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 
 	*appended_item = item;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -209,7 +209,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 	List *list;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)&list);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -229,7 +229,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 
 	array_remove(&list->items, index, (ItemDestroyFunction)list_vacate_item);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 APIE list_ensure_item_type(List *list, ObjectType type) {
@@ -248,25 +248,25 @@ APIE list_ensure_item_type(List *list, ObjectType type) {
 		}
 	}
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 APIE list_occupy(ObjectID id, ObjectType item_type, List **list) {
 	APIE error_code = inventory_occupy_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	error_code = list_ensure_item_type(*list, item_type);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		list_vacate(*list);
 
 		return error_code;
 	}
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 void list_vacate(List *list) {

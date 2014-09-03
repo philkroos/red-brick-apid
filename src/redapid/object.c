@@ -141,7 +141,7 @@ APIE object_release(ObjectID id) {
 	Object *object;
 	APIE error_code = inventory_get_object(id, &object);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -154,7 +154,7 @@ APIE object_release(ObjectID id) {
 
 	object_remove_external_reference(object);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 void object_add_internal_reference(Object *object) {

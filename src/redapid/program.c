@@ -84,7 +84,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	// occupy identifier string object
 	error_code = string_occupy(identifier_id, &identifier);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -104,7 +104,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	                         OBJECT_CREATE_FLAG_OCCUPIED,
 	                         NULL, &command);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -116,7 +116,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	                         OBJECT_CREATE_FLAG_OCCUPIED,
 	                         NULL, &arguments);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -128,7 +128,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	                         OBJECT_CREATE_FLAG_OCCUPIED,
 	                         NULL, &environment);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -162,7 +162,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_OCCUPIED, NULL, &directory);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -171,7 +171,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	// create program directory as default user (UID 1000, GID 1000)
 	error_code = directory_create_internal(directory->buffer, true, 0755, 1000, 1000);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -205,7 +205,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	                           OBJECT_CREATE_FLAG_INTERNAL | OBJECT_CREATE_FLAG_EXTERNAL,
 	                           (ObjectDestroyFunction)program_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -248,7 +248,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 9 ? API_E_OK : error_code;
+	return phase == 9 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -256,7 +256,7 @@ APIE program_undefine(ObjectID id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -273,7 +273,7 @@ APIE program_undefine(ObjectID id) {
 
 	object_remove_internal_reference(&program->base);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -281,7 +281,7 @@ APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -289,7 +289,7 @@ APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 
 	*identifier_id = program->identifier->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -297,7 +297,7 @@ APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -305,7 +305,7 @@ APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
 
 	*directory_id = program->directory->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -314,14 +314,14 @@ APIE program_set_command(ObjectID id, ObjectID command_id) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 	String *command;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	// occupy new command string object
 	error_code = string_occupy(command_id, &command);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -333,7 +333,7 @@ APIE program_set_command(ObjectID id, ObjectID command_id) {
 	// store new command string object
 	program->command = command;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -341,7 +341,7 @@ APIE program_get_command(ObjectID id, ObjectID *command_id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -349,7 +349,7 @@ APIE program_get_command(ObjectID id, ObjectID *command_id) {
 
 	*command_id = program->command->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -358,14 +358,14 @@ APIE program_set_arguments(ObjectID id, ObjectID arguments_id) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 	List *arguments;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	// occupy new arguments list object
 	error_code = list_occupy(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -377,7 +377,7 @@ APIE program_set_arguments(ObjectID id, ObjectID arguments_id) {
 	// store new arguments list object
 	program->arguments = arguments;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -385,7 +385,7 @@ APIE program_get_arguments(ObjectID id, ObjectID *arguments_id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -393,7 +393,7 @@ APIE program_get_arguments(ObjectID id, ObjectID *arguments_id) {
 
 	*arguments_id = program->arguments->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -402,14 +402,14 @@ APIE program_set_environment(ObjectID id, ObjectID environment_id) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 	List *environment;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	// occupy new environment list object
 	error_code = list_occupy(environment_id, OBJECT_TYPE_STRING, &environment);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -421,7 +421,7 @@ APIE program_set_environment(ObjectID id, ObjectID environment_id) {
 	// store new environment list object
 	program->environment = environment;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -429,7 +429,7 @@ APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
 	Program *program;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)&program);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -437,5 +437,5 @@ APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
 
 	*environment_id = program->environment->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }

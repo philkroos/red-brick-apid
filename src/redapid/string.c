@@ -52,7 +52,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	++reserve; // one extra byte for the NULL-terminator
 
 	if (reserve <= string->allocated) {
-		return API_E_OK;
+		return API_E_SUCCESS;
 	}
 
 	allocated = GROW_ALLOCATION(reserve);
@@ -68,7 +68,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	string->buffer = buffer;
 	string->allocated = allocated;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 static APIE string_create(uint32_t reserve, uint16_t create_flags, String **string) {
@@ -114,7 +114,7 @@ static APIE string_create(uint32_t reserve, uint16_t create_flags, String **stri
 	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, create_flags,
 	                           (ObjectDestroyFunction)string_destroy);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
@@ -132,7 +132,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 3 ? API_E_OK : error_code;
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -147,7 +147,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 
 	error_code = string_create(reserve, OBJECT_CREATE_FLAG_EXTERNAL, &string);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -158,7 +158,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 
 	*id = string->base.id;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id, String **object) {
@@ -174,7 +174,7 @@ APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id, String **obj
 
 	error_code = string_create(length, create_flags, &string);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -199,7 +199,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 	String *string;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -214,7 +214,7 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 		string->buffer[string->length] = '\0';
 	}
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -222,13 +222,13 @@ APIE string_get_length(ObjectID id, uint32_t *length) {
 	String *string;
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
 	*length = string->length;
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -238,7 +238,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	uint32_t length;
 	uint32_t i;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
@@ -264,14 +264,14 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	if (length == 0) {
-		return API_E_OK;
+		return API_E_SUCCESS;
 	}
 
 	// reallocate if necessary
 	if (offset + length > string->allocated) {
 		error_code = string_reserve(string, offset + length);
 
-		if (error_code != API_E_OK) {
+		if (error_code != API_E_SUCCESS) {
 			return error_code;
 		}
 	}
@@ -291,7 +291,7 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	log_debug("Setting %u byte(s) at offset %u of string object (id: %u)",
 	          length, offset, id);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -300,7 +300,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)&string);
 	uint32_t length;
 
-	if (error_code != API_E_OK) {
+	if (error_code != API_E_SUCCESS) {
 		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
 		return error_code;
@@ -326,7 +326,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	if (length == 0) {
 		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
-		return API_E_OK;
+		return API_E_SUCCESS;
 	}
 
 	if (length > STRING_MAX_GET_CHUNK_BUFFER_LENGTH) {
@@ -339,7 +339,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	log_debug("Getting %u byte(s) at offset %u of string object (id: %u)",
 	          length, offset, id);
 
-	return API_E_OK;
+	return API_E_SUCCESS;
 }
 
 APIE string_occupy(ObjectID id, String **string) {
