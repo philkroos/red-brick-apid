@@ -287,7 +287,7 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	Inventory *inventory;
 	APIE error_code;
 
-	if (!object_is_type_valid(type)) {
+	if (!object_is_valid_type(type)) {
 		log_warn("Invalid object type %d", type);
 
 		return API_E_INVALID_PARAMETER;

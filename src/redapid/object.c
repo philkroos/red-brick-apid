@@ -74,7 +74,7 @@ const char *object_get_type_name(ObjectType type) {
 	}
 }
 
-bool object_is_type_valid(ObjectType type) {
+bool object_is_valid_type(ObjectType type) {
 	switch (type) {
 	case OBJECT_TYPE_INVENTORY:
 	case OBJECT_TYPE_STRING:

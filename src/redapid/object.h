@@ -63,7 +63,7 @@ struct _Object {
 };
 
 const char *object_get_type_name(ObjectType type);
-bool object_is_type_valid(ObjectType type);
+bool object_is_valid_type(ObjectType type);
 
 APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
                    ObjectDestroyFunction destroy);
