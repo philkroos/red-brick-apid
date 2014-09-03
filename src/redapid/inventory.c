@@ -25,15 +25,6 @@
  * shared between all object types. this means that there can be at most 64k
  * objects in the system and that each object ID can be in use at most once at
  * the same time.
- *
- * the system keeps track of object IDs in multiple arrays. initially the
- * objects and free_ids arrays are empty and next_id is 0. when acquiring
- * a object ID the system checks if free_ids is not empty. in this case a
- * object ID is removed from this array and returned. if free_ids is empty
- * (no object ID has been released yet) then next_id is check. if it's greater
- * than or equal to 0, then there still object IDs that have never been
- * acquired and next_id is returned and increased. if a object ID is released
- * it is added to the free_ids array to be acquired again.
  */
 
 #include <errno.h>
@@ -56,9 +47,8 @@ typedef struct {
 	int index;
 } Inventory;
 
-static int _next_id = 0;
+static ObjectID _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
-static Array _free_ids;
 
 static void inventory_destroy(Inventory *inventory) {
 	free(inventory);
@@ -72,17 +62,49 @@ static void inventory_destroy_object(Object **object) {
 	object_destroy(*object);
 }
 
+static APIE inventory_get_next_id(ObjectID *id) {
+	int i;
+	ObjectID candidate;
+	bool collision;
+	int type;
+	int k;
+	Object *object;
+
+	// FIXME: this is an O(n^2) algorithm
+	for (i = 0; i < UINT16_MAX; ++i) {
+		candidate = _next_id++;
+		collision = false;
+
+		for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
+			for (k = 0; k < _objects[type].count; ++k) {
+				object = *(Object **)array_get(&_objects[type], k);
+
+				if (candidate == object->id) {
+					collision = true;
+
+					break;
+				}
+			}
+
+			if (collision) {
+				break;
+			}
+		}
+
+		if (!collision) {
+			*id = candidate;
+
+			return API_E_SUCCESS;
+		}
+	}
+
+	return API_E_NO_FREE_OBJECT_ID;
+}
+
 int inventory_init(void) {
 	int type;
 
 	log_debug("Initializing inventory subsystem");
-
-	if (array_create(&_free_ids, 32, sizeof(ObjectID), true) < 0) {
-		log_error("Could not create free object ID array: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		return -1;
-	}
 
 	// allocate object arrays
 	for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
@@ -93,8 +115,6 @@ int inventory_init(void) {
 			for (--type; type >= OBJECT_TYPE_INVENTORY; --type) {
 				array_destroy(&_objects[type], (ItemDestroyFunction)inventory_destroy_object);
 			}
-
-			array_destroy(&_free_ids, NULL);
 
 			return -1;
 		}
@@ -116,24 +136,21 @@ void inventory_exit(void) {
 	// ...before destroying the remaining string objects...
 	array_destroy(&_objects[OBJECT_TYPE_STRING], (ItemDestroyFunction)inventory_destroy_object);
 
-	// ...before destroying the inventory objects...
+	// ...before destroying the inventory objects
 	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], (ItemDestroyFunction)inventory_destroy_object);
-
-	// ...before destroying the free IDs array
-	array_destroy(&_free_ids, NULL);
 }
 
 APIE inventory_add_object(Object *object) {
 	Object **object_ptr;
 	APIE error_code;
-	int last;
 
-	if (_free_ids.count == 0 && _next_id > OBJECT_ID_MAX) {
-		// all valid object IDs are acquired
+	error_code = inventory_get_next_id(&object->id);
+
+	if (error_code != API_E_SUCCESS) {
 		log_warn("Cannot add new %s object, all object IDs are in use",
 		         object_get_type_name(object->type));
 
-		return API_E_NO_FREE_OBJECT_ID;
+		return error_code;
 	}
 
 	object_ptr = array_append(&_objects[object->type]);
@@ -150,15 +167,6 @@ APIE inventory_add_object(Object *object) {
 
 	*object_ptr = object;
 
-	if (_free_ids.count > 0) {
-		last = _free_ids.count - 1;
-		object->id = *(ObjectID *)array_get(&_free_ids, last);
-
-		array_remove(&_free_ids, last, NULL);
-	} else {
-		object->id = _next_id++;
-	}
-
 	log_debug("Added %s object (id: %u)",
 	          object_get_type_name(object->type), object->id);
 
@@ -168,7 +176,6 @@ APIE inventory_add_object(Object *object) {
 void inventory_remove_object(Object *object) {
 	int i;
 	Object **candidate;
-	ObjectID *free_id;
 	Inventory **inventory;
 	int k;
 
@@ -177,22 +184,6 @@ void inventory_remove_object(Object *object) {
 
 		if (*candidate != object) {
 			continue;
-		}
-
-		// adjust next-object-ID or add it to the array of free object IDs
-		if (_next_id < OBJECT_ID_MAX && object->id == _next_id - 1) {
-			--_next_id;
-		} else {
-			free_id = array_append(&_free_ids);
-
-			if (free_id == NULL) {
-				log_error("Could not append to free object ID array: %s (%d)",
-				          get_errno_name(errno), errno);
-
-				return;
-			}
-
-			*free_id = object->id;
 		}
 
 		// adjust next-entry-index
