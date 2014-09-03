@@ -175,23 +175,23 @@ APIE inventory_add_object(Object *object) {
 
 void inventory_remove_object(Object *object) {
 	int i;
-	Object **candidate;
-	Inventory **inventory;
+	Object *candidate;
+	Inventory *inventory;
 	int k;
 
 	for (i = 0; i < _objects[object->type].count; ++i) {
-		candidate = array_get(&_objects[object->type], i);
+		candidate = *(Object **)array_get(&_objects[object->type], i);
 
-		if (*candidate != object) {
+		if (candidate != object) {
 			continue;
 		}
 
 		// adjust next-entry-index
 		for (k = 0; k < _objects[OBJECT_TYPE_INVENTORY].count; ++k) {
-			inventory = array_get(&_objects[OBJECT_TYPE_INVENTORY], k);
+			inventory = *(Inventory **)array_get(&_objects[OBJECT_TYPE_INVENTORY], k);
 
-			if ((*inventory)->type == object->type && (*inventory)->index > i) {
-				--(*inventory)->index;
+			if (inventory->type == object->type && inventory->index > i) {
+				--inventory->index;
 			}
 		}
 
@@ -211,14 +211,14 @@ void inventory_remove_object(Object *object) {
 APIE inventory_get_object(ObjectID id, Object **object) {
 	int type;
 	int i;
-	Object **candidate;
+	Object *candidate;
 
 	for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
 		for (i = 0; i < _objects[type].count; ++i) {
-			candidate = array_get(&_objects[type], i);
+			candidate = *(Object **)array_get(&_objects[type], i);
 
-			if ((*candidate)->id == id) {
-				*object = *candidate;
+			if (candidate->id == id) {
+				*object = candidate;
 
 				return API_E_SUCCESS;
 			}
@@ -232,13 +232,13 @@ APIE inventory_get_object(ObjectID id, Object **object) {
 
 APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
 	int i;
-	Object **candidate;
+	Object *candidate;
 
 	for (i = 0; i < _objects[type].count; ++i) {
-		candidate = array_get(&_objects[type], i);
+		candidate = *(Object **)array_get(&_objects[type], i);
 
-		if ((*candidate)->id == id) {
-			*object = *candidate;
+		if (candidate->id == id) {
+			*object = candidate;
 
 			return API_E_SUCCESS;
 		}
@@ -333,7 +333,7 @@ APIE inventory_get_type(ObjectID id, uint8_t *type) {
 APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 	Inventory *inventory;
 	APIE error_code = inventory_get(id, &inventory);
-	Object **object;
+	Object *object;
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -346,11 +346,11 @@ APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 		return API_E_NO_MORE_DATA;
 	}
 
-	object = array_get(&_objects[inventory->type], inventory->index++);
+	object = *(Object **)array_get(&_objects[inventory->type], inventory->index++);
 
-	object_add_external_reference(*object);
+	object_add_external_reference(object);
 
-	*object_id = (*object)->id;
+	*object_id = object->id;
 
 	return API_E_SUCCESS;
 }
