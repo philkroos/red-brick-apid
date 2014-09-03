@@ -35,8 +35,11 @@
 #include "process.h"
 #include "program.h"
 #include "string.h"
+#include "version.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
+
+#define RED_BRICK_DEVICE_IDENTIFIER 17
 
 // ensure that bool values in the packet definitions follow the TFP definition
 // of a bool and don't rely on stdbool.h to fulfill this
@@ -870,6 +873,24 @@ typedef struct {
 	uint16_t file_name_string_id;
 } ATTRIBUTE_PACKED GetProgramStdioFileNameResponse;
 
+//
+// misc
+//
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED GetIdentityRequest;
+
+typedef struct {
+	PacketHeader header;
+	char uid[8];
+	char connected_uid[8];
+	char position;
+	uint8_t hardware_version[3];
+	uint8_t firmware_version[3];
+	uint16_t device_identifier;
+} ATTRIBUTE_PACKED GetIdentityResponse;
+
 #include <daemonlib/packed_end.h>
 
 //
@@ -1276,6 +1297,29 @@ FORWARD_FUNCTION(GetProgramStdioFileName, get_program_stdio_file_name, {
 	                                                  &response.file_name_string_id);
 })
 
+//
+// misc
+//
+
+static void api_get_identity(GetIdentityRequest *request) {
+	GetIdentityResponse response;
+
+	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
+
+	base58_encode(response.uid, uint32_from_le(_uid));
+	strcpy(response.connected_uid, "0");
+	response.position = '0';
+	response.hardware_version[0] = 1; // FIXME
+	response.hardware_version[1] = 0;
+	response.hardware_version[2] = 0;
+	response.firmware_version[0] = VERSION_MAJOR;
+	response.firmware_version[1] = VERSION_MINOR;
+	response.firmware_version[2] = VERSION_RELEASE;
+	response.device_identifier = RED_BRICK_DEVICE_IDENTIFIER;
+
+	network_dispatch_response((Packet *)&response);
+}
+
 #undef FORWARD_FUNCTION
 
 //
@@ -1412,6 +1456,9 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_FILE_NAME,   SetProgramStdioFileName,    set_program_stdio_file_name)
 	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_FILE_NAME,   GetProgramStdioFileName,    get_program_stdio_file_name)
 
+	// misc
+	DISPATCH_FUNCTION(GET_IDENTITY,                  GetIdentity,                get_identity)
+
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
 
@@ -1527,6 +1574,9 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_PROGRAM_STDIO_OPTION:      return "get-program-stdio-option";
 	case FUNCTION_SET_PROGRAM_STDIO_FILE_NAME:   return "set-program-stdio-file-name";
 	case FUNCTION_GET_PROGRAM_STDIO_FILE_NAME:   return "get-program-stdio-file-name";
+
+	// misc
+	case FUNCTION_GET_IDENTITY:                  return "get-identity";
 
 	default:                                     return "<unknown>";
 	}
