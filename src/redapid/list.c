@@ -171,7 +171,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 	}
 
 	if (list->base.usage_count > 0) {
-		log_warn("Cannot append item (id: %u) to list object (id: %u) in use",
+		log_warn("Cannot append item (id: %u) to list object (id: %u) while it is used",
 		         item_id, id);
 
 		return API_E_OBJECT_IN_USE;
@@ -218,7 +218,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 	}
 
 	if (list->base.usage_count > 0) {
-		log_warn("Cannot remove item (index: %u) from list object (id: %u) in use",
+		log_warn("Cannot remove item (index: %u) from list object (id: %u) while it is used",
 		         index, id);
 
 		return API_E_OBJECT_IN_USE;
