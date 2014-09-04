@@ -617,6 +617,14 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	phase = 1;
 
+	if (*name->buffer != '/') {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Cannot open/create relative file '%s'", name->buffer);
+
+		goto cleanup;
+	}
+
 	// open file
 	if (geteuid() == user_id && getegid() == group_id) {
 		fd = open(name->buffer, open_flags, open_mode);
@@ -1258,6 +1266,13 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 		return error_code;
 	}
 
+	if (*name->buffer != '/') {
+		log_warn("Cannot get information for relative file '%s'",
+		         name->buffer);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
 	if (follow_symlink) {
 		rc = stat(name->buffer, &st);
 	} else {
@@ -1316,6 +1331,12 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
+	}
+
+	if (*name->buffer != '/') {
+		log_warn("Cannot get target of relative symlink '%s'", name->buffer);
+
+		return API_E_INVALID_PARAMETER;
 	}
 
 	if (canonicalize) {

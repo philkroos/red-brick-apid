@@ -65,16 +65,11 @@ static APIE directory_get(ObjectID id, Directory **directory) {
 	return inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)directory);
 }
 
+// NOTE: assumes that name is absolute (starts with '/')
 static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 	char *p;
 	struct stat st;
 	APIE error_code;
-
-	if (*name != '/') {
-		log_warn("Cannot create relative directory '%s'", name);
-
-		return API_E_INVALID_PARAMETER;
-	}
 
 	if (mkdir(name, mode) < 0) {
 		if (errno == ENOENT) {
@@ -145,6 +140,12 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 	pid_t pid;
 	int rc;
 	int status;
+
+	if (*name != '/') {
+		log_warn("Cannot create relative directory '%s'", name);
+
+		return API_E_INVALID_PARAMETER;
+	}
 
 	if ((permissions & ~FILE_PERMISSION_ALL) != 0) {
 		log_warn("Invalid file permissions %04o", permissions);
@@ -252,6 +253,14 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	}
 
 	phase = 1;
+
+	if (*name->buffer != '/') {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Cannot open relative directory '%s'", name->buffer);
+
+		goto cleanup;
+	}
 
 	// check name string length
 	if (name->length > MAX_NAME_LENGTH) {
@@ -421,7 +430,6 @@ APIE directory_rewind(ObjectID id) {
 
 	return API_E_SUCCESS;
 }
-
 
 // public API
 APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
