@@ -38,11 +38,12 @@ typedef enum { // bitmask
 	FILE_FLAG_READ_WRITE     = 0x0004,
 	FILE_FLAG_APPEND         = 0x0008,
 	FILE_FLAG_CREATE         = 0x0010,
-	FILE_FLAG_EXCLUSIVE      = 0x0020, // can only be used in combination with FILE_FLAG_CREATE
+	FILE_FLAG_EXCLUSIVE      = 0x0020,
 	FILE_FLAG_NO_ACCESS_TIME = 0x0040,
 	FILE_FLAG_NO_FOLLOW      = 0x0080,
 	FILE_FLAG_NON_BLOCKING   = 0x0100,
-	FILE_FLAG_TRUNCATE       = 0x0200
+	FILE_FLAG_TRUNCATE       = 0x0200,
+	FILE_FLAG_TEMPORARY      = 0x0400 // can only be used in combination with FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE
 } FileFlag;
 
 #define FILE_FLAG_ALL (FILE_FLAG_READ_ONLY | \
@@ -54,7 +55,8 @@ typedef enum { // bitmask
                        FILE_FLAG_NO_ACCESS_TIME | \
                        FILE_FLAG_NO_FOLLOW | \
                        FILE_FLAG_NON_BLOCKING | \
-                       FILE_FLAG_TRUNCATE)
+                       FILE_FLAG_TRUNCATE | \
+                       FILE_FLAG_TEMPORARY)
 
 #define PIPE_FLAG_ALL (PIPE_FLAG_NON_BLOCKING_READ | \
                        PIPE_FLAG_NON_BLOCKING_WRITE)

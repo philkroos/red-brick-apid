@@ -454,6 +454,11 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_FILE_FLAG_TEMPORARY 1024
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_FILE_PERMISSION_USER_ALL 448
 
 /**
@@ -924,6 +929,8 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * Opens an existing file or creates a new file and allocates a new file object
  * for it.
  * 
+ * FIXME: name has to be absolute
+ * 
  * The reference count of the name string object is increased by one. When the
  * file object gets destroyed then the reference count of the name string object is
  * decreased by one. Also the name string object is locked and cannot be modified
@@ -942,6 +949,9 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * * NoFollow = 0x0080 (O_NOFOLLOW)
  * * NonBlocking = 0x0100 (O_NONBLOCK)
  * * Truncate = 0x0200 (O_TRUNC)
+ * * Temporary = 0x0400
+ * 
+ * FIXME: explain *Temporary* flag
  * 
  * The ``permissions`` parameter takes a ORed combination of the following
  * possible file permissions (in octal notation) that match the common UNIX
@@ -1130,6 +1140,8 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
  *
  * Returns various information about a file and the resulting error code.
  * 
+ * FIXME: name has to be absolute
+ * 
  * The information is obtained via the
  * `stat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
  * function. If ``follow_symlink`` is *false* then the
@@ -1146,6 +1158,8 @@ int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, ui
  *
  * Returns the target of a symbolic link and the resulting error code.
  * 
+ * FIXME: name has to be absolute
+ * 
  * If ``canonicalize`` is *false* then the target of the symbolic link is resolved
  * one level via the
  * `readlink() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/readlink.html>`__
@@ -1159,6 +1173,8 @@ int red_get_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize,
  * \ingroup BrickRED
  *
  * Opens an existing directory and allocates a new directory object for it.
+ * 
+ * FIXME: name has to be absolute
  * 
  * The reference count of the name string object is increased by one. When the
  * directory object is destroyed then the reference count of the name string
@@ -1199,7 +1215,7 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: name has to be absolute
  */
 int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code);
 
@@ -1411,7 +1427,7 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: file name has to be absolute
  */
 int red_set_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint16_t file_name_string_id, uint8_t *ret_error_code);
 

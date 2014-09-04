@@ -171,6 +171,11 @@ static void file_destroy(Object *object) {
 			pipe_destroy(&file->async_read_pipe);
 		}
 
+		// unlink before close, this is safe on POSIX systems
+		if ((file->flags & FILE_FLAG_TEMPORARY) != 0) {
+			unlink(file->name->buffer);
+		}
+
 		close(file->fd);
 	}
 
@@ -610,6 +615,15 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	// translate flags
 	oflags |= file_get_oflags_from_flags(flags);
 
+	if ((flags & FILE_FLAG_TEMPORARY) != 0 &&
+	    ((flags & FILE_FLAG_CREATE) == 0 || (flags & FILE_FLAG_EXCLUSIVE) == 0)) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("FILE_FLAG_TEMPORARY specified without using FILE_FLAG_CREATE and FILE_FLAG_EXCLUSIVE");
+
+		goto cleanup;
+	}
+
 	// translate create permissions
 	if ((flags & FILE_FLAG_CREATE) != 0) {
 		mode |= file_get_mode_from_permissions(permissions);
@@ -726,7 +740,10 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	*id = file->base.id;
 
-	if ((flags & FILE_FLAG_CREATE) != 0) {
+	if ((flags & FILE_FLAG_TEMPORARY) != 0) {
+		log_debug("Created temporary file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, user-id: %u, group-id: %u, handle: %d)",
+		          file_expand_signature(file), permissions, user_id, group_id, fd);
+	} else if ((flags & FILE_FLAG_CREATE) != 0) {
 		log_debug("Opened/Created file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, user-id: %u, group-id: %u, handle: %d)",
 		          file_expand_signature(file), permissions, user_id, group_id, fd);
 	} else {
