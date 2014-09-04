@@ -113,8 +113,8 @@ typedef enum {
 	FUNCTION_GET_PROGRAM_ARGUMENTS,
 	FUNCTION_SET_PROGRAM_ENVIRONMENT,
 	FUNCTION_GET_PROGRAM_ENVIRONMENT,
-	FUNCTION_SET_PROGRAM_STDIO_OPTION,
-	FUNCTION_GET_PROGRAM_STDIO_OPTION,
+	FUNCTION_SET_PROGRAM_STDIO_REDIRECTION,
+	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION,
 	FUNCTION_SET_PROGRAM_STDIO_FILE_NAME,
 	FUNCTION_GET_PROGRAM_STDIO_FILE_NAME
 } APIFunctionID;
@@ -829,25 +829,25 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint8_t stdio;
-	uint8_t option;
-} ATTRIBUTE_PACKED SetProgramStdioOptionRequest;
+	uint8_t redirection;
+} ATTRIBUTE_PACKED SetProgramStdioRedirectionRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-} ATTRIBUTE_PACKED SetProgramStdioOptionResponse;
+} ATTRIBUTE_PACKED SetProgramStdioRedirectionResponse;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint8_t stdio;
-} ATTRIBUTE_PACKED GetProgramStdioOptionRequest;
+} ATTRIBUTE_PACKED GetProgramStdioRedirectionRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t option;
-} ATTRIBUTE_PACKED GetProgramStdioOptionResponse;
+	uint8_t redirection;
+} ATTRIBUTE_PACKED GetProgramStdioRedirectionResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -1273,16 +1273,16 @@ FORWARD_FUNCTION(GetProgramEnvironment, get_program_environment, {
 	                                              &response.environment_list_id);
 })
 
-FORWARD_FUNCTION(SetProgramStdioOption, set_program_stdio_option, {
-	response.error_code = program_set_stdio_option(request->program_id,
-	                                               request->stdio,
-	                                               request->option);
+FORWARD_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection, {
+	response.error_code = program_set_stdio_redirection(request->program_id,
+	                                                    request->stdio,
+	                                                    request->redirection);
 })
 
-FORWARD_FUNCTION(GetProgramStdioOption, get_program_stdio_option, {
-	response.error_code = program_get_stdio_option(request->program_id,
-	                                               request->stdio,
-	                                               &response.option);
+FORWARD_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
+	response.error_code = program_get_stdio_redirection(request->program_id,
+	                                                    request->stdio,
+	                                                    &response.redirection);
 })
 
 FORWARD_FUNCTION(SetProgramStdioFileName, set_program_stdio_file_name, {
@@ -1451,8 +1451,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROGRAM_ARGUMENTS,         GetProgramArguments,        get_program_arguments)
 	DISPATCH_FUNCTION(SET_PROGRAM_ENVIRONMENT,       SetProgramEnvironment,      set_program_environment)
 	DISPATCH_FUNCTION(GET_PROGRAM_ENVIRONMENT,       GetProgramEnvironment,      get_program_environment)
-	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_OPTION,      SetProgramStdioOption,      set_program_stdio_option)
-	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_OPTION,      GetProgramStdioOption,      get_program_stdio_option)
+	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_REDIRECTION, SetProgramStdioRedirection, set_program_stdio_redirection)
+	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_REDIRECTION, GetProgramStdioRedirection, get_program_stdio_redirection)
 	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_FILE_NAME,   SetProgramStdioFileName,    set_program_stdio_file_name)
 	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_FILE_NAME,   GetProgramStdioFileName,    get_program_stdio_file_name)
 
@@ -1570,8 +1570,8 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_PROGRAM_ARGUMENTS:         return "get-program-arguments";
 	case FUNCTION_SET_PROGRAM_ENVIRONMENT:       return "set-program-environment";
 	case FUNCTION_GET_PROGRAM_ENVIRONMENT:       return "get-program-environment";
-	case FUNCTION_SET_PROGRAM_STDIO_OPTION:      return "set-program-stdio-option";
-	case FUNCTION_GET_PROGRAM_STDIO_OPTION:      return "get-program-stdio-option";
+	case FUNCTION_SET_PROGRAM_STDIO_REDIRECTION: return "set-program-stdio-redirection";
+	case FUNCTION_GET_PROGRAM_STDIO_REDIRECTION: return "get-program-stdio-redirection";
 	case FUNCTION_SET_PROGRAM_STDIO_FILE_NAME:   return "set-program-stdio-file-name";
 	case FUNCTION_GET_PROGRAM_STDIO_FILE_NAME:   return "get-program-stdio-file-name";
 
@@ -1821,10 +1821,10 @@ enum program_stdio {
 	PROGRAM_STDIO_ERROR
 }
 
-enum program_stdio_option {
-	PROGRAM_STDIO_OPTION_NULL = 0,
-	PROGRAM_STDIO_OPTION_PIPE,
-	PROGRAM_STDIO_OPTION_FILE
+enum program_stdio_redirection {
+	PROGRAM_STDIO_REDIRECTION_DEV_NULL = 0,
+	PROGRAM_STDIO_REDIRECTION_PIPE,
+	PROGRAM_STDIO_REDIRECTION_FILE
 }
 
 enum program_schedule_type {
@@ -1848,11 +1848,11 @@ enum program_schedule_type {
 + set_program_environment         (uint16_t program_id,
                                    uint16_t environment_list_id)  -> uint8_t error_code
 + get_program_environment         (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
-+ set_program_stdio_option        (uint16_t program_id,
++ set_program_stdio_redirection   (uint16_t program_id,
                                    uint8_t stdio,
-                                   uint8_t option)                -> uint8_t error_code
-+ get_program_stdio_option        (uint16_t program_id,
-                                   uint8_t stdio)                 -> uint8_t error_code, uint8_t option
+                                   uint8_t redirection)           -> uint8_t error_code
++ get_program_stdio_redirection   (uint16_t program_id,
+                                   uint8_t stdio)                 -> uint8_t error_code, uint8_t redirection
 + set_program_stdio_file_name     (uint16_t program_id,
                                    uint8_t stdio,
                                    uint16_t file_name_string_id)  -> uint8_t error_code

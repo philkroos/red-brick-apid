@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-03.      *
+ * This file was automatically generated on 2014-09-04.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -316,12 +316,12 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_OPTION 61
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 61
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_OPTION 62
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 62
 
 /**
  * \ingroup BrickRED
@@ -669,17 +669,17 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_STDIO_OPTION_NULL 0
+#define RED_PROGRAM_STDIO_REDIRECTION_DEV_NULL 0
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_STDIO_OPTION_PIPE 1
+#define RED_PROGRAM_STDIO_REDIRECTION_PIPE 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_STDIO_OPTION_FILE 2
+#define RED_PROGRAM_STDIO_REDIRECTION_FILE 2
 
 /**
  * \ingroup BrickRED
@@ -1399,14 +1399,14 @@ int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_erro
  *
  * 
  */
-int red_set_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, uint8_t option, uint8_t *ret_error_code);
+int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t redirection, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_option);
+int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_redirection);
 
 /**
  * \ingroup BrickRED

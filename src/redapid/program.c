@@ -70,11 +70,11 @@ static bool program_is_valid_stdio(ProgramStdio stdio) {
 	}
 }
 
-static bool program_is_valid_stdio_option(ProgramStdioOption option) {
-	switch (option) {
-	case PROGRAM_STDIO_OPTION_NULL:
-	case PROGRAM_STDIO_OPTION_PIPE:
-	case PROGRAM_STDIO_OPTION_FILE:
+static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirection) {
+	switch (redirection) {
+	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
+	case PROGRAM_STDIO_REDIRECTION_PIPE:
+	case PROGRAM_STDIO_REDIRECTION_FILE:
 		return true;
 
 	default:
@@ -272,9 +272,9 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->command = command;
 	program->arguments = arguments;
 	program->environment = environment;
-	program->stdio_options[PROGRAM_STDIO_INPUT] = PROGRAM_STDIO_OPTION_NULL;
-	program->stdio_options[PROGRAM_STDIO_OUTPUT] = PROGRAM_STDIO_OPTION_NULL;
-	program->stdio_options[PROGRAM_STDIO_ERROR] = PROGRAM_STDIO_OPTION_NULL;
+	program->stdio_redirections[PROGRAM_STDIO_INPUT] = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->stdio_redirections[PROGRAM_STDIO_OUTPUT] = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->stdio_redirections[PROGRAM_STDIO_ERROR] = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	program->stdio_file_names[PROGRAM_STDIO_INPUT] = stdin_file_name;
 	program->stdio_file_names[PROGRAM_STDIO_OUTPUT] = stdout_file_name;
 	program->stdio_file_names[PROGRAM_STDIO_ERROR] = stderr_file_name;
@@ -524,8 +524,8 @@ APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
 }
 
 // public API
-APIE program_set_stdio_option(ObjectID id, ProgramStdio stdio,
-                              ProgramStdioOption option) {
+APIE program_set_stdio_redirection(ObjectID id, ProgramStdio stdio,
+                                   ProgramStdioRedirection redirection) {
 	Program *program;
 	APIE error_code = program_get(id, &program);
 
@@ -539,19 +539,20 @@ APIE program_set_stdio_option(ObjectID id, ProgramStdio stdio,
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (!program_is_valid_stdio_option(option)) {
-		log_warn("Invalid program stdio option %d", option);
+	if (!program_is_valid_stdio_redirection(redirection)) {
+		log_warn("Invalid program stdio redirection %d", redirection);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	program->stdio_options[stdio] = option;
+	program->stdio_redirections[stdio] = redirection;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE program_get_stdio_option(ObjectID id, ProgramStdio stdio, uint8_t *option) {
+APIE program_get_stdio_redirection(ObjectID id, ProgramStdio stdio,
+                                   uint8_t *redirection) {
 	Program *program;
 	APIE error_code = program_get(id, &program);
 
@@ -565,7 +566,7 @@ APIE program_get_stdio_option(ObjectID id, ProgramStdio stdio, uint8_t *option) 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	*option = program->stdio_options[stdio];
+	*redirection = program->stdio_redirections[stdio];
 
 	return API_E_SUCCESS;
 }

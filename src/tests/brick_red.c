@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-03.      *
+ * This file was automatically generated on 2014-09-04.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -719,25 +719,25 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint8_t stdio;
-	uint8_t option;
-} ATTRIBUTE_PACKED SetProgramStdioOption_;
+	uint8_t redirection;
+} ATTRIBUTE_PACKED SetProgramStdioRedirection_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-} ATTRIBUTE_PACKED SetProgramStdioOptionResponse_;
+} ATTRIBUTE_PACKED SetProgramStdioRedirectionResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint8_t stdio;
-} ATTRIBUTE_PACKED GetProgramStdioOption_;
+} ATTRIBUTE_PACKED GetProgramStdioRedirection_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t option;
-} ATTRIBUTE_PACKED GetProgramStdioOptionResponse_;
+	uint8_t redirection;
+} ATTRIBUTE_PACKED GetProgramStdioRedirectionResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -894,8 +894,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_OPTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_OPTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -2489,13 +2489,13 @@ int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_erro
 	return ret;
 }
 
-int red_set_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, uint8_t option, uint8_t *ret_error_code) {
+int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t redirection, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
-	SetProgramStdioOption_ request;
-	SetProgramStdioOptionResponse_ response;
+	SetProgramStdioRedirection_ request;
+	SetProgramStdioRedirectionResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_STDIO_OPTION, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2503,7 +2503,7 @@ int red_set_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, u
 
 	request.program_id = leconvert_uint16_to(program_id);
 	request.stdio = stdio;
-	request.option = option;
+	request.redirection = redirection;
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2517,13 +2517,13 @@ int red_set_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, u
 	return ret;
 }
 
-int red_get_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_option) {
+int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_redirection) {
 	DevicePrivate *device_p = red->p;
-	GetProgramStdioOption_ request;
-	GetProgramStdioOptionResponse_ response;
+	GetProgramStdioRedirection_ request;
+	GetProgramStdioRedirectionResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_STDIO_OPTION, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2538,7 +2538,7 @@ int red_get_program_stdio_option(RED *red, uint16_t program_id, uint8_t stdio, u
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_option = response.option;
+	*ret_redirection = response.redirection;
 
 
 
