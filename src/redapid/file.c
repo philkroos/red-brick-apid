@@ -320,7 +320,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create socket pair for opening file (name: %s): %s (%d)",
+		log_error("Could not create socket pair for opening file '%s': %s (%d)",
 		          name, get_errno_name(errno), errno);
 
 		return error_code;
@@ -340,7 +340,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		if (setregid(group_id, group_id) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not change to group %u for opening file (name: %s): %s (%d)",
+			log_error("Could not change to group %u for opening file '%s': %s (%d)",
 			          group_id, name, get_errno_name(errno), errno);
 
 			goto child_cleanup;
@@ -350,7 +350,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		if (setreuid(user_id, user_id) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not change to user %u for opening file (name: %s): %s (%d)",
+			log_error("Could not change to user %u for opening file '%s': %s (%d)",
 			          user_id, name, get_errno_name(errno), errno);
 
 			goto child_cleanup;
@@ -362,7 +362,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not open file (name: %s) as %u:%u: %s (%d)",
+			log_warn("Could not open file '%s' as %u:%u: %s (%d)",
 			         name, user_id, group_id, get_errno_name(errno), errno);
 
 			goto child_cleanup;
@@ -377,7 +377,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		} while (rc < 0 && errno == EINTR);
 
 		if (rc < 0) {
-			log_error("Could not send file descriptor to parent process for file (name: %s): %s (%d)",
+			log_error("Could not send file descriptor to parent process for file '%s': %s (%d)",
 			          name, get_errno_name(errno), errno);
 
 			if (fd >= 0) {
@@ -403,7 +403,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not receive file descriptor from child process opening file (name: %s) as %u:%u: %s (%d)",
+		log_error("Could not receive file descriptor from child process opening file '%s' as %u:%u: %s (%d)",
 		          name, user_id, group_id, get_errno_name(errno), errno);
 
 		// close socket pair read end in parent
@@ -426,7 +426,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not wait for child process opening file (name: %s) as %u:%u: %s (%d)",
+		log_error("Could not wait for child process opening file '%s' as %u:%u: %s (%d)",
 		          name, user_id, group_id, get_errno_name(errno), errno);
 
 		if (fd >= 0) {
@@ -438,7 +438,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 
 	// check if child exited normally
 	if (!WIFEXITED(status)) {
-		log_error("Child process opening file (name: %s) as %u:%u did not exit normally",
+		log_error("Child process opening file '%s' as %u:%u did not exit normally",
 		          name, user_id, group_id);
 
 		if (fd >= 0) {
@@ -462,7 +462,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	// check if FD is invalid after child process exited successfully. this
 	// should not be possible. the check is here just to be on the safe side
 	if (fd < 0) {
-		log_error("Child process opening file (name: %s) as %u:%u succeeded, but returned an invalid file descriptor",
+		log_error("Child process opening file '%s' as %u:%u succeeded, but returned an invalid file descriptor",
 		          name, user_id, group_id);
 
 		return API_E_INTERNAL_ERROR;
@@ -632,7 +632,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not open file (name: %s) as %u:%u: %s (%d)",
+			log_warn("Could not open file '%s' as %u:%u: %s (%d)",
 			         name->buffer, user_id, group_id, get_errno_name(errno), errno);
 
 			goto cleanup;
@@ -651,7 +651,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	if (fstat(fd, &st) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not get information for file (name: %s): %s (%d)",
+		log_error("Could not get information for file '%s': %s (%d)",
 		          name->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
@@ -1282,7 +1282,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not get information for file (name: %s): %s (%d)",
+		log_warn("Could not get information for file '%s': %s (%d)",
 		         name->buffer, get_errno_name(errno), errno);
 
 		return error_code;
@@ -1345,7 +1345,7 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 		if (target == NULL) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not get target of symlink (name: %s): %s (%d)",
+			log_warn("Could not get target of symlink '%s': %s (%d)",
 			         name->buffer, get_errno_name(errno), errno);
 
 			return error_code;
@@ -1356,7 +1356,7 @@ APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not get target of symlink (name: %s): %s (%d)",
+			log_warn("Could not get target of symlink '%s': %s (%d)",
 			         name->buffer, get_errno_name(errno), errno);
 
 			return error_code;

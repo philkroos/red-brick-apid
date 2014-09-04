@@ -179,7 +179,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 			if (setregid(group_id, group_id) < 0) {
 				error_code = api_get_error_code_from_errno();
 
-				log_error("Could not change to group %u for creating directory (name: %s): %s (%d)",
+				log_error("Could not change to group %u for creating directory '%s': %s (%d)",
 				          group_id, name, get_errno_name(errno), errno);
 
 				goto child_cleanup;
@@ -189,7 +189,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 			if (setreuid(user_id, user_id) < 0) {
 				error_code = api_get_error_code_from_errno();
 
-				log_error("Could not change to user %u for creating directory (name: %s): %s (%d)",
+				log_error("Could not change to user %u for creating directory '%s': %s (%d)",
 				          user_id, name, get_errno_name(errno), errno);
 
 				goto child_cleanup;
@@ -211,7 +211,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not wait for child process creating directory (name: %s) as %u:%u: %s (%d)",
+			log_error("Could not wait for child process creating directory '%s' as %u:%u: %s (%d)",
 			          name, user_id, group_id, get_errno_name(errno), errno);
 
 			goto cleanup;
@@ -221,7 +221,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 		if (!WIFEXITED(status)) {
 			error_code = API_E_INTERNAL_ERROR;
 
-			log_error("Child process creating directory (name: %s) as %u:%u did not exit normally",
+			log_error("Child process creating directory '%s' as %u:%u did not exit normally",
 			          name, user_id, group_id);
 
 			goto cleanup;
@@ -277,7 +277,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	if (dp == NULL) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not open directory (name: %s): %s (%d)",
+		log_warn("Could not open directory '%s': %s (%d)",
 		         name->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
@@ -374,14 +374,15 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 
 		if (dirent == NULL) {
 			if (errno == 0) {
-				log_debug("Reached end of directory object (id: %u)", id);
+				log_debug("Reached end of directory object (id: %u, name: %s)",
+				          id, directory->name->buffer);
 
 				return API_E_NO_MORE_DATA;
 			} else {
 				error_code = api_get_error_code_from_errno();
 
-				log_warn("Could not get next entry of directory object (id: %u): %s (%d)",
-				         id, get_errno_name(errno), errno);
+				log_warn("Could not get next entry of directory object (id: %u, name: %s): %s (%d)",
+				         id, directory->name->buffer, get_errno_name(errno), errno);
 
 				return error_code;
 			}
