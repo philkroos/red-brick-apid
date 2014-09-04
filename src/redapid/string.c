@@ -33,7 +33,9 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-static void string_destroy(String *string) {
+static void string_destroy(Object *object) {
+	String *string = (String *)object;
+
 	free(string->buffer);
 
 	free(string);
@@ -111,8 +113,8 @@ static APIE string_create(uint32_t reserve, uint16_t create_flags, String **stri
 	(*string)->length = 0;
 	(*string)->allocated = allocated;
 
-	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING, create_flags,
-	                           (ObjectDestroyFunction)string_destroy);
+	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING,
+	                           create_flags, string_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

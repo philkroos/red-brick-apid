@@ -50,7 +50,9 @@ typedef struct {
 static ObjectID _next_id = 0;
 static Array _objects[MAX_OBJECT_TYPES];
 
-static void inventory_destroy(Inventory *inventory) {
+static void inventory_destroy(Object *object) {
+	Inventory *inventory = (Inventory *)object;
+
 	free(inventory);
 }
 
@@ -58,8 +60,10 @@ static APIE inventory_get(ObjectID id, Inventory **inventory) {
 	return inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)inventory);
 }
 
-static void inventory_destroy_object(Object **object) {
-	object_destroy(*object);
+static void inventory_destroy_object(void *item) {
+	Object *object = *(Object **)item;
+
+	object_destroy(object);
 }
 
 static APIE inventory_get_next_id(ObjectID *id) {
@@ -113,7 +117,7 @@ int inventory_init(void) {
 			          object_get_type_name(type), get_errno_name(errno), errno);
 
 			for (--type; type >= OBJECT_TYPE_INVENTORY; --type) {
-				array_destroy(&_objects[type], (ItemDestroyFunction)inventory_destroy_object);
+				array_destroy(&_objects[type], inventory_destroy_object);
 			}
 
 			return -1;
@@ -127,17 +131,17 @@ void inventory_exit(void) {
 	log_debug("Shutting down inventory subsystem");
 
 	// destroy all objects that could have references to string objects...
-	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], (ItemDestroyFunction)inventory_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_PROCESS], (ItemDestroyFunction)inventory_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], (ItemDestroyFunction)inventory_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_FILE], (ItemDestroyFunction)inventory_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_LIST], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_PROCESS], inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_FILE], inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_LIST], inventory_destroy_object);
 
 	// ...before destroying the remaining string objects...
-	array_destroy(&_objects[OBJECT_TYPE_STRING], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_STRING], inventory_destroy_object);
 
 	// ...before destroying the inventory objects
-	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], (ItemDestroyFunction)inventory_destroy_object);
+	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], inventory_destroy_object);
 }
 
 APIE inventory_add_object(Object *object) {
@@ -199,7 +203,7 @@ void inventory_remove_object(Object *object) {
 		          object_get_type_name(object->type), object->id);
 
 		// remove object from array
-		array_remove(&_objects[object->type], i, (ItemDestroyFunction)inventory_destroy_object);
+		array_remove(&_objects[object->type], i, inventory_destroy_object);
 
 		return;
 	}
@@ -298,8 +302,7 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	inventory->index = 0;
 
 	error_code = object_create(&inventory->base, OBJECT_TYPE_INVENTORY,
-	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           (ObjectDestroyFunction)inventory_destroy);
+	                           OBJECT_CREATE_FLAG_EXTERNAL, inventory_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		free(inventory);

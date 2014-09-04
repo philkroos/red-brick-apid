@@ -33,12 +33,16 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-static void list_vacate_item(Object **item) {
-	object_vacate(*item);
+static void list_vacate_item(void *item) {
+	Object *object = *(Object **)item;
+
+	object_vacate(object);
 }
 
-static void list_destroy(List *list) {
-	array_destroy(&list->items, (ItemDestroyFunction)list_vacate_item);
+static void list_destroy(Object *object) {
+	List *list = (List *)object;
+
+	array_destroy(&list->items, list_vacate_item);
 
 	free(list);
 }
@@ -76,8 +80,8 @@ APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **o
 
 	phase = 2;
 
-	error_code = object_create(&list->base, OBJECT_TYPE_LIST, create_flags,
-	                           (ObjectDestroyFunction)list_destroy);
+	error_code = object_create(&list->base, OBJECT_TYPE_LIST,
+	                           create_flags, list_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -96,7 +100,7 @@ APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **o
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 2:
-		array_destroy(&list->items, (ItemDestroyFunction)list_vacate_item);
+		array_destroy(&list->items, list_vacate_item);
 
 	case 1:
 		free(list);
@@ -231,7 +235,7 @@ APIE list_remove_from(ObjectID id, uint16_t index) {
 		return API_E_OUT_OF_RANGE;
 	}
 
-	array_remove(&list->items, index, (ItemDestroyFunction)list_vacate_item);
+	array_remove(&list->items, index, list_vacate_item);
 
 	return API_E_SUCCESS;
 }

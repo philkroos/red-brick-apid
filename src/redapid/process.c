@@ -51,7 +51,8 @@ typedef struct {
 	bool fatal;
 } ProcessStateChange;
 
-static void process_destroy(Process *process) {
+static void process_destroy(Object *object) {
+	Process *process = (Process *)object;
 	int rc;
 	bool stuck = false;
 
@@ -655,10 +656,11 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	phase = 14;
 
 	// create process object
-	error_code = object_create(&process->base, OBJECT_TYPE_PROCESS,
+	error_code = object_create(&process->base,
+	                           OBJECT_TYPE_PROCESS,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           (ObjectDestroyFunction)process_destroy);
+	                           process_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

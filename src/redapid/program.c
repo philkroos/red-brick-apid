@@ -82,7 +82,9 @@ static bool program_is_valid_stdio_option(ProgramStdioOption option) {
 	}
 }
 
-static void program_destroy(Program *program) {
+static void program_destroy(Object *object) {
+	Program *program = (Program *)object;
+
 	string_vacate(program->stdio_file_names[PROGRAM_STDIO_ERROR]);
 	string_vacate(program->stdio_file_names[PROGRAM_STDIO_OUTPUT]);
 	string_vacate(program->stdio_file_names[PROGRAM_STDIO_INPUT]);
@@ -277,10 +279,11 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->stdio_file_names[PROGRAM_STDIO_OUTPUT] = stdout_file_name;
 	program->stdio_file_names[PROGRAM_STDIO_ERROR] = stderr_file_name;
 
-	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM,
+	error_code = object_create(&program->base,
+	                           OBJECT_TYPE_PROGRAM,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           (ObjectDestroyFunction)program_destroy);
+	                           program_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

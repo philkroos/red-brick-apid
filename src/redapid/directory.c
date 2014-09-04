@@ -51,7 +51,9 @@ typedef struct {
 	char buffer[MAX_NAME_LENGTH + 1 /* for / */ + MAX_ENTRY_LENGTH + 1 /* for \0 */];
 } Directory;
 
-static void directory_destroy(Directory *directory) {
+static void directory_destroy(Object *object) {
+	Directory *directory = (Directory *)object;
+
 	closedir(directory->dp);
 
 	string_vacate(directory->name);
@@ -300,8 +302,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	}
 
 	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY,
-	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           (ObjectDestroyFunction)directory_destroy);
+	                           OBJECT_CREATE_FLAG_EXTERNAL, directory_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

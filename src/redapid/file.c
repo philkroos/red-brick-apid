@@ -154,7 +154,9 @@ static FileType file_get_type_from_stat_mode(mode_t mode) {
 	}
 }
 
-static void file_destroy(File *file) {
+static void file_destroy(Object *object) {
+	File *file = (File *)object;
+
 	if (file->length_to_read_async > 0) {
 		log_warn("Destroying file object ("FILE_SIGNATURE_FORMAT") while an asynchronous read for %"PRIu64" byte(s) is in progress",
 		         file_expand_signature(file), file->length_to_read_async);
@@ -702,8 +704,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->seek = file_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           (ObjectDestroyFunction)file_destroy);
+	                           OBJECT_CREATE_FLAG_EXTERNAL, file_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -809,8 +810,7 @@ APIE pipe_create_(ObjectID *id, uint16_t flags) {
 	file->seek = pipe_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           (ObjectDestroyFunction)file_destroy);
+	                           OBJECT_CREATE_FLAG_EXTERNAL, file_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
