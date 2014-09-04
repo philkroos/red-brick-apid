@@ -307,7 +307,7 @@ static void file_handle_async_read(void *opaque) {
 	}
 }
 
-static APIE file_open_as(const char *name, int flags, mode_t mode,
+static APIE file_open_as(const char *name, int oflags, mode_t mode,
                          uint32_t user_id, uint32_t group_id, int *fd_) {
 	APIE error_code;
 	int pair[2];
@@ -357,7 +357,7 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 		}
 
 		// open file
-		fd = open(name, flags, mode);
+		fd = open(name, oflags, mode);
 
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
@@ -473,6 +473,52 @@ static APIE file_open_as(const char *name, int flags, mode_t mode,
 	return API_E_SUCCESS;
 }
 
+static int file_get_oflags_from_flags(uint16_t flags) {
+	int oflags = 0;
+
+	if ((flags & FILE_FLAG_READ_ONLY) != 0) {
+		oflags |= O_RDONLY;
+	}
+
+	if ((flags & FILE_FLAG_WRITE_ONLY) != 0) {
+		oflags |= O_WRONLY;
+	}
+
+	if ((flags & FILE_FLAG_READ_WRITE) != 0) {
+		oflags |= O_RDWR;
+	}
+
+	if ((flags & FILE_FLAG_APPEND) != 0) {
+		oflags |= O_APPEND;
+	}
+
+	if ((flags & FILE_FLAG_CREATE) != 0) {
+		oflags |= O_CREAT;
+	}
+
+	if ((flags & FILE_FLAG_EXCLUSIVE) != 0) {
+		oflags |= O_EXCL;
+	}
+
+	if ((flags & FILE_FLAG_NO_ACCESS_TIME) != 0) {
+		oflags |= O_NOATIME;
+	}
+
+	if ((flags & FILE_FLAG_NO_FOLLOW) != 0) {
+		oflags |= O_NOFOLLOW;
+	}
+
+	if ((flags & FILE_FLAG_NON_BLOCKING) != 0) {
+		oflags |= O_NONBLOCK;
+	}
+
+	if ((flags & FILE_FLAG_TRUNCATE) != 0) {
+		oflags |= O_TRUNC;
+	}
+
+	return oflags;
+}
+
 mode_t file_get_mode_from_permissions(uint16_t permissions) {
 	mode_t mode = 0;
 
@@ -521,8 +567,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	int phase = 0;
 	APIE error_code;
 	String *name;
-	int open_flags = O_NOCTTY;
-	mode_t open_mode = 0;
+	int oflags = O_NOCTTY;
+	mode_t mode = 0;
 	int fd;
 	File *file;
 	struct stat st;
@@ -562,50 +608,11 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	}
 
 	// translate flags
-	// FIXME: check for invalid flag combinations?
-	if ((flags & FILE_FLAG_READ_ONLY) != 0) {
-		open_flags |= O_RDONLY;
-	}
-
-	if ((flags & FILE_FLAG_WRITE_ONLY) != 0) {
-		open_flags |= O_WRONLY;
-	}
-
-	if ((flags & FILE_FLAG_READ_WRITE) != 0) {
-		open_flags |= O_RDWR;
-	}
-
-	if ((flags & FILE_FLAG_APPEND) != 0) {
-		open_flags |= O_APPEND;
-	}
-
-	if ((flags & FILE_FLAG_CREATE) != 0) {
-		open_flags |= O_CREAT;
-	}
-
-	if ((flags & FILE_FLAG_EXCLUSIVE) != 0) {
-		open_flags |= O_EXCL;
-	}
-
-	if ((flags & FILE_FLAG_NO_ACCESS_TIME) != 0) {
-		open_flags |= O_NOATIME;
-	}
-
-	if ((flags & FILE_FLAG_NO_FOLLOW) != 0) {
-		open_flags |= O_NOFOLLOW;
-	}
-
-	if ((flags & FILE_FLAG_NON_BLOCKING) != 0) {
-		open_flags |= O_NONBLOCK;
-	}
-
-	if ((flags & FILE_FLAG_TRUNCATE) != 0) {
-		open_flags |= O_TRUNC;
-	}
+	oflags |= file_get_oflags_from_flags(flags);
 
 	// translate create permissions
 	if ((flags & FILE_FLAG_CREATE) != 0) {
-		open_mode |= file_get_mode_from_permissions(permissions);
+		mode |= file_get_mode_from_permissions(permissions);
 	}
 
 	// occupy name string object
@@ -627,7 +634,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	// open file
 	if (geteuid() == user_id && getegid() == group_id) {
-		fd = open(name->buffer, open_flags, open_mode);
+		fd = open(name->buffer, oflags, mode);
 
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
@@ -638,8 +645,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 			goto cleanup;
 		}
 	} else {
-		error_code = file_open_as(name->buffer, open_flags, open_mode,
-		                          user_id, group_id, &fd);
+		error_code = file_open_as(name->buffer, oflags, mode, user_id, group_id, &fd);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
