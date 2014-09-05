@@ -23,8 +23,16 @@
  * the RED Brick API operates with different types of objects. each object is
  * referenced by a uint16_t object ID. there is only one number space that is
  * shared between all object types. this means that there can be at most 64k
- * objects in the system and that each object ID can be in use at most once at
- * the same time.
+ * objects in the system and that each object ID can be in use at most once
+ * at the same time.
+ *
+ * the RED Brick API contains functions that have optional object ID parameters
+ * and/or return values that are only valid under specific conditions. whether
+ * an object ID is valid or not is not determined by the object ID value itself,
+ * but by some other parameter or return value of the same function. for such
+ * cases of invalid object ID the object ID value 0 is reserved. for improved
+ * robustness against wrong API RED Brick usage object ID value 0 must never be
+ * used as object ID for an actual object.
  */
 
 #include <errno.h>
@@ -47,7 +55,7 @@ typedef struct {
 	int index;
 } Inventory;
 
-static ObjectID _next_id = 0;
+static ObjectID _next_id = 1; // don't use object ID 0
 static Array _objects[MAX_OBJECT_TYPES];
 
 static void inventory_destroy(Object *object) {
@@ -76,6 +84,10 @@ static APIE inventory_get_next_id(ObjectID *id) {
 
 	// FIXME: this is an O(n^2) algorithm
 	for (i = 0; i < UINT16_MAX; ++i) {
+		if (_next_id == 0) {
+			_next_id = 1; // don't use object ID 0
+		}
+
 		candidate = _next_id++;
 		collision = false;
 

@@ -903,6 +903,10 @@ static AsyncFileWriteCallback _async_file_write_callback;
 static ProcessStateChangedCallback _process_state_changed_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
+	// memset'ing the whole response to zero first ensures that all members
+	// have a known initial value, that no random heap/stack data can leak
+	// to the client and that all potential object ID members are set to
+	// zero to indicate that there is no object here
 	memset(response, 0, length);
 
 	response->header.uid = request->header.uid;
