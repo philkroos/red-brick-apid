@@ -374,27 +374,17 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FILE_FLAG_NO_ACCESS_TIME 64
+#define RED_FILE_FLAG_NON_BLOCKING 64
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FILE_FLAG_NO_FOLLOW 128
+#define RED_FILE_FLAG_TRUNCATE 128
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FILE_FLAG_NON_BLOCKING 256
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FILE_FLAG_TRUNCATE 512
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FILE_FLAG_TEMPORARY 1024
+#define RED_FILE_FLAG_TEMPORARY 256
 
 /**
  * \ingroup BrickRED
@@ -905,11 +895,9 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * * Append = 0x0008 (O_APPEND)
  * * Create = 0x0010 (O_CREAT)
  * * Exclusive = 0x0020 (O_EXCL)
- * * NoAccessTime = 0x0040 (O_NOATIME)
- * * NoFollow = 0x0080 (O_NOFOLLOW)
- * * NonBlocking = 0x0100 (O_NONBLOCK)
- * * Truncate = 0x0200 (O_TRUNC)
- * * Temporary = 0x0400
+ * * NonBlocking = 0x0040 (O_NONBLOCK)
+ * * Truncate = 0x0080 (O_TRUNC)
+ * * Temporary = 0x0100
  * 
  * FIXME: explain *Temporary* flag
  * 

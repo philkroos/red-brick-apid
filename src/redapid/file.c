@@ -19,8 +19,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _GNU_SOURCE // for O_NOATIME from fcntl.h
-
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -503,14 +501,6 @@ static int file_get_oflags_from_flags(uint16_t flags) {
 
 	if ((flags & FILE_FLAG_EXCLUSIVE) != 0) {
 		oflags |= O_EXCL;
-	}
-
-	if ((flags & FILE_FLAG_NO_ACCESS_TIME) != 0) {
-		oflags |= O_NOATIME;
-	}
-
-	if ((flags & FILE_FLAG_NO_FOLLOW) != 0) {
-		oflags |= O_NOFOLLOW;
 	}
 
 	if ((flags & FILE_FLAG_NON_BLOCKING) != 0) {
