@@ -629,6 +629,48 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint16_t program_id;
+	uint8_t start_condition;
+	uint64_t start_time;
+	uint32_t start_delay;
+	uint8_t repeat_mode;
+	uint32_t repeat_interval;
+	uint64_t repeat_second_mask;
+	uint64_t repeat_minute_mask;
+	uint32_t repeat_hour_mask;
+	uint32_t repeat_day_mask;
+	uint16_t repeat_month_mask;
+	uint8_t repeat_weekday_mask;
+} ATTRIBUTE_PACKED SetProgramSchedule_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetProgramScheduleResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramSchedule_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t start_condition;
+	uint64_t start_time;
+	uint32_t start_delay;
+	uint8_t repeat_mode;
+	uint32_t repeat_interval;
+	uint64_t repeat_second_mask;
+	uint64_t repeat_minute_mask;
+	uint32_t repeat_hour_mask;
+	uint32_t repeat_day_mask;
+	uint16_t repeat_month_mask;
+	uint8_t repeat_weekday_mask;
+} ATTRIBUTE_PACKED GetProgramScheduleResponse_;
+
+typedef struct {
+	PacketHeader header;
 } ATTRIBUTE_PACKED GetIdentity_;
 
 typedef struct {
@@ -748,6 +790,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
@@ -2085,6 +2129,80 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t *re
 	*ret_stdout_file_name_string_id = leconvert_uint16_from(response.stdout_file_name_string_id);
 	*ret_stderr_redirection = response.stderr_redirection;
 	*ret_stderr_file_name_string_id = leconvert_uint16_from(response.stderr_file_name_string_id);
+
+
+
+	return ret;
+}
+
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_time, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint64_t repeat_second_mask, uint64_t repeat_minute_mask, uint32_t repeat_hour_mask, uint32_t repeat_day_mask, uint16_t repeat_month_mask, uint8_t repeat_weekday_mask, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	SetProgramSchedule_ request;
+	SetProgramScheduleResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_SCHEDULE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+	request.start_condition = start_condition;
+	request.start_time = leconvert_uint64_to(start_time);
+	request.start_delay = leconvert_uint32_to(start_delay);
+	request.repeat_mode = repeat_mode;
+	request.repeat_interval = leconvert_uint32_to(repeat_interval);
+	request.repeat_second_mask = leconvert_uint64_to(repeat_second_mask);
+	request.repeat_minute_mask = leconvert_uint64_to(repeat_minute_mask);
+	request.repeat_hour_mask = leconvert_uint32_to(repeat_hour_mask);
+	request.repeat_day_mask = leconvert_uint32_to(repeat_day_mask);
+	request.repeat_month_mask = leconvert_uint16_to(repeat_month_mask);
+	request.repeat_weekday_mask = repeat_weekday_mask;
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
+int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_time, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask) {
+	DevicePrivate *device_p = red->p;
+	GetProgramSchedule_ request;
+	GetProgramScheduleResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_SCHEDULE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_start_condition = response.start_condition;
+	*ret_start_time = leconvert_uint64_from(response.start_time);
+	*ret_start_delay = leconvert_uint32_from(response.start_delay);
+	*ret_repeat_mode = response.repeat_mode;
+	*ret_repeat_interval = leconvert_uint32_from(response.repeat_interval);
+	*ret_repeat_second_mask = leconvert_uint64_from(response.repeat_second_mask);
+	*ret_repeat_minute_mask = leconvert_uint64_from(response.repeat_minute_mask);
+	*ret_repeat_hour_mask = leconvert_uint32_from(response.repeat_hour_mask);
+	*ret_repeat_day_mask = leconvert_uint32_from(response.repeat_day_mask);
+	*ret_repeat_month_mask = leconvert_uint16_from(response.repeat_month_mask);
+	*ret_repeat_weekday_mask = response.repeat_weekday_mask;
 
 
 

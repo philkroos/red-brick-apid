@@ -112,7 +112,7 @@ APIE program_set_schedule(ObjectID id,
                           uint32_t repeat_hour_mask,
                           uint32_t repeat_day_mask,
                           uint16_t repeat_month_mask,
-                          uint8_t repeat_weekday_mask);
+                          uint8_t repeat_weekday_mask); // week starts on monday
 APIE program_get_schedule(ObjectID id,
                           uint8_t *start_condition,
                           uint64_t *start_time,
@@ -124,6 +124,6 @@ APIE program_get_schedule(ObjectID id,
                           uint32_t *repeat_hour_mask,
                           uint32_t *repeat_day_mask,
                           uint16_t *repeat_month_mask,
-                          uint8_t *repeat_weekday_mask);
+                          uint8_t *repeat_weekday_mask); // week starts on monday
 
 #endif // REDAPID_PROGRAM_H

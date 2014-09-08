@@ -102,7 +102,9 @@ typedef enum {
 	FUNCTION_SET_PROGRAM_COMMAND,
 	FUNCTION_GET_PROGRAM_COMMAND,
 	FUNCTION_SET_PROGRAM_STDIO_REDIRECTION,
-	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION
+	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION,
+	FUNCTION_SET_PROGRAM_SCHEDULE,
+	FUNCTION_GET_PROGRAM_SCHEDULE
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -723,6 +725,48 @@ typedef struct {
 	uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionResponse;
 
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint8_t start_condition;
+	uint64_t start_time;
+	uint32_t start_delay;
+	uint8_t repeat_mode;
+	uint32_t repeat_interval;
+	uint64_t repeat_second_mask;
+	uint64_t repeat_minute_mask;
+	uint32_t repeat_hour_mask;
+	uint32_t repeat_day_mask;
+	uint16_t repeat_month_mask;
+	uint8_t repeat_weekday_mask;
+} ATTRIBUTE_PACKED SetProgramScheduleRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetProgramScheduleResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetProgramScheduleRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t start_condition;
+	uint64_t start_time;
+	uint32_t start_delay;
+	uint8_t repeat_mode;
+	uint32_t repeat_interval;
+	uint64_t repeat_second_mask;
+	uint64_t repeat_minute_mask;
+	uint32_t repeat_hour_mask;
+	uint32_t repeat_day_mask;
+	uint16_t repeat_month_mask;
+	uint8_t repeat_weekday_mask;
+} ATTRIBUTE_PACKED GetProgramScheduleResponse;
+
 //
 // misc
 //
@@ -1099,6 +1143,36 @@ FORWARD_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
 	                                                    &response.stderr_file_name_string_id);
 })
 
+FORWARD_FUNCTION(SetProgramSchedule, set_program_schedule, {
+	response.error_code = program_set_schedule(request->program_id,
+	                                                    request->start_condition,
+	                                                    request->start_time,
+	                                                    request->start_delay,
+	                                                    request->repeat_mode,
+	                                                    request->repeat_interval,
+	                                                    request->repeat_second_mask,
+	                                                    request->repeat_minute_mask,
+	                                                    request->repeat_hour_mask,
+	                                                    request->repeat_day_mask,
+	                                                    request->repeat_month_mask,
+	                                                    request->repeat_weekday_mask);
+})
+
+FORWARD_FUNCTION(GetProgramSchedule, get_program_schedule, {
+	response.error_code = program_get_schedule(request->program_id,
+	                                           &response.start_condition,
+	                                           &response.start_time,
+	                                           &response.start_delay,
+	                                           &response.repeat_mode,
+	                                           &response.repeat_interval,
+	                                           &response.repeat_second_mask,
+	                                           &response.repeat_minute_mask,
+	                                           &response.repeat_hour_mask,
+	                                           &response.repeat_day_mask,
+	                                           &response.repeat_month_mask,
+	                                           &response.repeat_weekday_mask);
+})
+
 //
 // misc
 //
@@ -1243,6 +1317,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROGRAM_COMMAND,           GetProgramCommand,          get_program_command)
 	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_REDIRECTION, SetProgramStdioRedirection, set_program_stdio_redirection)
 	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_REDIRECTION, GetProgramStdioRedirection, get_program_stdio_redirection)
+	DISPATCH_FUNCTION(SET_PROGRAM_SCHEDULE,          SetProgramSchedule,         set_program_schedule)
+	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULE,          GetProgramSchedule,         get_program_schedule)
 
 	// misc
 	DISPATCH_FUNCTION(GET_IDENTITY,                  GetIdentity,                get_identity)
@@ -1348,6 +1424,8 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_PROGRAM_COMMAND:           return "get-program-command";
 	case FUNCTION_SET_PROGRAM_STDIO_REDIRECTION: return "set-program-stdio-redirection";
 	case FUNCTION_GET_PROGRAM_STDIO_REDIRECTION: return "get-program-stdio-redirection";
+	case FUNCTION_SET_PROGRAM_SCHEDULE:          return "set-program-schedule";
+	case FUNCTION_GET_PROGRAM_SCHEDULE:          return "get-program-schedule";
 
 	// misc
 	case FUNCTION_GET_IDENTITY:                  return "get-identity";

@@ -266,6 +266,16 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 51
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 52
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_FUNCTION_GET_IDENTITY 255
 
 /**
@@ -600,6 +610,41 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_PROGRAM_STDIO_REDIRECTION_FILE 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_START_CONDITION_NEVER 0
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_START_CONDITION_NOW 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_START_CONDITION_BOOT 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_START_CONDITION_TIME 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_REPEAT_MODE_NEVER 0
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE 2
 
 /**
  * \ingroup BrickRED
@@ -1249,6 +1294,20 @@ int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
  * 
  */
 int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_stdin_redirection, uint16_t *ret_stdin_file_name_string_id, uint8_t *ret_stdout_redirection, uint16_t *ret_stdout_file_name_string_id, uint8_t *ret_stderr_redirection, uint16_t *ret_stderr_file_name_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * FIXME: week starts on monday
+ */
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_time, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint64_t repeat_second_mask, uint64_t repeat_minute_mask, uint32_t repeat_hour_mask, uint32_t repeat_day_mask, uint16_t repeat_month_mask, uint8_t repeat_weekday_mask, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * FIXME: week starts on monday
+ */
+int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_time, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask);
 
 /**
  * \ingroup BrickRED
