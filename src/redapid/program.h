@@ -29,18 +29,23 @@
 #include "string.h"
 
 typedef enum {
-	PROGRAM_STDIO_INPUT = 0,
-	PROGRAM_STDIO_OUTPUT,
-	PROGRAM_STDIO_ERROR
-} ProgramStdio;
-
-#define PROGRAM_MAX_STDIOS 3
-
-typedef enum {
 	PROGRAM_STDIO_REDIRECTION_DEV_NULL = 0,
 	PROGRAM_STDIO_REDIRECTION_PIPE,
 	PROGRAM_STDIO_REDIRECTION_FILE
 } ProgramStdioRedirection;
+
+typedef enum {
+	PROGRAM_SCHEDULE_START_CONDITION_NEVER = 0,
+	PROGRAM_SCHEDULE_START_CONDITION_NOW,
+	PROGRAM_SCHEDULE_START_CONDITION_BOOT,
+	PROGRAM_SCHEDULE_START_CONDITION_TIME
+} ProgramScheduleStartCondition;
+
+typedef enum {
+	PROGRAM_SCHEDULE_REPEAT_MODE_NEVER = 0,
+	PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE,
+	PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE
+} ProgramScheduleRepeatMode;
 
 typedef struct {
 	Object base;
@@ -48,11 +53,26 @@ typedef struct {
 	bool defined;
 	String *identifier;
 	String *directory; // <home>/programs/<identifier>
-	String *command;
+	String *executable;
 	List *arguments;
 	List *environment;
-	ProgramStdioRedirection stdio_redirections[PROGRAM_MAX_STDIOS];
-	String *stdio_file_names[PROGRAM_MAX_STDIOS];
+	ProgramStdioRedirection stdin_redirection;
+	String *stdin_file_name; // only != NULL if stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	ProgramStdioRedirection stdout_redirection;
+	String *stdout_file_name; // only != NULL if stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	ProgramStdioRedirection stderr_redirection;
+	String *stderr_file_name; // only != NULL if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	ProgramScheduleStartCondition start_condition;
+	uint64_t start_time; // UNIX timestamp
+	uint32_t start_delay; // seconds
+	ProgramScheduleRepeatMode repeat_mode;
+	uint32_t repeat_interval; // seconds
+	uint64_t repeat_second_mask;
+	uint64_t repeat_minute_mask;
+	uint32_t repeat_hour_mask;
+	uint32_t repeat_day_mask;
+	uint16_t repeat_month_mask;
+	uint8_t repeat_weekday_mask;
 } Program;
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
@@ -61,23 +81,49 @@ APIE program_undefine(ObjectID id);
 APIE program_get_identifier(ObjectID id, ObjectID *identifier_id);
 APIE program_get_directory(ObjectID id, ObjectID *directory_id);
 
-APIE program_set_command(ObjectID id, ObjectID command_id);
-APIE program_get_command(ObjectID id, ObjectID *command_id);
+APIE program_set_command(ObjectID id, ObjectID executable_id,
+                         ObjectID arguments_id, ObjectID environment_id);
+APIE program_get_command(ObjectID id, ObjectID *executable_id,
+                         ObjectID *arguments_id, ObjectID *environment_id);
 
-APIE program_set_arguments(ObjectID id, ObjectID arguments_id);
-APIE program_get_arguments(ObjectID id, ObjectID *arguments_id);
+APIE program_set_stdio_redirection(ObjectID id,
+                                   ProgramStdioRedirection stdin_redirection,
+                                   ObjectID stdin_file_name_id,
+                                   ProgramStdioRedirection stdout_redirection,
+                                   ObjectID stdout_file_name_id,
+                                   ProgramStdioRedirection stderr_redirection,
+                                   ObjectID stderr_file_name_id);
+APIE program_get_stdio_redirection(ObjectID id,
+                                   uint8_t *stdin_redirection,
+                                   ObjectID *stdin_file_name_id,
+                                   uint8_t *stdout_redirection,
+                                   ObjectID *stdout_file_name_id,
+                                   uint8_t *stderr_redirection,
+                                   ObjectID *stderr_file_name_id);
 
-APIE program_set_environment(ObjectID id, ObjectID environment_id);
-APIE program_get_environment(ObjectID id, ObjectID *environment_id);
-
-APIE program_set_stdio_redirection(ObjectID id, ProgramStdio stdio,
-                                   ProgramStdioRedirection redirection);
-APIE program_get_stdio_redirection(ObjectID id, ProgramStdio stdio,
-                                   uint8_t *redirection);
-
-APIE program_set_stdio_file_name(ObjectID id, ProgramStdio stdio,
-                                 ObjectID file_name_id);
-APIE program_get_stdio_file_name(ObjectID id, ProgramStdio stdio,
-                                 ObjectID *file_name_id);
+APIE program_set_schedule(ObjectID id,
+                          ProgramScheduleStartCondition start_condition,
+                          uint64_t start_time,
+                          uint32_t start_delay,
+                          ProgramScheduleRepeatMode repeat_mode,
+                          uint32_t repeat_interval,
+                          uint64_t repeat_second_mask,
+                          uint64_t repeat_minute_mask,
+                          uint32_t repeat_hour_mask,
+                          uint32_t repeat_day_mask,
+                          uint16_t repeat_month_mask,
+                          uint8_t repeat_weekday_mask);
+APIE program_get_schedule(ObjectID id,
+                          uint8_t *start_condition,
+                          uint64_t *start_time,
+                          uint32_t *start_delay,
+                          uint8_t *repeat_mode,
+                          uint32_t *repeat_interval,
+                          uint64_t *repeat_second_mask,
+                          uint64_t *repeat_minute_mask,
+                          uint32_t *repeat_hour_mask,
+                          uint32_t *repeat_day_mask,
+                          uint16_t *repeat_month_mask,
+                          uint8_t *repeat_weekday_mask);
 
 #endif // REDAPID_PROGRAM_H

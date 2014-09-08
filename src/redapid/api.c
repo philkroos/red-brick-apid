@@ -67,9 +67,7 @@ typedef enum {
 
 	FUNCTION_OPEN_FILE,
 	FUNCTION_CREATE_PIPE,
-	FUNCTION_GET_FILE_TYPE,
-	FUNCTION_GET_FILE_NAME,
-	FUNCTION_GET_FILE_FLAGS,
+	FUNCTION_GET_FILE_INFO,
 	FUNCTION_READ_FILE,
 	FUNCTION_READ_FILE_ASYNC,
 	FUNCTION_ABORT_ASYNC_FILE_READ,
@@ -80,8 +78,8 @@ typedef enum {
 	FUNCTION_GET_FILE_POSITION,
 	CALLBACK_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_WRITE,
-	FUNCTION_GET_FILE_INFO,
-	FUNCTION_GET_SYMLINK_TARGET,
+	FUNCTION_LOOKUP_FILE_INFO,
+	FUNCTION_LOOKUP_SYMLINK_TARGET,
 
 	FUNCTION_OPEN_DIRECTORY,
 	FUNCTION_GET_DIRECTORY_NAME,
@@ -92,14 +90,8 @@ typedef enum {
 	FUNCTION_SPAWN_PROCESS,
 	FUNCTION_KILL_PROCESS,
 	FUNCTION_GET_PROCESS_COMMAND,
-	FUNCTION_GET_PROCESS_ARGUMENTS,
-	FUNCTION_GET_PROCESS_ENVIRONMENT,
-	FUNCTION_GET_PROCESS_WORKING_DIRECTORY,
-	FUNCTION_GET_PROCESS_USER_ID,
-	FUNCTION_GET_PROCESS_GROUP_ID,
-	FUNCTION_GET_PROCESS_STDIN,
-	FUNCTION_GET_PROCESS_STDOUT,
-	FUNCTION_GET_PROCESS_STDERR,
+	FUNCTION_GET_PROCESS_IDENTITY,
+	FUNCTION_GET_PROCESS_STDIO,
 	FUNCTION_GET_PROCESS_STATE,
 	CALLBACK_PROCESS_STATE_CHANGED,
 
@@ -109,14 +101,8 @@ typedef enum {
 	FUNCTION_GET_PROGRAM_DIRECTORY,
 	FUNCTION_SET_PROGRAM_COMMAND,
 	FUNCTION_GET_PROGRAM_COMMAND,
-	FUNCTION_SET_PROGRAM_ARGUMENTS,
-	FUNCTION_GET_PROGRAM_ARGUMENTS,
-	FUNCTION_SET_PROGRAM_ENVIRONMENT,
-	FUNCTION_GET_PROGRAM_ENVIRONMENT,
 	FUNCTION_SET_PROGRAM_STDIO_REDIRECTION,
-	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION,
-	FUNCTION_SET_PROGRAM_STDIO_FILE_NAME,
-	FUNCTION_GET_PROGRAM_STDIO_FILE_NAME
+	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION
 } APIFunctionID;
 
 #include <daemonlib/packed_begin.h>
@@ -337,35 +323,15 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileTypeRequest;
+} ATTRIBUTE_PACKED GetFileInfoRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t type;
-} ATTRIBUTE_PACKED GetFileTypeResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileNameRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t name_string_id;
-} ATTRIBUTE_PACKED GetFileNameResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileFlagsRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t flags;
-} ATTRIBUTE_PACKED GetFileFlagsResponse;
+} ATTRIBUTE_PACKED GetFileInfoResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -456,7 +422,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
 	tfpbool follow_symlink;
-} ATTRIBUTE_PACKED GetFileInfoRequest;
+} ATTRIBUTE_PACKED LookupFileInfoRequest;
 
 typedef struct {
 	PacketHeader header;
@@ -469,19 +435,19 @@ typedef struct {
 	uint64_t access_time;
 	uint64_t modification_time;
 	uint64_t status_change_time;
-} ATTRIBUTE_PACKED GetFileInfoResponse;
+} ATTRIBUTE_PACKED LookupFileInfoResponse;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
 	tfpbool canonicalize;
-} ATTRIBUTE_PACKED GetSymlinkTargetRequest;
+} ATTRIBUTE_PACKED LookupSymlinkTargetRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t target_string_id;
-} ATTRIBUTE_PACKED GetSymlinkTargetResponse;
+} ATTRIBUTE_PACKED LookupSymlinkTargetResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -566,7 +532,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
 	uint16_t working_directory_string_id;
@@ -602,96 +568,36 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED GetProcessCommandResponse;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessArgumentsRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t arguments_list_id;
-} ATTRIBUTE_PACKED GetProcessArgumentsResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessEnvironmentRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t environment_list_id;
-} ATTRIBUTE_PACKED GetProcessEnvironmentResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessWorkingDirectoryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t working_directory_string_id;
-} ATTRIBUTE_PACKED GetProcessWorkingDirectoryResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessUserIDRequest;
+} ATTRIBUTE_PACKED GetProcessIdentityRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint32_t user_id;
-} ATTRIBUTE_PACKED GetProcessUserIDResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessGroupIDRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint32_t group_id;
-} ATTRIBUTE_PACKED GetProcessGroupIDResponse;
+} ATTRIBUTE_PACKED GetProcessIdentityResponse;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessStdinRequest;
+} ATTRIBUTE_PACKED GetProcessStdioRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t stdin_file_id;
-} ATTRIBUTE_PACKED GetProcessStdinResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessStdoutRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t stdout_file_id;
-} ATTRIBUTE_PACKED GetProcessStdoutResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessStderrRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t stderr_file_id;
-} ATTRIBUTE_PACKED GetProcessStderrResponse;
+} ATTRIBUTE_PACKED GetProcessStdioResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -762,7 +668,9 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
 } ATTRIBUTE_PACKED SetProgramCommandRequest;
 
 typedef struct {
@@ -778,58 +686,20 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
 } ATTRIBUTE_PACKED GetProgramCommandResponse;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-	uint16_t arguments_list_id;
-} ATTRIBUTE_PACKED SetProgramArgumentsRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED SetProgramArgumentsResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramArgumentsRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t arguments_list_id;
-} ATTRIBUTE_PACKED GetProgramArgumentsResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t environment_list_id;
-} ATTRIBUTE_PACKED SetProgramEnvironmentRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED SetProgramEnvironmentResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramEnvironmentRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t environment_list_id;
-} ATTRIBUTE_PACKED GetProgramEnvironmentResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdio;
-	uint8_t redirection;
+	uint8_t stdin_redirection;
+	uint16_t stdin_file_name_string_id;
+	uint8_t stdout_redirection;
+	uint16_t stdout_file_name_string_id;
+	uint8_t stderr_redirection;
+	uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED SetProgramStdioRedirectionRequest;
 
 typedef struct {
@@ -840,38 +710,18 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-	uint8_t stdio;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t redirection;
+	uint8_t stdin_redirection;
+	uint16_t stdin_file_name_string_id;
+	uint8_t stdout_redirection;
+	uint16_t stdout_file_name_string_id;
+	uint8_t stderr_redirection;
+	uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdio;
-	uint16_t file_name_string_id;
-} ATTRIBUTE_PACKED SetProgramStdioFileNameRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED SetProgramStdioFileNameResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdio;
-} ATTRIBUTE_PACKED GetProgramStdioFileNameRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t file_name_string_id;
-} ATTRIBUTE_PACKED GetProgramStdioFileNameResponse;
 
 //
 // misc
@@ -1049,17 +899,9 @@ FORWARD_FUNCTION(CreatePipe, create_pipe, {
 	response.error_code = pipe_create_(&response.file_id, request->flags);
 })
 
-FORWARD_FUNCTION(GetFileType, get_file_type, {
-	response.error_code = file_get_type(request->file_id, &response.type);
-})
-
-FORWARD_FUNCTION(GetFileName, get_file_name, {
-	response.error_code = file_get_name(request->file_id,
-	                                    &response.name_string_id);
-})
-
-FORWARD_FUNCTION(GetFileFlags, get_file_flags, {
-	response.error_code = file_get_flags(request->file_id, &response.flags);
+FORWARD_FUNCTION(GetFileInfo, get_file_info, {
+	response.error_code = file_get_info(request->file_id, &response.type,
+	                                    &response.name_string_id, &response.flags);
 })
 
 FORWARD_FUNCTION(ReadFile, read_file, {
@@ -1106,20 +948,20 @@ FORWARD_FUNCTION(GetFilePosition, get_file_position, {
 	response.error_code = file_get_position(request->file_id, &response.position);
 })
 
-FORWARD_FUNCTION(GetFileInfo, get_file_info, {
-	response.error_code = file_get_info(request->name_string_id,
-	                                    request->follow_symlink,
-	                                    &response.type, &response.permissions,
-	                                    &response.user_id, &response.group_id,
-	                                    &response.length, &response.access_time,
-	                                    &response.modification_time,
-	                                    &response.status_change_time);
+FORWARD_FUNCTION(LookupFileInfo, lookup_file_info, {
+	response.error_code = file_lookup_info(request->name_string_id,
+	                                       request->follow_symlink,
+	                                       &response.type, &response.permissions,
+	                                       &response.user_id, &response.group_id,
+	                                       &response.length, &response.access_time,
+	                                       &response.modification_time,
+	                                       &response.status_change_time);
 })
 
-FORWARD_FUNCTION(GetSymlinkTarget, get_symlink_target, {
-	response.error_code = symlink_get_target(request->name_string_id,
-	                                         request->canonicalize,
-	                                         &response.target_string_id);
+FORWARD_FUNCTION(LookupSymlinkTarget, lookup_symlink_target, {
+	response.error_code = symlink_lookup_target(request->name_string_id,
+	                                            request->canonicalize,
+	                                            &response.target_string_id);
 })
 
 //
@@ -1157,7 +999,7 @@ FORWARD_FUNCTION(CreateDirectory, create_directory, {
 //
 
 FORWARD_FUNCTION(SpawnProcess, spawn_process, {
-	response.error_code = process_spawn(request->command_string_id,
+	response.error_code = process_spawn(request->executable_string_id,
 	                                    request->arguments_list_id,
 	                                    request->environment_list_id,
 	                                    request->working_directory_string_id,
@@ -1175,47 +1017,23 @@ FORWARD_FUNCTION(KillProcess, kill_process, {
 
 FORWARD_FUNCTION(GetProcessCommand, get_process_command, {
 	response.error_code = process_get_command(request->process_id,
-	                                          &response.command_string_id);
+	                                          &response.executable_string_id,
+	                                          &response.arguments_list_id,
+	                                          &response.environment_list_id,
+	                                          &response.working_directory_string_id);
 })
 
-FORWARD_FUNCTION(GetProcessArguments, get_process_arguments, {
-	response.error_code = process_get_arguments(request->process_id,
-	                                            &response.arguments_list_id);
-})
-
-FORWARD_FUNCTION(GetProcessEnvironment, get_process_environment, {
-	response.error_code = process_get_environment(request->process_id,
-	                                              &response.environment_list_id);
-})
-
-FORWARD_FUNCTION(GetProcessWorkingDirectory, get_process_working_directory, {
-	response.error_code = process_get_working_directory(request->process_id,
-	                                                    &response.working_directory_string_id);
-})
-
-FORWARD_FUNCTION(GetProcessUserID, get_process_user_id, {
-	response.error_code = process_get_user_id(request->process_id,
-	                                          &response.user_id);
-})
-
-FORWARD_FUNCTION(GetProcessGroupID, get_process_group_id, {
-	response.error_code = process_get_group_id(request->process_id,
+FORWARD_FUNCTION(GetProcessIdentity, get_process_identity, {
+	response.error_code = process_get_identity(request->process_id,
+	                                           &response.user_id,
 	                                           &response.group_id);
 })
 
-FORWARD_FUNCTION(GetProcessStdin, get_process_stdin, {
-	response.error_code = process_get_stdin(request->process_id,
-	                                        &response.stdin_file_id);
-})
-
-FORWARD_FUNCTION(GetProcessStdout, get_process_stdout, {
-	response.error_code = process_get_stdout(request->process_id,
-	                                         &response.stdout_file_id);
-})
-
-FORWARD_FUNCTION(GetProcessStderr, get_process_stderr, {
-	response.error_code = process_get_stderr(request->process_id,
-	                                         &response.stderr_file_id);
+FORWARD_FUNCTION(GetProcessStdio, get_process_stdio, {
+	response.error_code = process_get_stdio(request->process_id,
+	                                        &response.stdin_file_id,
+	                                        &response.stdout_file_id,
+	                                        &response.stderr_file_id);
 })
 
 FORWARD_FUNCTION(GetProcessState, get_process_state, {
@@ -1249,56 +1067,36 @@ FORWARD_FUNCTION(GetProgramDirectory, get_program_directory, {
 
 FORWARD_FUNCTION(SetProgramCommand, set_program_command, {
 	response.error_code = program_set_command(request->program_id,
-	                                          request->command_string_id);
+	                                          request->executable_string_id,
+	                                          request->arguments_list_id,
+	                                          request->environment_list_id);
 })
 
 FORWARD_FUNCTION(GetProgramCommand, get_program_command, {
 	response.error_code = program_get_command(request->program_id,
-	                                          &response.command_string_id);
-})
-
-FORWARD_FUNCTION(SetProgramArguments, set_program_arguments, {
-	response.error_code = program_set_arguments(request->program_id,
-	                                            request->arguments_list_id);
-})
-
-FORWARD_FUNCTION(GetProgramArguments, get_program_arguments, {
-	response.error_code = program_get_arguments(request->program_id,
-	                                            &response.arguments_list_id);
-})
-
-FORWARD_FUNCTION(SetProgramEnvironment, set_program_environment, {
-	response.error_code = program_set_environment(request->program_id,
-	                                              request->environment_list_id);
-})
-
-FORWARD_FUNCTION(GetProgramEnvironment, get_program_environment, {
-	response.error_code = program_get_environment(request->program_id,
-	                                              &response.environment_list_id);
+	                                          &response.executable_string_id,
+	                                          &response.arguments_list_id,
+	                                          &response.environment_list_id);
 })
 
 FORWARD_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection, {
 	response.error_code = program_set_stdio_redirection(request->program_id,
-	                                                    request->stdio,
-	                                                    request->redirection);
+	                                                    request->stdin_redirection,
+	                                                    request->stdin_file_name_string_id,
+	                                                    request->stdout_redirection,
+	                                                    request->stdout_file_name_string_id,
+	                                                    request->stderr_redirection,
+	                                                    request->stderr_file_name_string_id);
 })
 
 FORWARD_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
 	response.error_code = program_get_stdio_redirection(request->program_id,
-	                                                    request->stdio,
-	                                                    &response.redirection);
-})
-
-FORWARD_FUNCTION(SetProgramStdioFileName, set_program_stdio_file_name, {
-	response.error_code = program_set_stdio_file_name(request->program_id,
-	                                                  request->stdio,
-	                                                  request->file_name_string_id);
-})
-
-FORWARD_FUNCTION(GetProgramStdioFileName, get_program_stdio_file_name, {
-	response.error_code = program_get_stdio_file_name(request->program_id,
-	                                                  request->stdio,
-	                                                  &response.file_name_string_id);
+	                                                    &response.stdin_redirection,
+	                                                    &response.stdin_file_name_string_id,
+	                                                    &response.stdout_redirection,
+	                                                    &response.stdout_file_name_string_id,
+	                                                    &response.stderr_redirection,
+	                                                    &response.stderr_file_name_string_id);
 })
 
 //
@@ -1409,9 +1207,7 @@ void api_handle_request(Packet *request) {
 	// file
 	DISPATCH_FUNCTION(OPEN_FILE,                     OpenFile,                   open_file)
 	DISPATCH_FUNCTION(CREATE_PIPE,                   CreatePipe,                 create_pipe)
-	DISPATCH_FUNCTION(GET_FILE_TYPE,                 GetFileType,                get_file_type)
-	DISPATCH_FUNCTION(GET_FILE_NAME,                 GetFileName,                get_file_name)
-	DISPATCH_FUNCTION(GET_FILE_FLAGS,                GetFileFlags,               get_file_flags)
+	DISPATCH_FUNCTION(GET_FILE_INFO,                 GetFileInfo,                get_file_info)
 	DISPATCH_FUNCTION(READ_FILE,                     ReadFile,                   read_file)
 	DISPATCH_FUNCTION(READ_FILE_ASYNC,               ReadFileAsync,              read_file_async)
 	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,         AbortAsyncFileRead,         abort_async_file_read)
@@ -1420,8 +1216,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,              WriteFileAsync,             write_file_async)
 	DISPATCH_FUNCTION(SET_FILE_POSITION,             SetFilePosition,            set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,             GetFilePosition,            get_file_position)
-	DISPATCH_FUNCTION(GET_FILE_INFO,                 GetFileInfo,                get_file_info)
-	DISPATCH_FUNCTION(GET_SYMLINK_TARGET,            GetSymlinkTarget,           get_symlink_target)
+	DISPATCH_FUNCTION(LOOKUP_FILE_INFO,              LookupFileInfo,             lookup_file_info)
+	DISPATCH_FUNCTION(LOOKUP_SYMLINK_TARGET,         LookupSymlinkTarget,        lookup_symlink_target)
 
 	// directory
 	DISPATCH_FUNCTION(OPEN_DIRECTORY,                OpenDirectory,              open_directory)
@@ -1434,14 +1230,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(SPAWN_PROCESS,                 SpawnProcess,               spawn_process)
 	DISPATCH_FUNCTION(KILL_PROCESS,                  KillProcess,                kill_process)
 	DISPATCH_FUNCTION(GET_PROCESS_COMMAND,           GetProcessCommand,          get_process_command)
-	DISPATCH_FUNCTION(GET_PROCESS_ARGUMENTS,         GetProcessArguments,        get_process_arguments)
-	DISPATCH_FUNCTION(GET_PROCESS_ENVIRONMENT,       GetProcessEnvironment,      get_process_environment)
-	DISPATCH_FUNCTION(GET_PROCESS_WORKING_DIRECTORY, GetProcessWorkingDirectory, get_process_working_directory)
-	DISPATCH_FUNCTION(GET_PROCESS_USER_ID,           GetProcessUserID,           get_process_user_id)
-	DISPATCH_FUNCTION(GET_PROCESS_GROUP_ID,          GetProcessGroupID,          get_process_group_id)
-	DISPATCH_FUNCTION(GET_PROCESS_STDIN,             GetProcessStdin,            get_process_stdin)
-	DISPATCH_FUNCTION(GET_PROCESS_STDOUT,            GetProcessStdout,           get_process_stdout)
-	DISPATCH_FUNCTION(GET_PROCESS_STDERR,            GetProcessStderr,           get_process_stderr)
+	DISPATCH_FUNCTION(GET_PROCESS_IDENTITY,          GetProcessIdentity,         get_process_identity)
+	DISPATCH_FUNCTION(GET_PROCESS_STDIO,             GetProcessStdio,            get_process_stdio)
 	DISPATCH_FUNCTION(GET_PROCESS_STATE,             GetProcessState,            get_process_state)
 
 	// program
@@ -1451,14 +1241,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROGRAM_DIRECTORY,         GetProgramDirectory,        get_program_directory)
 	DISPATCH_FUNCTION(SET_PROGRAM_COMMAND,           SetProgramCommand,          set_program_command)
 	DISPATCH_FUNCTION(GET_PROGRAM_COMMAND,           GetProgramCommand,          get_program_command)
-	DISPATCH_FUNCTION(SET_PROGRAM_ARGUMENTS,         SetProgramArguments,        set_program_arguments)
-	DISPATCH_FUNCTION(GET_PROGRAM_ARGUMENTS,         GetProgramArguments,        get_program_arguments)
-	DISPATCH_FUNCTION(SET_PROGRAM_ENVIRONMENT,       SetProgramEnvironment,      set_program_environment)
-	DISPATCH_FUNCTION(GET_PROGRAM_ENVIRONMENT,       GetProgramEnvironment,      get_program_environment)
 	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_REDIRECTION, SetProgramStdioRedirection, set_program_stdio_redirection)
 	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_REDIRECTION, GetProgramStdioRedirection, get_program_stdio_redirection)
-	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_FILE_NAME,   SetProgramStdioFileName,    set_program_stdio_file_name)
-	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_FILE_NAME,   GetProgramStdioFileName,    get_program_stdio_file_name)
 
 	// misc
 	DISPATCH_FUNCTION(GET_IDENTITY,                  GetIdentity,                get_identity)
@@ -1525,9 +1309,7 @@ const char *api_get_function_name_from_id(int function_id) {
 	// file
 	case FUNCTION_OPEN_FILE:                     return "open-file";
 	case FUNCTION_CREATE_PIPE:                   return "create-pipe";
-	case FUNCTION_GET_FILE_TYPE:                 return "get-file-type";
-	case FUNCTION_GET_FILE_NAME:                 return "get-file-name";
-	case FUNCTION_GET_FILE_FLAGS:                return "get-file-flags";
+	case FUNCTION_GET_FILE_INFO:                 return "get-file-info";
 	case FUNCTION_READ_FILE:                     return "read-file";
 	case FUNCTION_READ_FILE_ASYNC:               return "read-file-async";
 	case FUNCTION_ABORT_ASYNC_FILE_READ:         return "abort-async-file-read";
@@ -1538,8 +1320,8 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_FILE_POSITION:             return "get-file-position";
 	case CALLBACK_ASYNC_FILE_READ:               return "async-file-read";
 	case CALLBACK_ASYNC_FILE_WRITE:              return "async-file-write";
-	case FUNCTION_GET_FILE_INFO:                 return "get-file-info";
-	case FUNCTION_GET_SYMLINK_TARGET:            return "get-symlink-target";
+	case FUNCTION_LOOKUP_FILE_INFO:              return "lookup-file-info";
+	case FUNCTION_LOOKUP_SYMLINK_TARGET:         return "lookup-symlink-target";
 
 	// directory
 	case FUNCTION_OPEN_DIRECTORY:                return "open-directory";
@@ -1552,14 +1334,8 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_SPAWN_PROCESS:                 return "spawn-process";
 	case FUNCTION_KILL_PROCESS:                  return "kill-process";
 	case FUNCTION_GET_PROCESS_COMMAND:           return "get-process-command";
-	case FUNCTION_GET_PROCESS_ARGUMENTS:         return "get-process-arguments";
-	case FUNCTION_GET_PROCESS_ENVIRONMENT:       return "get-process-environment";
-	case FUNCTION_GET_PROCESS_WORKING_DIRECTORY: return "get-process-working-directory";
-	case FUNCTION_GET_PROCESS_USER_ID:           return "get-process-user-id";
-	case FUNCTION_GET_PROCESS_GROUP_ID:          return "get-process-group-id";
-	case FUNCTION_GET_PROCESS_STDIN:             return "get-process-stdin";
-	case FUNCTION_GET_PROCESS_STDOUT:            return "get-process-stdout";
-	case FUNCTION_GET_PROCESS_STDERR:            return "get-process-stderr";
+	case FUNCTION_GET_PROCESS_IDENTITY:          return "get-process-identity";
+	case FUNCTION_GET_PROCESS_STDIO:             return "get-process-stdio";
 	case FUNCTION_GET_PROCESS_STATE:             return "get-process-state";
 	case CALLBACK_PROCESS_STATE_CHANGED:         return "process-state-changed";
 
@@ -1570,14 +1346,8 @@ const char *api_get_function_name_from_id(int function_id) {
 	case FUNCTION_GET_PROGRAM_DIRECTORY:         return "get-program-directory";
 	case FUNCTION_SET_PROGRAM_COMMAND:           return "set-program-command";
 	case FUNCTION_GET_PROGRAM_COMMAND:           return "get-program-command";
-	case FUNCTION_SET_PROGRAM_ARGUMENTS:         return "set-program-arguments";
-	case FUNCTION_GET_PROGRAM_ARGUMENTS:         return "get-program-arguments";
-	case FUNCTION_SET_PROGRAM_ENVIRONMENT:       return "set-program-environment";
-	case FUNCTION_GET_PROGRAM_ENVIRONMENT:       return "get-program-environment";
 	case FUNCTION_SET_PROGRAM_STDIO_REDIRECTION: return "set-program-stdio-redirection";
 	case FUNCTION_GET_PROGRAM_STDIO_REDIRECTION: return "get-program-stdio-redirection";
-	case FUNCTION_SET_PROGRAM_STDIO_FILE_NAME:   return "set-program-stdio-file-name";
-	case FUNCTION_GET_PROGRAM_STDIO_FILE_NAME:   return "get-program-stdio-file-name";
 
 	// misc
 	case FUNCTION_GET_IDENTITY:                  return "get-identity";
@@ -1729,9 +1499,7 @@ enum pipe_flag { // bitmask
 + open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions,
                          uint32_t user_id, uint32_t group_id)                           -> uint8_t error_code, uint16_t file_id
 + create_pipe           (uint16_t flags)                                                -> uint8_t error_code, uint16_t file_id
-+ get_file_type         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type
-+ get_file_name         (uint16_t file_id)                                              -> uint8_t error_code, uint16_t name_string_id
-+ get_file_flags        (uint16_t file_id)                                              -> uint8_t error_code, uint16_t flags
++ get_file_info         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type, uint16_t name_string_id, uint16_t flags
 + read_file             (uint16_t file_id, uint8_t length_to_read)                      -> uint8_t error_code, uint8_t buffer[62], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
 + read_file_async       (uint16_t file_id, uint64_t length_to_read)                     -> uint8_t error_code
 + abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
@@ -1747,13 +1515,21 @@ enum pipe_flag { // bitmask
 + callback: async_file_write    -> uint16_t file_id, uint8_t error_code, uint8_t length_written
 ? callback: file_event_occurred -> uint16_t file_id, uint8_t events
 
-+ get_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code, uint8_t type, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint64_t length, uint64_t access_time, uint64_t modification_time, uint64_t status_change_time
-? get_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
-? get_file_sha1_digest    (uint16_t name_string_id)                              -> uint8_t error_code, uint8_t digest[20]
-? remove_file             (uint16_t name_string_id, bool recursive)              -> uint8_t error_code
-? rename_file             (uint16_t source_string_id, uint16_t target_string_id) -> uint8_t error_code
-? create_symlink          (uint16_t target_string_id, uint16_t name_string_id)   -> uint8_t error_code
-+ get_symlink_target      (uint16_t name_string_id, bool canonicalize)           -> uint8_t error_code, uint16_t target_string_id
++ lookup_file_info           (uint16_t name_string_id, bool follow_symlink)         -> uint8_t error_code,
+                                                                                       uint8_t type,
+                                                                                       uint16_t permissions,
+                                                                                       uint32_t user_id,
+                                                                                       uint32_t group_id,
+                                                                                       uint64_t length,
+                                                                                       uint64_t access_time,
+                                                                                       uint64_t modification_time,
+                                                                                       uint64_t status_change_time
+? lookup_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
+? calculate_file_sha1_digest (uint16_t name_string_id)                              -> uint8_t error_code, uint8_t digest[20]
+? remove_file                (uint16_t name_string_id, bool recursive)              -> uint8_t error_code
+? rename_file                (uint16_t source_string_id, uint16_t target_string_id) -> uint8_t error_code
+? create_symlink             (uint16_t target_string_id, uint16_t name_string_id)   -> uint8_t error_code
++ lookup_symlink_target      (uint16_t name_string_id, bool canonicalize)           -> uint8_t error_code, uint16_t target_string_id
 
 
 /*
@@ -1762,7 +1538,7 @@ enum pipe_flag { // bitmask
 
 + open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id
 + get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id
-+ get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory, you call release_object() when done with it
++ get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory
 + rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
 + create_directory (uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id) -> uint8_t error_code
@@ -1792,7 +1568,7 @@ enum process_state {
 	PROCESS_STATE_STOPPED // stopped by signal
 }
 
-+ spawn_process                 (uint16_t command_string_id,
++ spawn_process                 (uint16_t executable_string_id,
                                  uint16_t arguments_list_id,
                                  uint16_t environment_list_id,
                                  uint16_t working_directory_string_id,
@@ -1802,15 +1578,18 @@ enum process_state {
                                  uint16_t stdout_file_id,
                                  uint16_t stderr_file_id)             -> uint8_t error_code, uint16_t process_id
 + kill_process                  (uint16_t process_id, uint8_t signal) -> uint8_t error_code
-+ get_process_command           (uint16_t process_id)                 -> uint8_t error_code, uint16_t command_string_id
-+ get_process_arguments         (uint16_t process_id)                 -> uint8_t error_code, uint16_t arguments_list_id
-+ get_process_environment       (uint16_t process_id)                 -> uint8_t error_code, uint16_t environment_list_id
-+ get_process_working_directory (uint16_t process_id)                 -> uint8_t error_code, uint16_t working_directory_string_id
-+ get_process_user_id           (uint16_t process_id)                 -> uint8_t error_code, uint32_t user_id
-+ get_process_group_id          (uint16_t process_id)                 -> uint8_t error_code, uint32_t group_id
-+ get_process_stdin             (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdin_file_id
-+ get_process_stdout            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stdout_file_id
-+ get_process_stderr            (uint16_t process_id)                 -> uint8_t error_code, uint16_t stderr_file_id
++ get_process_command           (uint16_t process_id)                 -> uint8_t error_code,
+                                                                         uint16_t executable_string_id,
+                                                                         uint16_t arguments_list_id,
+                                                                         uint16_t environment_list_id,
+                                                                         uint16_t working_directory_string_id
++ get_process_identity          (uint16_t process_id)                 -> uint8_t error_code,
+                                                                         uint32_t user_id,
+                                                                         uint32_t group_id
++ get_process_stdio             (uint16_t process_id)                 -> uint8_t error_code,
+                                                                         uint16_t stdin_file_id,
+                                                                         uint16_t stdout_file_id,
+                                                                         uint16_t stderr_file_id
 + get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state, uint8_t exit_code
 
 + callback: process_state_changed -> uint16_t process_id, uint8_t state, uint8_t exit_code
@@ -1820,22 +1599,23 @@ enum process_state {
  * (persistent) program (configuration)
  */
 
-enum program_stdio {
-	PROGRAM_STDIO_INPUT = 0,
-	PROGRAM_STDIO_OUTPUT,
-	PROGRAM_STDIO_ERROR
-}
-
 enum program_stdio_redirection {
 	PROGRAM_STDIO_REDIRECTION_DEV_NULL = 0,
 	PROGRAM_STDIO_REDIRECTION_PIPE,
 	PROGRAM_STDIO_REDIRECTION_FILE
 }
 
-enum program_schedule_type {
-	PROGRAM_SCHEDULE_TYPE_MANUAL = 0,
-	PROGRAM_SCHEDULE_TYPE_RELATIVE,
-	PROGRAM_SCHEDULE_TYPE_ABSOLUTE
+enum program_schedule_start_condition {
+	PROGRAM_SCHEDULE_START_CONDITION_NEVER = 0,
+	PROGRAM_SCHEDULE_START_CONDITION_NOW,
+	PROGRAM_SCHEDULE_START_CONDITION_BOOT,
+	PROGRAM_SCHEDULE_START_CONDITION_TIME
+}
+
+enum program_schedule_repeat_mode {
+	PROGRAM_SCHEDULE_REPEAT_MODE_NEVER = 0,
+	PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE,
+	PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE
 }
 
 + define_program                  (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
@@ -1845,62 +1625,60 @@ enum program_schedule_type {
 + get_program_identifier          (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
 + get_program_directory           (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
 + set_program_command             (uint16_t program_id,
-                                   uint16_t command_string_id)    -> uint8_t error_code
-+ get_program_command             (uint16_t program_id)           -> uint8_t error_code, uint16_t command_string_id
-+ set_program_arguments           (uint16_t program_id,
-                                   uint16_t arguments_list_id     -> uint8_t error_code
-+ get_program_arguments           (uint16_t program_id)           -> uint8_t error_code, uint16_t arguments_list_id
-+ set_program_environment         (uint16_t program_id,
+                                   uint16_t executable_string_id,
+                                   uint16_t arguments_list_id,
                                    uint16_t environment_list_id)  -> uint8_t error_code
-+ get_program_environment         (uint16_t program_id)           -> uint8_t error_code, uint16_t environment_list_id
++ get_program_command             (uint16_t program_id)           -> uint8_t error_code,
+                                                                     uint16_t executable_string_id,
+                                                                     uint16_t arguments_list_id,
+                                                                     uint16_t environment_list_id
 + set_program_stdio_redirection   (uint16_t program_id,
-                                   uint8_t stdio,
-                                   uint8_t redirection)           -> uint8_t error_code
-+ get_program_stdio_redirection   (uint16_t program_id,
-                                   uint8_t stdio)                 -> uint8_t error_code, uint8_t redirection
-+ set_program_stdio_file_name     (uint16_t program_id,
-                                   uint8_t stdio,
-                                   uint16_t file_name_string_id)  -> uint8_t error_code
-+ get_program_stdio_file_name     (uint16_t program_id),
-                                   uint8_t stdio                  -> uint8_t error_code, uint16_t file_name_string_id
-? set_manual_program_schedule     (uint16_t program_id)           -> uint8_t error_code
-? set_relative_program_schedule   (uint16_t program_id,
+                                   uint8_t stdin_redirection,
+                                   uint16_t stdin_file_name_string_id,
+                                   uint8_t stdout_redirection,
+                                   uint16_t stdout_file_name_string_id,
+                                   uint8_t stderr_redirection,
+                                   uint16_t stderr_file_name_string_id)
+                                                                  -> uint8_t error_code
++ get_program_stdio_redirection   (uint16_t program_id)           -> uint8_t error_code,
+                                                                     uint8_t stdin_redirection,
+                                                                     uint16_t stdin_file_name_string_id,
+                                                                     uint8_t stdout_redirection,
+                                                                     uint16_t stdout_file_name_string_id,
+                                                                     uint8_t stderr_redirection,
+                                                                     uint16_t stderr_file_name_string_id
+? set_program_schedule            (uint16_t program_id,
+                                   uint8_t start_condition,
                                    uint64_t start_time,
                                    uint32_t start_delay,
-                                   uint32_t interval)             -> uint8_t error_code
-? get_relative_program_schedule   (uint16_t program_id)           -> uint8_t error_code,
+                                   uint8_t repeat_mode,
+                                   uint32_t repeat_interval,
+                                   uint64_t repeat_second_mask,
+                                   uint64_t repeat_minute_mask,
+                                   uint32_t repeat_hour_mask,
+                                   uint32_t repeat_day_mask,
+                                   uint16_t repeat_month_mask,
+                                   uint8_t repeat_weekday_mask)   -> uint8_t error_code
+? get_program_schedule            (uint16_t program_id)           -> uint8_t error_code
+                                                                     uint8_t start_condition,
                                                                      uint64_t start_time,
                                                                      uint32_t start_delay,
-                                                                     uint32_t interval
-? set_absolute_program_schedule   (uint16_t program_id,
-                                   uint64_t start_time,
-                                   uint32_t start_delay,
-                                   uint64_t second_mask,
-                                   uint64_t minute_mask,
-                                   uint32_t hour_mask,
-                                   uint32_t day_mask,
-                                   uint16_t month_mask,
-                                   uint8_t weekday_mask)          -> uint8_t error_code
-? get_absolute_program_schedule   (uint16_t program_id)           -> uint8_t error_code,
-                                                                     uint64_t start_time,
-                                                                     uint32_t start_delay,
-                                                                     uint64_t second_mask,
-                                                                     uint64_t minute_mask,
-                                                                     uint32_t hour_mask,
-                                                                     uint32_t day_mask,
-                                                                     uint16_t month_mask,
-                                                                     uint8_t weekday_mask
-? get_program_schedule_type       (uint16_t program_id)           -> uint8_t error_code, uint8_t type
+                                                                     uint8_t repeat_mode,
+                                                                     uint32_t repeat_interval,
+                                                                     uint64_t repeat_second_mask,
+                                                                     uint64_t repeat_minute_mask,
+                                                                     uint32_t repeat_hour_mask,
+                                                                     uint32_t repeat_day_mask,
+                                                                     uint16_t repeat_month_mask,
+                                                                     uint8_t repeat_weekday_mask
 ? get_last_program_schedule_error (uint16_t program_id)           -> uint8_t error_code, uint64_t error_time, uint16_t error_message_string_id
-? execute_program                 (uint16_t program_id)           -> uint8_t error_code, uint16_t process_id
+? get_current_program_process     (uint16_t program_id)           -> uint8_t error_code, uint16_t process_id
 
+? callback: program_schedule_error_occurred -> uint16_t program_id, uint64_t error_time, uint16_t error_message_string_id
 
 /*
  * misc
  */
-
-? set_system_time (uint64_t system_time) -> uint8_t error_code
-? get_system_time ()                     -> uint8_t error_code, uint64_t system_time // UNIX timestamp (UTC)
 
 // if the current session changed then all object IDs known to the client are invalid
 ? get_session () -> uint64_t session

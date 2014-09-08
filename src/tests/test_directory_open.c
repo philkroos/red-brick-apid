@@ -82,7 +82,7 @@ int main() {
 		if (type == RED_FILE_TYPE_SYMLINK) {
 			uint16_t tid;
 
-			rc = red_get_symlink_target(&red, nid, true, &ec, &tid);
+			rc = red_lookup_symlink_target(&red, nid, true, &ec, &tid);
 			if (rc < 0) {
 				printf("red_get_symlink_target -> rc %d\n", rc);
 				break;

@@ -145,9 +145,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 APIE pipe_create_(ObjectID *id, uint16_t flags);
 
-APIE file_get_type(ObjectID id, uint8_t *type);
-APIE file_get_name(ObjectID id, ObjectID *name_id);
-APIE file_get_flags(ObjectID id, uint16_t *flags);
+APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags);
 
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read);
@@ -170,11 +168,11 @@ APIE file_get(ObjectID id, File **file);
 APIE file_occupy(ObjectID id, File **file);
 void file_vacate(File *file);
 
-APIE file_get_info(ObjectID name_id, bool follow_symlink,
-                   uint8_t *type, uint16_t *permissions, uint32_t *user_id,
-                   uint32_t *group_id, uint64_t *length, uint64_t *access_time,
-                   uint64_t *modification_time, uint64_t *status_change_time);
+APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
+                      uint8_t *type, uint16_t *permissions, uint32_t *user_id,
+                      uint32_t *group_id, uint64_t *length, uint64_t *access_time,
+                      uint64_t *modification_time, uint64_t *status_change_time);
 
-APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id);
+APIE symlink_lookup_target(ObjectID name_id, bool canonicalize, ObjectID *target_id);
 
 #endif // REDAPID_FILE_H

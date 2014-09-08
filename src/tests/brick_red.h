@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-04.      *
+ * This file was automatically generated on 2014-09-08.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -116,222 +116,152 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_TYPE 18
+#define RED_FUNCTION_GET_FILE_INFO 18
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_NAME 19
+#define RED_FUNCTION_READ_FILE 19
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_FLAGS 20
+#define RED_FUNCTION_READ_FILE_ASYNC 20
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE 21
+#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 21
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE_ASYNC 22
+#define RED_FUNCTION_WRITE_FILE 22
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 23
+#define RED_FUNCTION_WRITE_FILE_UNCHECKED 23
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE 24
+#define RED_FUNCTION_WRITE_FILE_ASYNC 24
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_UNCHECKED 25
+#define RED_FUNCTION_SET_FILE_POSITION 25
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_ASYNC 26
+#define RED_FUNCTION_GET_FILE_POSITION 26
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_FILE_POSITION 27
+#define RED_FUNCTION_LOOKUP_FILE_INFO 29
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_POSITION 28
+#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 30
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_INFO 31
+#define RED_FUNCTION_OPEN_DIRECTORY 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_SYMLINK_TARGET 32
+#define RED_FUNCTION_GET_DIRECTORY_NAME 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 33
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 34
+#define RED_FUNCTION_REWIND_DIRECTORY 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 35
+#define RED_FUNCTION_CREATE_DIRECTORY 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 36
+#define RED_FUNCTION_SPAWN_PROCESS 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_DIRECTORY 37
+#define RED_FUNCTION_KILL_PROCESS 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 38
+#define RED_FUNCTION_GET_PROCESS_COMMAND 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 39
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 40
+#define RED_FUNCTION_GET_PROCESS_STDIO 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_ARGUMENTS 41
+#define RED_FUNCTION_GET_PROCESS_STATE 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_ENVIRONMENT 42
+#define RED_FUNCTION_DEFINE_PROGRAM 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY 43
+#define RED_FUNCTION_UNDEFINE_PROGRAM 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_USER_ID 44
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_GROUP_ID 45
+#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIN 46
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDOUT 47
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDERR 48
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 49
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_DEFINE_PROGRAM 51
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 52
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 53
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 54
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 55
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 56
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_SET_PROGRAM_ARGUMENTS 57
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_ARGUMENTS 58
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_SET_PROGRAM_ENVIRONMENT 59
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_ENVIRONMENT 60
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 61
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 62
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_FILE_NAME 63
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_FILE_NAME 64
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 50
 
 /**
  * \ingroup BrickRED
@@ -346,7 +276,7 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_read_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 29
+#define RED_CALLBACK_ASYNC_FILE_READ 27
 
 /**
  * \ingroup BrickRED
@@ -356,14 +286,14 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_write_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 30
+#define RED_CALLBACK_ASYNC_FILE_WRITE 28
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 50
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 42
 
 
 /**
@@ -655,21 +585,6 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_PROCESS_STATE_STOPPED 4
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_STDIO_INPUT 0
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_STDIO_OUTPUT 1
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_STDIO_ERROR 2
 
 /**
  * \ingroup BrickRED
@@ -989,7 +904,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
 /**
  * \ingroup BrickRED
  *
- * Returns the type of a file object and the resulting error code.
+ * Returns various information about a file and the resulting error code.
  * 
  * Possible file types are:
  * 
@@ -1002,30 +917,16 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
  * * Symlink = 6
  * * Socket = 7
  * * Pipe = 8
- */
-int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the name of a file object, as passed to {@link red_open_file}, and the
- * resulting error code.
  * 
- * If the file object was created by {@link red_create_pipe} then it has no name and
- * the error code *NotSupported* is returned.
- */
-int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the flags used to open or create a file object, as passed to
- * {@link red_open_file} or {@link red_create_pipe}, and the resulting error code.
+ * If the file type is *Pipe* then the returned name string object is invalid,
+ * because a pipe has no name. Otherwise the returned name string object was used
+ * to open or create the file object, as passed to {@link red_open_file}.
  * 
- * See {@link red_open_file} and {@link red_create_pipe} for a list of possible file and
- * pipe flags.
+ * The returned flags were used to open or create the file object, as passed to
+ * {@link red_open_file} or {@link red_create_pipe}. See the respective function for a list
+ * of possible file and pipe flags.
  */
-int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_flags);
+int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags);
 
 /**
  * \ingroup BrickRED
@@ -1148,10 +1049,10 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
  * `lstat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
  * function is used instead.
  * 
- * See {@link red_get_file_type} for a list of possible file types and see
+ * See {@link red_get_file_info} for a list of possible file types and see
  * {@link red_open_file} for a list of possible file permissions.
  */
-int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time);
+int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time);
 
 /**
  * \ingroup BrickRED
@@ -1167,7 +1068,7 @@ int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, ui
  * `realpath() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/realpath.html>`__
  * function.
  */
-int red_get_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint8_t *ret_error_code, uint16_t *ret_target_string_id);
+int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint8_t *ret_error_code, uint16_t *ret_target_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1201,7 +1102,7 @@ int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_c
  * If there is not next entry then error code *NoMoreData* is returned. To rewind
  * a directory object call {@link red_rewind_directory}.
  * 
- * See {@link red_get_file_type} for a list of possible file types.
+ * See :func:`GetFileType` for a list of possible file types.
  */
 int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id, uint8_t *ret_type);
 
@@ -1224,7 +1125,7 @@ int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint
  *
  * 
  */
-int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t user_id, uint32_t group_id, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
+int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t user_id, uint32_t group_id, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
 
 /**
  * \ingroup BrickRED
@@ -1248,74 +1149,27 @@ int red_kill_process(RED *red, uint16_t process_id, uint8_t signal, uint8_t *ret
 /**
  * \ingroup BrickRED
  *
- * Returns the command used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
+ * Returns the executable, arguments, environment and working directory used to
+ * spawn a process object, as passed to {@link red_spawn_process}, and the resulting
+ * error code.
  */
-int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
+int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id, uint16_t *ret_working_directory_string_id);
 
 /**
  * \ingroup BrickRED
  *
- * Returns the arguments used to spawn a process object, as passed to
+ * Returns the user and group ID used to spawn a process object, as passed to
  * {@link red_spawn_process}, and the resulting error code.
  */
-int red_get_process_arguments(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
+int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id, uint32_t *ret_group_id);
 
 /**
  * \ingroup BrickRED
  *
- * Returns the environment used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
+ * Returns the stdin, stdout and stderr files used to spawn a process object, as
+ * passed to {@link red_spawn_process}, and the resulting error code.
  */
-int red_get_process_environment(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the working directory used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
- */
-int red_get_process_working_directory(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_working_directory_string_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the user ID used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
- */
-int red_get_process_user_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the group ID used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
- */
-int red_get_process_group_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_group_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the stdin file used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
- */
-int red_get_process_stdin(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the stdout file used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
- */
-int red_get_process_stdout(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdout_file_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the stderr file used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
- */
-int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stderr_file_id);
+int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id, uint16_t *ret_stdout_file_id, uint16_t *ret_stderr_file_id);
 
 /**
  * \ingroup BrickRED
@@ -1373,70 +1227,28 @@ int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_
  *
  * 
  */
-int red_set_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
+int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id);
+int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_set_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
+int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdin_redirection, uint16_t stdin_file_name_string_id, uint8_t stdout_redirection, uint16_t stdout_file_name_string_id, uint8_t stderr_redirection, uint16_t stderr_file_name_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_set_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t redirection, uint8_t *ret_error_code);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_redirection);
-
-/**
- * \ingroup BrickRED
- *
- * FIXME: file name has to be absolute
- */
-int red_set_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint16_t file_name_string_id, uint8_t *ret_error_code);
-
-/**
- * \ingroup BrickRED
- *
- * 
- */
-int red_get_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint16_t *ret_file_name_string_id);
+int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_stdin_redirection, uint16_t *ret_stdin_file_name_string_id, uint8_t *ret_stdout_redirection, uint16_t *ret_stdout_file_name_string_id, uint8_t *ret_stderr_redirection, uint16_t *ret_stderr_file_name_string_id);
 
 /**
  * \ingroup BrickRED

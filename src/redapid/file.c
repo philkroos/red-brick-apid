@@ -873,7 +873,7 @@ cleanup:
 }
 
 // public API
-APIE file_get_type(ObjectID id, uint8_t *type) {
+APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags) {
 	File *file;
 	APIE error_code = file_get(id, &file);
 
@@ -883,39 +883,12 @@ APIE file_get_type(ObjectID id, uint8_t *type) {
 
 	*type = file->type;
 
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE file_get_name(ObjectID id, ObjectID *name_id) {
-	File *file;
-	APIE error_code = file_get(id, &file);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	if (file->type == FILE_TYPE_PIPE) {
-		log_warn("File object ("FILE_SIGNATURE_FORMAT") has no name",
-		         file_expand_signature(file));
+		*name_id = OBJECT_ID_ZERO;
+	} else {
+		object_add_external_reference(&file->name->base);
 
-		return API_E_NOT_SUPPORTED;
-	}
-
-	object_add_external_reference(&file->name->base);
-
-	*name_id = file->name->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE file_get_flags(ObjectID id, uint16_t *flags) {
-	File *file;
-	APIE error_code = file_get(id, &file);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
+		*name_id = file->name->base.id;
 	}
 
 	*flags = file->flags;
@@ -1276,10 +1249,10 @@ void file_vacate(File *file) {
 }
 
 // public API
-APIE file_get_info(ObjectID name_id, bool follow_symlink,
-                   uint8_t *type, uint16_t *permissions, uint32_t *user_id,
-                   uint32_t *group_id, uint64_t *length, uint64_t *access_time,
-                   uint64_t *modification_time, uint64_t *status_change_time) {
+APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
+                      uint8_t *type, uint16_t *permissions, uint32_t *user_id,
+                      uint32_t *group_id, uint64_t *length, uint64_t *access_time,
+                      uint64_t *modification_time, uint64_t *status_change_time) {
 	String *name;
 	APIE error_code = string_get(name_id, &name);
 	struct stat st;
@@ -1345,7 +1318,7 @@ APIE file_get_info(ObjectID name_id, bool follow_symlink,
 }
 
 // public API
-APIE symlink_get_target(ObjectID name_id, bool canonicalize, ObjectID *target_id) {
+APIE symlink_lookup_target(ObjectID name_id, bool canonicalize, ObjectID *target_id) {
 	String *name;
 	APIE error_code = string_get(name_id, &name);
 	char *target;

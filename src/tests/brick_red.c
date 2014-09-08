@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-04.      *
+ * This file was automatically generated on 2014-09-08.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -239,35 +239,15 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileType_;
+} ATTRIBUTE_PACKED GetFileInfo_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t type;
-} ATTRIBUTE_PACKED GetFileTypeResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileName_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t name_string_id;
-} ATTRIBUTE_PACKED GetFileNameResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED GetFileFlags_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t flags;
-} ATTRIBUTE_PACKED GetFileFlagsResponse_;
+} ATTRIBUTE_PACKED GetFileInfoResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -373,7 +353,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
 	bool follow_symlink;
-} ATTRIBUTE_PACKED GetFileInfo_;
+} ATTRIBUTE_PACKED LookupFileInfo_;
 
 typedef struct {
 	PacketHeader header;
@@ -386,19 +366,19 @@ typedef struct {
 	uint64_t access_time;
 	uint64_t modification_time;
 	uint64_t status_change_time;
-} ATTRIBUTE_PACKED GetFileInfoResponse_;
+} ATTRIBUTE_PACKED LookupFileInfoResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
 	bool canonicalize;
-} ATTRIBUTE_PACKED GetSymlinkTarget_;
+} ATTRIBUTE_PACKED LookupSymlinkTarget_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t target_string_id;
-} ATTRIBUTE_PACKED GetSymlinkTargetResponse_;
+} ATTRIBUTE_PACKED LookupSymlinkTargetResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -460,7 +440,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
 	uint16_t working_directory_string_id;
@@ -496,96 +476,36 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED GetProcessCommandResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessArguments_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t arguments_list_id;
-} ATTRIBUTE_PACKED GetProcessArgumentsResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessEnvironment_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t environment_list_id;
-} ATTRIBUTE_PACKED GetProcessEnvironmentResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessWorkingDirectory_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t working_directory_string_id;
-} ATTRIBUTE_PACKED GetProcessWorkingDirectoryResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessUserID_;
+} ATTRIBUTE_PACKED GetProcessIdentity_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint32_t user_id;
-} ATTRIBUTE_PACKED GetProcessUserIDResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessGroupID_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint32_t group_id;
-} ATTRIBUTE_PACKED GetProcessGroupIDResponse_;
+} ATTRIBUTE_PACKED GetProcessIdentityResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessStdin_;
+} ATTRIBUTE_PACKED GetProcessStdio_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t stdin_file_id;
-} ATTRIBUTE_PACKED GetProcessStdinResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessStdout_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t stdout_file_id;
-} ATTRIBUTE_PACKED GetProcessStdoutResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-} ATTRIBUTE_PACKED GetProcessStderr_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
 	uint16_t stderr_file_id;
-} ATTRIBUTE_PACKED GetProcessStderrResponse_;
+} ATTRIBUTE_PACKED GetProcessStdioResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -652,12 +572,14 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t executable_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
 } ATTRIBUTE_PACKED SetProgramCommand_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t command_string_id;
 } ATTRIBUTE_PACKED SetProgramCommandResponse_;
 
 typedef struct {
@@ -668,58 +590,20 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t command_string_id;
+	uint16_t executable_string_id;
+	uint16_t arguments_list_id;
+	uint16_t environment_list_id;
 } ATTRIBUTE_PACKED GetProgramCommandResponse_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED SetProgramArguments_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t arguments_list_id;
-} ATTRIBUTE_PACKED SetProgramArgumentsResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramArguments_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t arguments_list_id;
-} ATTRIBUTE_PACKED GetProgramArgumentsResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-} ATTRIBUTE_PACKED SetProgramEnvironment_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t environment_list_id;
-} ATTRIBUTE_PACKED SetProgramEnvironmentResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramEnvironment_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t environment_list_id;
-} ATTRIBUTE_PACKED GetProgramEnvironmentResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdio;
-	uint8_t redirection;
+	uint8_t stdin_redirection;
+	uint16_t stdin_file_name_string_id;
+	uint8_t stdout_redirection;
+	uint16_t stdout_file_name_string_id;
+	uint8_t stderr_redirection;
+	uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED SetProgramStdioRedirection_;
 
 typedef struct {
@@ -730,38 +614,18 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-	uint8_t stdio;
 } ATTRIBUTE_PACKED GetProgramStdioRedirection_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t redirection;
+	uint8_t stdin_redirection;
+	uint16_t stdin_file_name_string_id;
+	uint8_t stdout_redirection;
+	uint16_t stdout_file_name_string_id;
+	uint8_t stderr_redirection;
+	uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdio;
-	uint16_t file_name_string_id;
-} ATTRIBUTE_PACKED SetProgramStdioFileName_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED SetProgramStdioFileNameResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdio;
-} ATTRIBUTE_PACKED GetProgramStdioFileName_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t file_name_string_id;
-} ATTRIBUTE_PACKED GetProgramStdioFileNameResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -851,9 +715,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_REMOVE_FROM_LIST] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_OPEN_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_CREATE_PIPE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_FILE_TYPE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_FILE_FLAGS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_FILE_INFO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_READ_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_READ_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_ABORT_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -864,8 +726,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_FILE_POSITION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_WRITE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
-	device_p->response_expected[RED_FUNCTION_GET_FILE_INFO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_SYMLINK_TARGET] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_LOOKUP_FILE_INFO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_LOOKUP_SYMLINK_TARGET] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_OPEN_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_DIRECTORY_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -874,14 +736,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_SPAWN_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_KILL_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_USER_ID] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_GROUP_ID] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDIN] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDOUT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDERR] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROCESS_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDIO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STATE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_PROCESS_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_DEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -890,14 +746,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ARGUMENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ENVIRONMENT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_FILE_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
@@ -1396,13 +1246,13 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
 	return ret;
 }
 
-int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type) {
+int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags) {
 	DevicePrivate *device_p = red->p;
-	GetFileType_ request;
-	GetFileTypeResponse_ response;
+	GetFileInfo_ request;
+	GetFileInfoResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_TYPE, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_INFO, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -1417,59 +1267,7 @@ int red_get_file_type(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
 	}
 	*ret_error_code = response.error_code;
 	*ret_type = response.type;
-
-
-
-	return ret;
-}
-
-int red_get_file_name(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id) {
-	DevicePrivate *device_p = red->p;
-	GetFileName_ request;
-	GetFileNameResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_NAME, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.file_id = leconvert_uint16_to(file_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_name_string_id = leconvert_uint16_from(response.name_string_id);
-
-
-
-	return ret;
-}
-
-int red_get_file_flags(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_flags) {
-	DevicePrivate *device_p = red->p;
-	GetFileFlags_ request;
-	GetFileFlagsResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_FLAGS, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.file_id = leconvert_uint16_to(file_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_flags = leconvert_uint16_from(response.flags);
 
 
@@ -1686,13 +1484,13 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
 	return ret;
 }
 
-int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time) {
+int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time) {
 	DevicePrivate *device_p = red->p;
-	GetFileInfo_ request;
-	GetFileInfoResponse_ response;
+	LookupFileInfo_ request;
+	LookupFileInfoResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_INFO, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_LOOKUP_FILE_INFO, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -1721,13 +1519,13 @@ int red_get_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, ui
 	return ret;
 }
 
-int red_get_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint8_t *ret_error_code, uint16_t *ret_target_string_id) {
+int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint8_t *ret_error_code, uint16_t *ret_target_string_id) {
 	DevicePrivate *device_p = red->p;
-	GetSymlinkTarget_ request;
-	GetSymlinkTargetResponse_ response;
+	LookupSymlinkTarget_ request;
+	LookupSymlinkTargetResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_SYMLINK_TARGET, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_LOOKUP_SYMLINK_TARGET, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -1887,7 +1685,7 @@ int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint
 	return ret;
 }
 
-int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t user_id, uint32_t group_id, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id) {
+int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t user_id, uint32_t group_id, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id) {
 	DevicePrivate *device_p = red->p;
 	SpawnProcess_ request;
 	SpawnProcessResponse_ response;
@@ -1899,7 +1697,7 @@ int red_spawn_process(RED *red, uint16_t command_string_id, uint16_t arguments_l
 		return ret;
 	}
 
-	request.command_string_id = leconvert_uint16_to(command_string_id);
+	request.executable_string_id = leconvert_uint16_to(executable_string_id);
 	request.arguments_list_id = leconvert_uint16_to(arguments_list_id);
 	request.environment_list_id = leconvert_uint16_to(environment_list_id);
 	request.working_directory_string_id = leconvert_uint16_to(working_directory_string_id);
@@ -1949,7 +1747,7 @@ int red_kill_process(RED *red, uint16_t process_id, uint8_t signal, uint8_t *ret
 	return ret;
 }
 
-int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id) {
+int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id, uint16_t *ret_working_directory_string_id) {
 	DevicePrivate *device_p = red->p;
 	GetProcessCommand_ request;
 	GetProcessCommandResponse_ response;
@@ -1969,87 +1767,9 @@ int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_co
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_command_string_id = leconvert_uint16_from(response.command_string_id);
-
-
-
-	return ret;
-}
-
-int red_get_process_arguments(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id) {
-	DevicePrivate *device_p = red->p;
-	GetProcessArguments_ request;
-	GetProcessArgumentsResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_ARGUMENTS, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
+	*ret_executable_string_id = leconvert_uint16_from(response.executable_string_id);
 	*ret_arguments_list_id = leconvert_uint16_from(response.arguments_list_id);
-
-
-
-	return ret;
-}
-
-int red_get_process_environment(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id) {
-	DevicePrivate *device_p = red->p;
-	GetProcessEnvironment_ request;
-	GetProcessEnvironmentResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_ENVIRONMENT, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_environment_list_id = leconvert_uint16_from(response.environment_list_id);
-
-
-
-	return ret;
-}
-
-int red_get_process_working_directory(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_working_directory_string_id) {
-	DevicePrivate *device_p = red->p;
-	GetProcessWorkingDirectory_ request;
-	GetProcessWorkingDirectoryResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_WORKING_DIRECTORY, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_working_directory_string_id = leconvert_uint16_from(response.working_directory_string_id);
 
 
@@ -2057,13 +1777,13 @@ int red_get_process_working_directory(RED *red, uint16_t process_id, uint8_t *re
 	return ret;
 }
 
-int red_get_process_user_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id) {
+int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id, uint32_t *ret_group_id) {
 	DevicePrivate *device_p = red->p;
-	GetProcessUserID_ request;
-	GetProcessUserIDResponse_ response;
+	GetProcessIdentity_ request;
+	GetProcessIdentityResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_USER_ID, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_IDENTITY, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2078,32 +1798,6 @@ int red_get_process_user_id(RED *red, uint16_t process_id, uint8_t *ret_error_co
 	}
 	*ret_error_code = response.error_code;
 	*ret_user_id = leconvert_uint32_from(response.user_id);
-
-
-
-	return ret;
-}
-
-int red_get_process_group_id(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_group_id) {
-	DevicePrivate *device_p = red->p;
-	GetProcessGroupID_ request;
-	GetProcessGroupIDResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_GROUP_ID, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_group_id = leconvert_uint32_from(response.group_id);
 
 
@@ -2111,13 +1805,13 @@ int red_get_process_group_id(RED *red, uint16_t process_id, uint8_t *ret_error_c
 	return ret;
 }
 
-int red_get_process_stdin(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id) {
+int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id, uint16_t *ret_stdout_file_id, uint16_t *ret_stderr_file_id) {
 	DevicePrivate *device_p = red->p;
-	GetProcessStdin_ request;
-	GetProcessStdinResponse_ response;
+	GetProcessStdio_ request;
+	GetProcessStdioResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_STDIN, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_STDIO, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2132,59 +1826,7 @@ int red_get_process_stdin(RED *red, uint16_t process_id, uint8_t *ret_error_code
 	}
 	*ret_error_code = response.error_code;
 	*ret_stdin_file_id = leconvert_uint16_from(response.stdin_file_id);
-
-
-
-	return ret;
-}
-
-int red_get_process_stdout(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdout_file_id) {
-	DevicePrivate *device_p = red->p;
-	GetProcessStdout_ request;
-	GetProcessStdoutResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_STDOUT, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_stdout_file_id = leconvert_uint16_from(response.stdout_file_id);
-
-
-
-	return ret;
-}
-
-int red_get_process_stderr(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stderr_file_id) {
-	DevicePrivate *device_p = red->p;
-	GetProcessStderr_ request;
-	GetProcessStderrResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESS_STDERR, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.process_id = leconvert_uint16_to(process_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_stderr_file_id = leconvert_uint16_from(response.stderr_file_id);
 
 
@@ -2327,7 +1969,7 @@ int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_
 	return ret;
 }
 
-int red_set_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id) {
+int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	SetProgramCommand_ request;
 	SetProgramCommandResponse_ response;
@@ -2340,6 +1982,9 @@ int red_set_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_co
 	}
 
 	request.program_id = leconvert_uint16_to(program_id);
+	request.executable_string_id = leconvert_uint16_to(executable_string_id);
+	request.arguments_list_id = leconvert_uint16_to(arguments_list_id);
+	request.environment_list_id = leconvert_uint16_to(environment_list_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2347,14 +1992,13 @@ int red_set_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_co
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_command_string_id = leconvert_uint16_from(response.command_string_id);
 
 
 
 	return ret;
 }
 
-int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_command_string_id) {
+int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id) {
 	DevicePrivate *device_p = red->p;
 	GetProgramCommand_ request;
 	GetProgramCommandResponse_ response;
@@ -2374,87 +2018,8 @@ int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_co
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_command_string_id = leconvert_uint16_from(response.command_string_id);
-
-
-
-	return ret;
-}
-
-int red_set_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id) {
-	DevicePrivate *device_p = red->p;
-	SetProgramArguments_ request;
-	SetProgramArgumentsResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_ARGUMENTS, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
+	*ret_executable_string_id = leconvert_uint16_from(response.executable_string_id);
 	*ret_arguments_list_id = leconvert_uint16_from(response.arguments_list_id);
-
-
-
-	return ret;
-}
-
-int red_get_program_arguments(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_arguments_list_id) {
-	DevicePrivate *device_p = red->p;
-	GetProgramArguments_ request;
-	GetProgramArgumentsResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_ARGUMENTS, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_arguments_list_id = leconvert_uint16_from(response.arguments_list_id);
-
-
-
-	return ret;
-}
-
-int red_set_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id) {
-	DevicePrivate *device_p = red->p;
-	SetProgramEnvironment_ request;
-	SetProgramEnvironmentResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_ENVIRONMENT, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
 	*ret_environment_list_id = leconvert_uint16_from(response.environment_list_id);
 
 
@@ -2462,34 +2027,7 @@ int red_set_program_environment(RED *red, uint16_t program_id, uint8_t *ret_erro
 	return ret;
 }
 
-int red_get_program_environment(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_environment_list_id) {
-	DevicePrivate *device_p = red->p;
-	GetProgramEnvironment_ request;
-	GetProgramEnvironmentResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_ENVIRONMENT, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_environment_list_id = leconvert_uint16_from(response.environment_list_id);
-
-
-
-	return ret;
-}
-
-int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t redirection, uint8_t *ret_error_code) {
+int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdin_redirection, uint16_t stdin_file_name_string_id, uint8_t stdout_redirection, uint16_t stdout_file_name_string_id, uint8_t stderr_redirection, uint16_t stderr_file_name_string_id, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	SetProgramStdioRedirection_ request;
 	SetProgramStdioRedirectionResponse_ response;
@@ -2502,8 +2040,12 @@ int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
 	}
 
 	request.program_id = leconvert_uint16_to(program_id);
-	request.stdio = stdio;
-	request.redirection = redirection;
+	request.stdin_redirection = stdin_redirection;
+	request.stdin_file_name_string_id = leconvert_uint16_to(stdin_file_name_string_id);
+	request.stdout_redirection = stdout_redirection;
+	request.stdout_file_name_string_id = leconvert_uint16_to(stdout_file_name_string_id);
+	request.stderr_redirection = stderr_redirection;
+	request.stderr_file_name_string_id = leconvert_uint16_to(stderr_file_name_string_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2517,7 +2059,7 @@ int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
 	return ret;
 }
 
-int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint8_t *ret_redirection) {
+int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_stdin_redirection, uint16_t *ret_stdin_file_name_string_id, uint8_t *ret_stdout_redirection, uint16_t *ret_stdout_file_name_string_id, uint8_t *ret_stderr_redirection, uint16_t *ret_stderr_file_name_string_id) {
 	DevicePrivate *device_p = red->p;
 	GetProgramStdioRedirection_ request;
 	GetProgramStdioRedirectionResponse_ response;
@@ -2530,7 +2072,6 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
 	}
 
 	request.program_id = leconvert_uint16_to(program_id);
-	request.stdio = stdio;
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2538,63 +2079,12 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_redirection = response.redirection;
-
-
-
-	return ret;
-}
-
-int red_set_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint16_t file_name_string_id, uint8_t *ret_error_code) {
-	DevicePrivate *device_p = red->p;
-	SetProgramStdioFileName_ request;
-	SetProgramStdioFileNameResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_PROGRAM_STDIO_FILE_NAME, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-	request.stdio = stdio;
-	request.file_name_string_id = leconvert_uint16_to(file_name_string_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-
-
-
-	return ret;
-}
-
-int red_get_program_stdio_file_name(RED *red, uint16_t program_id, uint8_t stdio, uint8_t *ret_error_code, uint16_t *ret_file_name_string_id) {
-	DevicePrivate *device_p = red->p;
-	GetProgramStdioFileName_ request;
-	GetProgramStdioFileNameResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_STDIO_FILE_NAME, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-	request.stdio = stdio;
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_file_name_string_id = leconvert_uint16_from(response.file_name_string_id);
+	*ret_stdin_redirection = response.stdin_redirection;
+	*ret_stdin_file_name_string_id = leconvert_uint16_from(response.stdin_file_name_string_id);
+	*ret_stdout_redirection = response.stdout_redirection;
+	*ret_stdout_file_name_string_id = leconvert_uint16_from(response.stdout_file_name_string_id);
+	*ret_stderr_redirection = response.stderr_redirection;
+	*ret_stderr_file_name_string_id = leconvert_uint16_from(response.stderr_file_name_string_id);
 
 
 

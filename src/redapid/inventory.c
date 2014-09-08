@@ -55,7 +55,7 @@ typedef struct {
 	int index;
 } Inventory;
 
-static ObjectID _next_id = 1; // don't use object ID 0
+static ObjectID _next_id = 1; // don't use object ID zero
 static Array _objects[MAX_OBJECT_TYPES];
 
 static void inventory_destroy(Object *object) {
@@ -83,9 +83,9 @@ static APIE inventory_get_next_id(ObjectID *id) {
 	Object *object;
 
 	// FIXME: this is an O(n^2) algorithm
-	for (i = 0; i < UINT16_MAX; ++i) {
-		if (_next_id == 0) {
-			_next_id = 1; // don't use object ID 0
+	for (i = 0; i < OBJECT_ID_MAX; ++i) {
+		if (_next_id == OBJECT_ID_ZERO) {
+			_next_id = 1; // don't use object ID zero
 		}
 
 		candidate = _next_id++;

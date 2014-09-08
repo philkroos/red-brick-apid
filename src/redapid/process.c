@@ -61,8 +61,8 @@ static void process_destroy(Object *object) {
 	event_remove_source(process->state_change_pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
 
 	if (process->alive) {
-		log_warn("Destroying process object (id: %u, command: %s) while child process (pid: %u) is still alive",
-		         process->base.id, process->command->buffer, process->pid);
+		log_warn("Destroying process object (id: %u, executable: %s) while child process (pid: %u) is still alive",
+		         process->base.id, process->executable->buffer, process->pid);
 
 		rc = kill(process->pid, SIGKILL);
 
@@ -71,8 +71,8 @@ static void process_destroy(Object *object) {
 				stuck = true;
 			}
 
-			log_error("Could not send SIGKILL signal to child process (command: %s, pid: %u): %s (%d)",
-			          process->command->buffer, process->pid, get_errno_name(errno), errno);
+			log_error("Could not send SIGKILL signal to child process (executable: %s, pid: %u): %s (%d)",
+			          process->executable->buffer, process->pid, get_errno_name(errno), errno);
 		}
 	}
 
@@ -90,7 +90,7 @@ static void process_destroy(Object *object) {
 	string_vacate(process->working_directory);
 	list_vacate(process->environment);
 	list_vacate(process->arguments);
-	string_vacate(process->command);
+	string_vacate(process->executable);
 
 	free(process);
 }
@@ -111,8 +111,8 @@ static void process_wait(void *opaque) {
 		} while (rc < 0 && errno == EINTR);
 
 		if (rc < 0) {
-			log_error("Could not wait for child process (command: %s, pid: %u) state change: %s (%d)",
-			          process->command->buffer, process->pid, get_errno_name(errno), errno);
+			log_error("Could not wait for child process (executable: %s, pid: %u) state change: %s (%d)",
+			          process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
 			return;
 		}
@@ -139,16 +139,16 @@ static void process_wait(void *opaque) {
 			change.fatal = false;
 		}
 
-		log_debug("State of child process (command: %s, pid: %u) changed (state: %u, exit_code: %u)",
-		          process->command->buffer, process->pid, change.state, change.exit_code);
+		log_debug("State of child process (executable: %s, pid: %u) changed (state: %u, exit_code: %u)",
+		          process->executable->buffer, process->pid, change.state, change.exit_code);
 
 		if (change.fatal) {
 			process->alive = false;
 		}
 
 		if (pipe_write(&process->state_change_pipe, &change, sizeof(change)) < 0) {
-			log_error("Could not write to state change pipe for child process (command: %s, pid: %u): %s (%d)",
-			          process->command->buffer, process->pid, get_errno_name(errno), errno);
+			log_error("Could not write to state change pipe for child process (executable: %s, pid: %u): %s (%d)",
+			          process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
 			return;
 		}
@@ -160,8 +160,8 @@ static void process_handle_state_change(void *opaque) {
 	ProcessStateChange change;
 
 	if (pipe_read(&process->state_change_pipe, &change, sizeof(change)) < 0) {
-		log_error("Could not read from state change pipe for child process (command: %s, pid: %u): %s (%d)",
-		          process->command->buffer, process->pid, get_errno_name(errno), errno);
+		log_error("Could not read from state change pipe for child process (executable: %s, pid: %u): %s (%d)",
+		          process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
 		return;
 	}
@@ -246,13 +246,13 @@ APIE process_fork(pid_t *pid) {
 }
 
 // public API
-APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
+APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t user_id, uint32_t group_id, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
-	String *command;
+	String *executable;
 	List *arguments;
 	Array arguments_array;
 	int i;
@@ -270,8 +270,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	int rc;
 	Process *process;
 
-	// occupy command string object
-	error_code = string_occupy(command_id, &command);
+	// occupy executable string object
+	error_code = string_occupy(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -292,8 +292,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (array_create(&arguments_array, 1 + arguments->items.count + 1, sizeof(char *), true) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create arguments array for spawning child process (command: %s): %s (%d)",
-		          command->buffer, get_errno_name(errno), errno);
+		log_error("Could not create arguments array for spawning child process (executable: %s): %s (%d)",
+		          executable->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -305,13 +305,13 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (item == NULL) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not append to arguments array for spawning child process (command: %s): %s (%d)",
-		          command->buffer, get_errno_name(errno), errno);
+		log_error("Could not append to arguments array for spawning child process (executable: %s): %s (%d)",
+		          executable->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
 
-	*item = command->buffer;
+	*item = executable->buffer;
 
 	for (i = 0; i < arguments->items.count; ++i) {
 		item = array_append(&arguments_array);
@@ -319,8 +319,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (item == NULL) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not append to arguments array for spawning child process (command: %s): %s (%d)",
-			          command->buffer, get_errno_name(errno), errno);
+			log_error("Could not append to arguments array for spawning child process (executable: %s): %s (%d)",
+			          executable->buffer, get_errno_name(errno), errno);
 
 			goto cleanup;
 		}
@@ -333,8 +333,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (item == NULL) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not append to arguments array for spawning child process (command: %s): %s (%d)",
-		          command->buffer, get_errno_name(errno), errno);
+		log_error("Could not append to arguments array for spawning child process (executable: %s): %s (%d)",
+		          executable->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -354,8 +354,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (array_create(&environment_array, environment->items.count + 1, sizeof(char *), true) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create environment array for spawning child process (command: %s): %s (%d)",
-		          command->buffer, get_errno_name(errno), errno);
+		log_error("Could not create environment array for spawning child process (executable: %s): %s (%d)",
+		          executable->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -368,8 +368,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (item == NULL) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not append to environment array for spawning child process (command: %s): %s (%d)",
-			          command->buffer, get_errno_name(errno), errno);
+			log_error("Could not append to environment array for spawning child process (executable: %s): %s (%d)",
+			          executable->buffer, get_errno_name(errno), errno);
 
 			goto cleanup;
 		}
@@ -384,8 +384,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (item == NULL) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not append to environment array for spawning child process (command: %s): %s (%d)",
-		          command->buffer, get_errno_name(errno), errno);
+		log_error("Could not append to environment array for spawning child process (executable: %s): %s (%d)",
+		          executable->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -432,8 +432,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (pipe(status_pipe) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create status pipe for spawning child process (command: %s): %s (%d)",
-		          command->buffer, get_errno_name(errno), errno);
+		log_error("Could not create status pipe for spawning child process (executable: %s): %s (%d)",
+		          executable->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -441,7 +441,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	phase = 10;
 
 	// fork
-	log_debug("Forking to spawn child process (command: %s)", command->buffer);
+	log_debug("Forking to spawn child process (executable: %s)", executable->buffer);
 
 	error_code = process_fork(&pid);
 
@@ -456,8 +456,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (setregid(group_id, group_id) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not change to group %u for child process (command: %s, pid: %u): %s (%d)",
-			          group_id, command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not change to group %u for child process (executable: %s, pid: %u): %s (%d)",
+			          group_id, executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -466,8 +466,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (setreuid(user_id, user_id) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not change to user %u for child process (command: %s, pid: %u): %s (%d)",
-			          user_id, command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not change to user %u for child process (executable: %s, pid: %u): %s (%d)",
+			          user_id, executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -476,8 +476,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (chdir(working_directory->buffer) < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not change directory to '%s' for child process (command: %s, pid: %u): %s (%d)",
-			          working_directory->buffer, command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not change directory to '%s' for child process (executable: %s, pid: %u): %s (%d)",
+			          working_directory->buffer, executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -498,8 +498,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (dup2(file_get_read_handle(stdin), STDIN_FILENO) != STDIN_FILENO) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not redirect stdin for child process (command: %s, pid: %u): %s (%d)",
-			          command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not redirect stdin for child process (executable: %s, pid: %u): %s (%d)",
+			          executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -508,8 +508,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (dup2(file_get_write_handle(stdout), STDOUT_FILENO) != STDOUT_FILENO) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not redirect stdout for child process (command: %s, pid: %u): %s (%d)",
-			          command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not redirect stdout for child process (executable: %s, pid: %u): %s (%d)",
+			          executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -520,8 +520,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		log_file = log_get_file();
 
 		if (log_file != NULL && fileno(log_file) == STDERR_FILENO) {
-			log_debug("Disable logging to stderr for child process (command: %s, pid: %u)",
-			          command->buffer, getpid());
+			log_debug("Disable logging to stderr for child process (executable: %s, pid: %u)",
+			          executable->buffer, getpid());
 
 			log_set_file(NULL);
 		}
@@ -530,8 +530,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (dup2(file_get_write_handle(stderr), STDERR_FILENO) != STDERR_FILENO) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not redirect stderr for child process (command: %s, pid: %u): %s (%d)",
-			          command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not redirect stderr for child process (executable: %s, pid: %u): %s (%d)",
+			          executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -544,8 +544,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not write to status pipe for child process (command: %s, pid: %u): %s (%d)",
-			          command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not write to status pipe for child process (executable: %s, pid: %u): %s (%d)",
+			          executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -562,7 +562,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		}
 
 		// execvpe only returns in case of an error
-		execvpe(command->buffer, (char **)arguments_array.bytes, (char **)environment_array.bytes);
+		execvpe(executable->buffer, (char **)arguments_array.bytes, (char **)environment_array.bytes);
 
 		if (errno == ENOENT) {
 			_exit(EXIT_ENOENT);
@@ -579,8 +579,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_error("Could not write to status pipe for child process (command: %s, pid: %u): %s (%d)",
-			          command->buffer, getpid(), get_errno_name(errno), errno);
+			log_error("Could not write to status pipe for child process (executable: %s, pid: %u): %s (%d)",
+			          executable->buffer, getpid(), get_errno_name(errno), errno);
 		}
 
 		close(status_pipe[1]);
@@ -598,8 +598,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not read from status pipe for child process (command: %s, pid: %u): %s (%d)",
-		          command->buffer, pid, get_errno_name(errno), errno);
+		log_error("Could not read from status pipe for child process (executable: %s, pid: %u): %s (%d)",
+		          executable->buffer, pid, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -623,7 +623,7 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	phase = 12;
 
 	// setup process object
-	process->command = command;
+	process->executable = executable;
 	process->arguments = arguments;
 	process->environment = environment;
 	process->working_directory = working_directory;
@@ -640,8 +640,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	if (pipe_create(&process->state_change_pipe, 0) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create state change pipe child process (command: %s, pid: %u): %s (%d)",
-		          command->buffer, pid, get_errno_name(errno), errno);
+		log_error("Could not create state change pipe child process (executable: %s, pid: %u): %s (%d)",
+		          executable->buffer, pid, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -671,8 +671,8 @@ APIE process_spawn(ObjectID command_id, ObjectID arguments_id,
 	// start thread to wait for child process state changes
 	thread_create(&process->wait_thread, process_wait, process);
 
-	log_debug("Spawned process object (id: %u, command: %s, pid: %u)",
-	          process->base.id, command->buffer, process->pid);
+	log_debug("Spawned process object (id: %u, executable: %s, pid: %u)",
+	          process->base.id, executable->buffer, process->pid);
 
 	phase = 15;
 
@@ -724,7 +724,7 @@ cleanup:
 		list_vacate(arguments);
 
 	case 1:
-		string_vacate(command);
+		string_vacate(executable);
 
 	default:
 		break;
@@ -744,8 +744,8 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 	}
 
 	if (!process->alive) {
-		log_warn("Cannot send signal (number: %d) to an already dead child process (command: %s)",
-		         signal, process->command->buffer);
+		log_warn("Cannot send signal (number: %d) to an already dead child process (executable: %s)",
+		         signal, process->executable->buffer);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -755,8 +755,8 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not send signal (number: %d) to child process (command: %s, pid: %u): %s (%d)",
-		         signal, process->command->buffer, process->pid, get_errno_name(errno), errno);
+		log_warn("Could not send signal (number: %d) to child process (executable: %s, pid: %u): %s (%d)",
+		         signal, process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -765,7 +765,9 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 }
 
 // public API
-APIE process_get_command(ObjectID id, ObjectID *command_id) {
+APIE process_get_command(ObjectID id, ObjectID *executable_id,
+                         ObjectID *arguments_id, ObjectID *environment_id,
+                         ObjectID *working_directory_id) {
 	Process *process;
 	APIE error_code = process_get(id, &process);
 
@@ -773,63 +775,21 @@ APIE process_get_command(ObjectID id, ObjectID *command_id) {
 		return error_code;
 	}
 
-	object_add_external_reference(&process->command->base);
-
-	*command_id = process->command->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE process_get_arguments(ObjectID id, ObjectID *arguments_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+	object_add_external_reference(&process->executable->base);
 	object_add_external_reference(&process->arguments->base);
-
-	*arguments_id = process->arguments->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE process_get_environment(ObjectID id, ObjectID *environment_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&process->environment->base);
-
-	*environment_id = process->environment->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE process_get_working_directory(ObjectID id, ObjectID *working_directory_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&process->working_directory->base);
 
+	*executable_id = process->executable->base.id;
+	*arguments_id = process->arguments->base.id;
+	*environment_id = process->environment->base.id;
 	*working_directory_id = process->working_directory->base.id;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE process_get_user_id(ObjectID id, uint32_t *user_id) {
+APIE process_get_identity(ObjectID id, uint32_t *user_id, uint32_t *group_id) {
 	Process *process;
 	APIE error_code = process_get(id, &process);
 
@@ -838,26 +798,14 @@ APIE process_get_user_id(ObjectID id, uint32_t *user_id) {
 	}
 
 	*user_id = process->user_id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE process_get_group_id(ObjectID id, uint32_t *group_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	*group_id = process->group_id;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE process_get_stdin(ObjectID id, ObjectID *stdin_id) {
+APIE process_get_stdio(ObjectID id, ObjectID *stdin_id, ObjectID *stdout_id,
+                       ObjectID *stderr_id) {
 	Process *process;
 	APIE error_code = process_get(id, &process);
 
@@ -866,39 +814,11 @@ APIE process_get_stdin(ObjectID id, ObjectID *stdin_id) {
 	}
 
 	object_add_external_reference(&process->stdin->base);
-
-	*stdin_id = process->stdin->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE process_get_stdout(ObjectID id, ObjectID *stdout_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&process->stdout->base);
-
-	*stdout_id = process->stdout->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE process_get_stderr(ObjectID id, ObjectID *stderr_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&process->stderr->base);
 
+	*stdin_id = process->stdin->base.id;
+	*stdout_id = process->stdout->base.id;
 	*stderr_id = process->stderr->base.id;
 
 	return API_E_SUCCESS;

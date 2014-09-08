@@ -58,18 +58,6 @@ static bool program_is_valid_identifier(const char *identifier) {
 	return identifier[strspn(identifier, _identifier_alphabet)] == '\0';
 }
 
-static bool program_is_valid_stdio(ProgramStdio stdio) {
-	switch (stdio) {
-	case PROGRAM_STDIO_INPUT:
-	case PROGRAM_STDIO_OUTPUT:
-	case PROGRAM_STDIO_ERROR:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
 static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirection) {
 	switch (redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
@@ -82,15 +70,49 @@ static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirecti
 	}
 }
 
+static bool program_is_valid_schedule_start_condition(ProgramScheduleStartCondition condition) {
+	switch (condition) {
+	case PROGRAM_SCHEDULE_START_CONDITION_NEVER:
+	case PROGRAM_SCHEDULE_START_CONDITION_NOW:
+	case PROGRAM_SCHEDULE_START_CONDITION_BOOT:
+	case PROGRAM_SCHEDULE_START_CONDITION_TIME:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static bool program_is_valid_schedule_repeat_mode(ProgramScheduleRepeatMode mode) {
+	switch (mode) {
+	case PROGRAM_SCHEDULE_REPEAT_MODE_NEVER:
+	case PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE:
+	case PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 static void program_destroy(Object *object) {
 	Program *program = (Program *)object;
 
-	string_vacate(program->stdio_file_names[PROGRAM_STDIO_ERROR]);
-	string_vacate(program->stdio_file_names[PROGRAM_STDIO_OUTPUT]);
-	string_vacate(program->stdio_file_names[PROGRAM_STDIO_INPUT]);
+	if (program->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->stderr_file_name);
+	}
+
+	if (program->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->stdout_file_name);
+	}
+
+	if (program->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->stdin_file_name);
+	}
+
 	list_vacate(program->environment);
 	list_vacate(program->arguments);
-	string_vacate(program->command);
+	string_vacate(program->executable);
 	string_vacate(program->directory);
 	string_vacate(program->identifier);
 
@@ -109,12 +131,9 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	struct passwd *pw;
 	char *buffer;
 	String *directory;
-	String *command;
+	String *executable;
 	List *arguments;
 	List *environment;
-	String *stdin_file_name;
-	String *stdout_file_name;
-	String *stderr_file_name;
 	Program *program;
 
 	// occupy identifier string object
@@ -134,11 +153,11 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	// create command string object
+	// create executable string object
 	error_code = string_wrap("",
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_OCCUPIED,
-	                         NULL, &command);
+	                         NULL, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -170,42 +189,6 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	phase = 4;
 
-	// create stdin file name string object
-	error_code = string_wrap("",
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
-	                         NULL, &stdin_file_name);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	phase = 5;
-
-	// create stdout file name string object
-	error_code = string_wrap("",
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
-	                         NULL, &stdout_file_name);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	phase = 6;
-
-	// create stderr file name string object
-	error_code = string_wrap("",
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
-	                         NULL, &stderr_file_name);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	phase = 7;
-
 	// get home directory of the default user (UID 1000)
 	pw = getpwuid(1000);
 
@@ -228,7 +211,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 8;
+	phase = 5;
 
 	error_code = string_wrap(buffer,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
@@ -238,7 +221,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 9;
+	phase = 6;
 
 	// create program directory as default user (UID 1000, GID 1000)
 	error_code = directory_create_internal(directory->buffer, true, 0755, 1000, 1000);
@@ -247,7 +230,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 10;
+	phase = 7;
 
 	// FIXME: create persistent program configuration on disk
 
@@ -263,21 +246,32 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 11;
+	phase = 8;
 
 	// create program object
 	program->defined = true;
 	program->identifier = identifier;
 	program->directory = directory;
-	program->command = command;
+	program->executable = executable;
 	program->arguments = arguments;
 	program->environment = environment;
-	program->stdio_redirections[PROGRAM_STDIO_INPUT] = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program->stdio_redirections[PROGRAM_STDIO_OUTPUT] = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program->stdio_redirections[PROGRAM_STDIO_ERROR] = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program->stdio_file_names[PROGRAM_STDIO_INPUT] = stdin_file_name;
-	program->stdio_file_names[PROGRAM_STDIO_OUTPUT] = stdout_file_name;
-	program->stdio_file_names[PROGRAM_STDIO_ERROR] = stderr_file_name;
+	program->stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->stdin_file_name = NULL;
+	program->stdout_file_name = NULL;
+	program->stderr_file_name = NULL;
+	program->start_condition = PROGRAM_SCHEDULE_START_CONDITION_NEVER;
+	program->start_time = 0;
+	program->start_delay = 0;
+	program->repeat_mode = PROGRAM_SCHEDULE_REPEAT_MODE_NEVER;
+	program->repeat_interval = 0;
+	program->repeat_second_mask = 0;
+	program->repeat_minute_mask = 0;
+	program->repeat_hour_mask = 0;
+	program->repeat_day_mask = 0;
+	program->repeat_month_mask = 0;
+	program->repeat_weekday_mask = 0;
 
 	error_code = object_create(&program->base,
 	                           OBJECT_TYPE_PROGRAM,
@@ -294,32 +288,23 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	log_debug("Defined program object (id: %u, identifier: %s)",
 	          program->base.id, identifier->buffer);
 
-	phase = 12;
+	phase = 9;
 
 	free(buffer);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 11:
+	case 8:
 		free(program);
 
-	case 10:
+	case 7:
 		rmdir(directory->buffer);
 
-	case 9:
+	case 6:
 		string_vacate(directory);
 
-	case 8:
-		free(buffer);
-
-	case 7:
-		string_vacate(stderr_file_name);
-
-	case 6:
-		string_vacate(stdout_file_name);
-
 	case 5:
-		string_vacate(stdin_file_name);
+		free(buffer);
 
 	case 4:
 		list_vacate(environment);
@@ -328,7 +313,7 @@ cleanup:
 		list_vacate(arguments);
 
 	case 2:
-		string_vacate(command);
+		string_vacate(executable);
 
 	case 1:
 		string_vacate(identifier);
@@ -337,7 +322,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 12 ? API_E_SUCCESS : error_code;
+	return phase == 9 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -398,117 +383,74 @@ APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
 }
 
 // public API
-APIE program_set_command(ObjectID id, ObjectID command_id) {
+APIE program_set_command(ObjectID id, ObjectID executable_id,
+                         ObjectID arguments_id, ObjectID environment_id) {
+	int phase = 0;
 	Program *program;
 	APIE error_code = program_get(id, &program);
-	String *command;
+	String *executable;
+	List *arguments;
+	List *environment;
 
 	if (error_code != API_E_SUCCESS) {
-		return error_code;
+		goto cleanup;
 	}
 
 	// occupy new command string object
-	error_code = string_occupy(command_id, &command);
+	error_code = string_occupy(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
-		return error_code;
+		goto cleanup;
 	}
 
-	// vacate old command string object
-	string_vacate(program->command);
-
-	// store new command string object
-	program->command = command;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE program_get_command(ObjectID id, ObjectID *command_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	object_add_external_reference(&program->command->base);
-
-	*command_id = program->command->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE program_set_arguments(ObjectID id, ObjectID arguments_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-	List *arguments;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	phase = 1;
 
 	// occupy new arguments list object
 	error_code = list_occupy(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
 	if (error_code != API_E_SUCCESS) {
-		return error_code;
+		goto cleanup;
 	}
 
-	// vacate old arguments list object
-	list_vacate(program->arguments);
-
-	// store new arguments list object
-	program->arguments = arguments;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE program_get_arguments(ObjectID id, ObjectID *arguments_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	object_add_external_reference(&program->arguments->base);
-
-	*arguments_id = program->arguments->base.id;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE program_set_environment(ObjectID id, ObjectID environment_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-	List *environment;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	phase = 2;
 
 	// occupy new environment list object
 	error_code = list_occupy(environment_id, OBJECT_TYPE_STRING, &environment);
 
 	if (error_code != API_E_SUCCESS) {
-		return error_code;
+		goto cleanup;
 	}
 
-	// vacate old environment list object
+	// vacate old objects
+	string_vacate(program->executable);
+	list_vacate(program->arguments);
 	list_vacate(program->environment);
 
-	// store new environment list object
+	// store new objects
+	program->executable = executable;
+	program->arguments = arguments;
 	program->environment = environment;
 
-	return API_E_SUCCESS;
+	phase = 3;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
+		list_vacate(arguments);
+
+	case 1:
+		string_vacate(executable);
+
+	default:
+		break;
+	}
+
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 // public API
-APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
+APIE program_get_command(ObjectID id, ObjectID *executable_id,
+                         ObjectID *arguments_id, ObjectID *environment_id) {
 	Program *program;
 	APIE error_code = program_get(id, &program);
 
@@ -516,16 +458,163 @@ APIE program_get_environment(ObjectID id, ObjectID *environment_id) {
 		return error_code;
 	}
 
+	object_add_external_reference(&program->executable->base);
+	object_add_external_reference(&program->arguments->base);
 	object_add_external_reference(&program->environment->base);
 
+	*executable_id = program->executable->base.id;
+	*arguments_id = program->arguments->base.id;
 	*environment_id = program->environment->base.id;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE program_set_stdio_redirection(ObjectID id, ProgramStdio stdio,
-                                   ProgramStdioRedirection redirection) {
+APIE program_set_stdio_redirection(ObjectID id,
+                                   ProgramStdioRedirection stdin_redirection,
+                                   ObjectID stdin_file_name_id,
+                                   ProgramStdioRedirection stdout_redirection,
+                                   ObjectID stdout_file_name_id,
+                                   ProgramStdioRedirection stderr_redirection,
+                                   ObjectID stderr_file_name_id) {
+	int phase = 0;
+	Program *program;
+	APIE error_code = program_get(id, &program);
+	String *stdin_file_name;
+	String *stdout_file_name;
+	String *stderr_file_name;
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	if (!program_is_valid_stdio_redirection(stdin_redirection)) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Invalid program stdin redirection %d", stdin_redirection);
+
+		goto cleanup;
+	}
+
+	if (!program_is_valid_stdio_redirection(stdout_redirection)) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Invalid program stdout redirection %d", stdout_redirection);
+
+		goto cleanup;
+	}
+
+	if (!program_is_valid_stdio_redirection(stderr_redirection)) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Invalid program stderr redirection %d", stderr_redirection);
+
+		goto cleanup;
+	}
+
+	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// occupy new stdin file name string object
+		error_code = string_occupy(stdin_file_name_id, &stdin_file_name);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 1;
+
+	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// occupy new stdout file name string object
+		error_code = string_occupy(stdout_file_name_id, &stdout_file_name);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 2;
+
+	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// occupy new stderr file name string object
+		error_code = string_occupy(stderr_file_name_id, &stderr_file_name);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 3;
+
+	// vacate old objects
+	if (program->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->stdin_file_name);
+	}
+
+	if (program->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->stdout_file_name);
+	}
+
+	if (program->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->stderr_file_name);
+	}
+
+	// store new objects
+	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		program->stdin_file_name = stdin_file_name;
+	} else {
+		program->stdin_file_name = NULL;
+	}
+
+	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		program->stdout_file_name = stdout_file_name;
+	} else {
+		program->stdout_file_name = NULL;
+	}
+
+	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		program->stderr_file_name = stderr_file_name;
+	} else {
+		program->stderr_file_name = NULL;
+	}
+
+	program->stdin_redirection = stdin_redirection;
+	program->stdout_redirection = stdout_redirection;
+	program->stderr_redirection = stderr_redirection;
+
+	phase = 4;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 3:
+		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_vacate(stderr_file_name);
+		}
+
+	case 2:
+		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_vacate(stdout_file_name);
+		}
+
+	case 1:
+		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_vacate(stdin_file_name);
+		}
+
+	default:
+		break;
+	}
+
+	return phase == 4 ? API_E_SUCCESS : error_code;
+}
+
+// public API
+APIE program_get_stdio_redirection(ObjectID id,
+                                   uint8_t *stdin_redirection,
+                                   ObjectID *stdin_file_name_id,
+                                   uint8_t *stdout_redirection,
+                                   ObjectID *stdout_file_name_id,
+                                   uint8_t *stderr_redirection,
+                                   ObjectID *stderr_file_name_id) {
 	Program *program;
 	APIE error_code = program_get(id, &program);
 
@@ -533,26 +622,50 @@ APIE program_set_stdio_redirection(ObjectID id, ProgramStdio stdio,
 		return error_code;
 	}
 
-	if (!program_is_valid_stdio(stdio)) {
-		log_warn("Invalid program stdio %d", stdio);
+	if (program->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		object_add_external_reference(&program->stdin_file_name->base);
 
-		return API_E_INVALID_PARAMETER;
+		*stdin_file_name_id = program->stdin_file_name->base.id;
+	} else {
+		*stdin_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	if (!program_is_valid_stdio_redirection(redirection)) {
-		log_warn("Invalid program stdio redirection %d", redirection);
+	if (program->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		object_add_external_reference(&program->stdout_file_name->base);
 
-		return API_E_INVALID_PARAMETER;
+		*stdout_file_name_id = program->stdout_file_name->base.id;
+	} else {
+		*stdout_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	program->stdio_redirections[stdio] = redirection;
+	if (program->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		object_add_external_reference(&program->stderr_file_name->base);
+
+		*stderr_file_name_id = program->stderr_file_name->base.id;
+	} else {
+		*stderr_file_name_id = OBJECT_ID_ZERO;
+	}
+
+	*stdin_redirection = program->stdin_redirection;
+	*stdout_redirection = program->stdout_redirection;
+	*stderr_redirection = program->stderr_redirection;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE program_get_stdio_redirection(ObjectID id, ProgramStdio stdio,
-                                   uint8_t *redirection) {
+APIE program_set_schedule(ObjectID id,
+                          ProgramScheduleStartCondition start_condition,
+                          uint64_t start_time,
+                          uint32_t start_delay,
+                          ProgramScheduleRepeatMode repeat_mode,
+                          uint32_t repeat_interval,
+                          uint64_t repeat_second_mask,
+                          uint64_t repeat_minute_mask,
+                          uint32_t repeat_hour_mask,
+                          uint32_t repeat_day_mask,
+                          uint16_t repeat_month_mask,
+                          uint8_t repeat_weekday_mask) {
 	Program *program;
 	APIE error_code = program_get(id, &program);
 
@@ -560,53 +673,46 @@ APIE program_get_stdio_redirection(ObjectID id, ProgramStdio stdio,
 		return error_code;
 	}
 
-	if (!program_is_valid_stdio(stdio)) {
-		log_warn("Invalid program stdio %d", stdio);
+	if (!program_is_valid_schedule_start_condition(start_condition)) {
+		log_warn("Invalid program schedule start condition %d", start_condition);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	*redirection = program->stdio_redirections[stdio];
+	if (!program_is_valid_schedule_repeat_mode(repeat_mode)) {
+		log_warn("Invalid program schedule repeat mode %d", repeat_mode);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	program->start_condition = start_condition;
+	program->start_time = start_time;
+	program->start_delay = start_delay;
+	program->repeat_mode = repeat_mode;
+	program->repeat_interval = repeat_interval;
+	program->repeat_second_mask = repeat_second_mask;
+	program->repeat_minute_mask = repeat_minute_mask;
+	program->repeat_hour_mask = repeat_hour_mask;
+	program->repeat_day_mask = repeat_day_mask;
+	program->repeat_month_mask = repeat_month_mask;
+	program->repeat_weekday_mask = repeat_weekday_mask;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE program_set_stdio_file_name(ObjectID id, ProgramStdio stdio,
-                                 ObjectID file_name_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-	String *file_name;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	if (!program_is_valid_stdio(stdio)) {
-		log_warn("Invalid program stdio %d", stdio);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	// occupy new stdio file name string object
-	error_code = string_occupy(file_name_id, &file_name);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	// vacate old stdio file name string object
-	string_vacate(program->stdio_file_names[stdio]);
-
-	// store new stdio file name string object
-	program->stdio_file_names[stdio] = file_name;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE program_get_stdio_file_name(ObjectID id, ProgramStdio stdio,
-                                 ObjectID *file_name_id) {
+APIE program_get_schedule(ObjectID id,
+                          uint8_t *start_condition,
+                          uint64_t *start_time,
+                          uint32_t *start_delay,
+                          uint8_t *repeat_mode,
+                          uint32_t *repeat_interval,
+                          uint64_t *repeat_second_mask,
+                          uint64_t *repeat_minute_mask,
+                          uint32_t *repeat_hour_mask,
+                          uint32_t *repeat_day_mask,
+                          uint16_t *repeat_month_mask,
+                          uint8_t *repeat_weekday_mask) {
 	Program *program;
 	APIE error_code = program_get(id, &program);
 
@@ -614,15 +720,17 @@ APIE program_get_stdio_file_name(ObjectID id, ProgramStdio stdio,
 		return error_code;
 	}
 
-	if (!program_is_valid_stdio(stdio)) {
-		log_warn("Invalid program stdio %d", stdio);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	object_add_external_reference(&program->stdio_file_names[stdio]->base);
-
-	*file_name_id = program->stdio_file_names[stdio]->base.id;
+	*start_condition = program->start_condition;
+	*start_time = program->start_time;
+	*start_delay = program->start_delay;
+	*repeat_mode = program->repeat_mode;
+	*repeat_interval = program->repeat_interval;
+	*repeat_second_mask = program->repeat_second_mask;
+	*repeat_minute_mask = program->repeat_minute_mask;
+	*repeat_hour_mask = program->repeat_hour_mask;
+	*repeat_day_mask = program->repeat_day_mask;
+	*repeat_month_mask = program->repeat_month_mask;
+	*repeat_weekday_mask = program->repeat_weekday_mask;
 
 	return API_E_SUCCESS;
 }
