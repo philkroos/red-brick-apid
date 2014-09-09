@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-08.      *
+ * This file was automatically generated on 2014-09-09.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -247,6 +247,13 @@ typedef struct {
 	uint8_t type;
 	uint16_t name_string_id;
 	uint16_t flags;
+	uint16_t permissions;
+	uint32_t user_id;
+	uint32_t group_id;
+	uint64_t length;
+	uint64_t access_time;
+	uint64_t modification_time;
+	uint64_t status_change_time;
 } ATTRIBUTE_PACKED GetFileInfoResponse_;
 
 typedef struct {
@@ -1290,7 +1297,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
 	return ret;
 }
 
-int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags) {
+int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time) {
 	DevicePrivate *device_p = red->p;
 	GetFileInfo_ request;
 	GetFileInfoResponse_ response;
@@ -1313,6 +1320,13 @@ int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
 	*ret_type = response.type;
 	*ret_name_string_id = leconvert_uint16_from(response.name_string_id);
 	*ret_flags = leconvert_uint16_from(response.flags);
+	*ret_permissions = leconvert_uint16_from(response.permissions);
+	*ret_user_id = leconvert_uint32_from(response.user_id);
+	*ret_group_id = leconvert_uint32_from(response.group_id);
+	*ret_length = leconvert_uint64_from(response.length);
+	*ret_access_time = leconvert_uint64_from(response.access_time);
+	*ret_modification_time = leconvert_uint64_from(response.modification_time);
+	*ret_status_change_time = leconvert_uint64_from(response.status_change_time);
 
 
 

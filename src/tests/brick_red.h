@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-08.      *
+ * This file was automatically generated on 2014-09-09.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -958,8 +958,10 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
  * The returned flags were used to open or create the file object, as passed to
  * {@link red_open_file} or {@link red_create_pipe}. See the respective function for a list
  * of possible file and pipe flags.
+ * 
+ * FIXME: everything except flags is invalid if file type is *Pipe*
  */
-int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags);
+int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time);
 
 /**
  * \ingroup BrickRED

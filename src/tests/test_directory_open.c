@@ -117,7 +117,7 @@ int main() {
 		uint64_t access_time;
 		uint64_t modification_time;
 		uint64_t status_change_time;
-		rc = red_get_file_info(&red, nid, true, &ec, &type, &permissions, &user_id, &group_id, &length, &access_time, &modification_time, &status_change_time);
+		rc = red_lookup_file_info(&red, nid, true, &ec, &type, &permissions, &user_id, &group_id, &length, &access_time, &modification_time, &status_change_time);
 		if (rc < 0) {
 			printf("red_get_file_info -> rc %d\n", rc);
 		}

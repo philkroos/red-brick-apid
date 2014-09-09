@@ -152,6 +152,32 @@ static FileType file_get_type_from_stat_mode(mode_t mode) {
 	}
 }
 
+static uint16_t file_get_permissions_from_stat_mode(mode_t mode) {
+	uint16_t permissions = 0;
+
+	if ((mode & S_IRUSR) != 0) {
+		permissions |= FILE_PERMISSION_USER_READ;
+	} else if ((mode & S_IWUSR) != 0) {
+		permissions |= FILE_PERMISSION_USER_WRITE;
+	} else if ((mode & S_IXUSR) != 0) {
+		permissions |= FILE_PERMISSION_USER_EXECUTE;
+	} else if ((mode & S_IRGRP) != 0) {
+		permissions |= FILE_PERMISSION_GROUP_READ;
+	} else if ((mode & S_IWGRP) != 0) {
+		permissions |= FILE_PERMISSION_GROUP_WRITE;
+	} else if ((mode & S_IXGRP) != 0) {
+		permissions |= FILE_PERMISSION_GROUP_EXECUTE;
+	} else if ((mode & S_IROTH) != 0) {
+		permissions |= FILE_PERMISSION_OTHERS_READ;
+	} else if ((mode & S_IWOTH) != 0) {
+		permissions |= FILE_PERMISSION_OTHERS_WRITE;
+	} else if ((mode & S_IXOTH) != 0) {
+		permissions |= FILE_PERMISSION_OTHERS_EXECUTE;
+	}
+
+	return permissions;
+}
+
 static void file_destroy(Object *object) {
 	File *file = (File *)object;
 
@@ -863,9 +889,15 @@ cleanup:
 }
 
 // public API
-APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags) {
+APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
+                   uint16_t *permissions, uint32_t *user_id, uint32_t *group_id,
+                   uint64_t *length, uint64_t *access_time,
+                   uint64_t *modification_time, uint64_t *status_change_time) {
 	File *file;
 	APIE error_code = file_get(id, &file);
+	struct stat st;
+	int rc;
+	FileType current_type;
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -882,6 +914,44 @@ APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flag
 	}
 
 	*flags = file->flags;
+
+	if (file->type == FILE_TYPE_PIPE) {
+		*permissions = 0;
+		*user_id = 0;
+		*group_id = 0;
+		*length = 0;
+		*access_time = 0;
+		*modification_time = 0;
+		*status_change_time = 0;
+	} else {
+		rc = fstat(file->fd, &st);
+
+		if (rc < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not get information for file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			         file_expand_signature(file), get_errno_name(errno), errno);
+
+			return error_code;
+		}
+
+		current_type = file_get_type_from_stat_mode(st.st_mode);
+
+		if (current_type != file->type) {
+			log_error("Current type (%s) of file object ("FILE_SIGNATURE_FORMAT") differs from cached type",
+			          file_get_type_name(current_type), file_expand_signature(file));
+
+			return API_E_INTERNAL_ERROR;
+		}
+
+		*permissions = file_get_permissions_from_stat_mode(st.st_mode);
+		*user_id = st.st_uid;
+		*group_id = st.st_gid;
+		*length = st.st_size;
+		*access_time = st.st_atime;
+		*modification_time = st.st_mtime;
+		*status_change_time = st.st_ctime;
+	}
 
 	return API_E_SUCCESS;
 }
@@ -1275,28 +1345,7 @@ APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
 	}
 
 	*type = file_get_type_from_stat_mode(st.st_mode);
-	*permissions = 0;
-
-	if ((st.st_mode & S_IRUSR) != 0) {
-		*permissions |= FILE_PERMISSION_USER_READ;
-	} else if ((st.st_mode & S_IWUSR) != 0) {
-		*permissions |= FILE_PERMISSION_USER_WRITE;
-	} else if ((st.st_mode & S_IXUSR) != 0) {
-		*permissions |= FILE_PERMISSION_USER_EXECUTE;
-	} else if ((st.st_mode & S_IRGRP) != 0) {
-		*permissions |= FILE_PERMISSION_GROUP_READ;
-	} else if ((st.st_mode & S_IWGRP) != 0) {
-		*permissions |= FILE_PERMISSION_GROUP_WRITE;
-	} else if ((st.st_mode & S_IXGRP) != 0) {
-		*permissions |= FILE_PERMISSION_GROUP_EXECUTE;
-	} else if ((st.st_mode & S_IROTH) != 0) {
-		*permissions |= FILE_PERMISSION_OTHERS_READ;
-	} else if ((st.st_mode & S_IWOTH) != 0) {
-		*permissions |= FILE_PERMISSION_OTHERS_WRITE;
-	} else if ((st.st_mode & S_IXOTH) != 0) {
-		*permissions |= FILE_PERMISSION_OTHERS_EXECUTE;
-	}
-
+	*permissions = file_get_permissions_from_stat_mode(st.st_mode);
 	*user_id = st.st_uid;
 	*group_id = st.st_gid;
 	*length = st.st_size;

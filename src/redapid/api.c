@@ -333,6 +333,13 @@ typedef struct {
 	uint8_t type;
 	uint16_t name_string_id;
 	uint16_t flags;
+	uint16_t permissions;
+	uint32_t user_id;
+	uint32_t group_id;
+	uint64_t length;
+	uint64_t access_time;
+	uint64_t modification_time;
+	uint64_t status_change_time;
 } ATTRIBUTE_PACKED GetFileInfoResponse;
 
 typedef struct {
@@ -945,7 +952,12 @@ FORWARD_FUNCTION(CreatePipe, create_pipe, {
 
 FORWARD_FUNCTION(GetFileInfo, get_file_info, {
 	response.error_code = file_get_info(request->file_id, &response.type,
-	                                    &response.name_string_id, &response.flags);
+	                                    &response.name_string_id, &response.flags,
+	                                    &response.permissions, &response.user_id,
+	                                    &response.group_id, &response.length,
+	                                    &response.access_time,
+	                                    &response.modification_time,
+	                                    &response.status_change_time);
 })
 
 FORWARD_FUNCTION(ReadFile, read_file, {
@@ -1575,7 +1587,17 @@ enum pipe_flag { // bitmask
 + open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions,
                          uint32_t user_id, uint32_t group_id)                           -> uint8_t error_code, uint16_t file_id
 + create_pipe           (uint16_t flags)                                                -> uint8_t error_code, uint16_t file_id
-+ get_file_info         (uint16_t file_id)                                              -> uint8_t error_code, uint8_t type, uint16_t name_string_id, uint16_t flags
++ get_file_info         (uint16_t file_id)                                              -> uint8_t error_code,
+                                                                                           uint8_t type,
+                                                                                           uint16_t name_string_id,
+                                                                                           uint16_t flags,
+                                                                                           uint16_t permissions,
+                                                                                           uint32_t user_id,
+                                                                                           uint32_t group_id,
+                                                                                           uint64_t length,
+                                                                                           uint64_t access_time,
+                                                                                           uint64_t modification_time,
+                                                                                           uint64_t status_change_time
 + read_file             (uint16_t file_id, uint8_t length_to_read)                      -> uint8_t error_code, uint8_t buffer[62], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
 + read_file_async       (uint16_t file_id, uint64_t length_to_read)                     -> uint8_t error_code
 + abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
