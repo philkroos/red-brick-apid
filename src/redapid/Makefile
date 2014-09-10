@@ -51,6 +51,7 @@ endif
 SOURCES := ../daemonlib/array.c \
            ../daemonlib/daemon.c \
            ../daemonlib/config.c \
+           ../daemonlib/conf_file.c \
            ../daemonlib/event.c \
            ../daemonlib/event_linux.c \
            ../daemonlib/io.c \
