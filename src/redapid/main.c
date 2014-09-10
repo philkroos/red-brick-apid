@@ -194,11 +194,11 @@ int main(int argc, char **argv) {
 
 	log_set_debug_override(debug);
 
-	log_set_level(LOG_CATEGORY_EVENT, config_get_option("log_level.event")->value.log_level);
-	log_set_level(LOG_CATEGORY_NETWORK, config_get_option("log_level.network")->value.log_level);
-	log_set_level(LOG_CATEGORY_API, config_get_option("log_level.api")->value.log_level);
-	log_set_level(LOG_CATEGORY_OBJECT, config_get_option("log_level.object")->value.log_level);
-	log_set_level(LOG_CATEGORY_OTHER, config_get_option("log_level.other")->value.log_level);
+	log_set_level(LOG_CATEGORY_EVENT, config_get_option_value("log_level.event")->log_level);
+	log_set_level(LOG_CATEGORY_NETWORK, config_get_option_value("log_level.network")->log_level);
+	log_set_level(LOG_CATEGORY_API, config_get_option_value("log_level.api")->log_level);
+	log_set_level(LOG_CATEGORY_OBJECT, config_get_option_value("log_level.object")->log_level);
+	log_set_level(LOG_CATEGORY_OTHER, config_get_option_value("log_level.other")->log_level);
 
 	if (config_has_error()) {
 		log_error("Error(s) while reading config file '%s'",
