@@ -267,7 +267,6 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	int status_pipe[2];
 	int sc_open_max;
 	FILE *log_file;
-	int rc;
 	Process *process;
 
 	// occupy executable string object
@@ -537,11 +536,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 		}
 
 		// notify parent
-		do {
-			rc = write(status_pipe[1], &error_code, sizeof(error_code));
-		} while (rc < 0 && errno == EINTR);
-
-		if (rc < 0) {
+		if (robust_write(status_pipe[1], &error_code, sizeof(error_code)) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not write to status pipe for child process (executable: %s, pid: %u): %s (%d)",
@@ -572,11 +567,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 	child_error:
 		// notify parent in all cases
-		do {
-			rc = write(status_pipe[1], &error_code, sizeof(error_code));
-		} while (rc < 0 && errno == EINTR);
-
-		if (rc < 0) {
+		if (robust_write(status_pipe[1], &error_code, sizeof(error_code)) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not write to status pipe for child process (executable: %s, pid: %u): %s (%d)",
@@ -591,11 +582,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	phase = 11;
 
 	// wait for child to start successfully
-	do {
-		rc = read(status_pipe[0], &error_code, sizeof(error_code));
-	} while (rc < 0 && errno == EINTR);
-
-	if (rc < 0) {
+	if (robust_read(status_pipe[0], &error_code, sizeof(error_code)) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not read from status pipe for child process (executable: %s, pid: %u): %s (%d)",
