@@ -206,7 +206,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 		// wait for child to exit
 		do {
 			rc = waitpid(pid, &status, 0);
-		} while (rc < 0 && errno == EINTR);
+		} while (rc < 0 && errno_interrupted());
 
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();

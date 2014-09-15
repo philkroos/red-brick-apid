@@ -403,7 +403,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		// send FD to parent in all cases
 		do {
 			rc = sendfd(pair[1], fd);
-		} while (rc < 0 && errno == EINTR);
+		} while (rc < 0 && errno_interrupted());
 
 		if (rc < 0) {
 			log_error("Could not send file descriptor to parent process for file '%s': %s (%d)",
@@ -427,7 +427,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 	// receive FD from child
 	do {
 		rc = recvfd(pair[0], &fd);
-	} while (rc < 0 && errno == EINTR);
+	} while (rc < 0 && errno_interrupted());
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -439,7 +439,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		close(pair[0]);
 
 		// wait for child to exit
-		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR);
+		while (waitpid(pid, NULL, 0) < 0 && errno_interrupted());
 
 		return error_code;
 	}
@@ -450,7 +450,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 	// wait for child to exit
 	do {
 		rc = waitpid(pid, &status, 0);
-	} while (rc < 0 && errno == EINTR);
+	} while (rc < 0 && errno_interrupted());
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();

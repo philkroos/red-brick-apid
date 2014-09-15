@@ -108,7 +108,7 @@ static void process_wait(void *opaque) {
 	do {
 		do {
 			rc = waitpid(process->pid, &status, WUNTRACED | WCONTINUED);
-		} while (rc < 0 && errno == EINTR);
+		} while (rc < 0 && errno_interrupted());
 
 		if (rc < 0) {
 			log_error("Could not wait for child process (executable: %s, pid: %u) state change: %s (%d)",
