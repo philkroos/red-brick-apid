@@ -1703,17 +1703,17 @@ enum program_stdio_redirection {
 	PROGRAM_STDIO_REDIRECTION_FILE
 }
 
-enum program_schedule_start_condition {
-	PROGRAM_SCHEDULE_START_CONDITION_NEVER = 0,
-	PROGRAM_SCHEDULE_START_CONDITION_NOW,
-	PROGRAM_SCHEDULE_START_CONDITION_BOOT,
-	PROGRAM_SCHEDULE_START_CONDITION_TIME
+enum program_start_condition {
+	PROGRAM_START_CONDITION_NEVER = 0,
+	PROGRAM_START_CONDITION_NOW,
+	PROGRAM_START_CONDITION_BOOT,
+	PROGRAM_START_CONDITION_TIME
 }
 
-enum program_schedule_repeat_mode {
-	PROGRAM_SCHEDULE_REPEAT_MODE_NEVER = 0,
-	PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE,
-	PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE
+enum program_repeat_mode {
+	PROGRAM_REPEAT_MODE_NEVER = 0,
+	PROGRAM_REPEAT_MODE_INTERVAL,
+	PROGRAM_REPEAT_MODE_SELECTION
 }
 
 + define_program                  (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
@@ -1773,6 +1773,43 @@ enum program_schedule_repeat_mode {
 ? get_current_program_process     (uint16_t program_id)           -> uint8_t error_code, uint16_t process_id
 
 ? callback: program_schedule_error_occurred -> uint16_t program_id, uint64_t error_time, uint16_t error_message_string_id
+
+
+/*
+ * config
+ */
+
+enum config_option {
+	CONFIG_OPTION_GREEN_LED_TRIGGER = 0,   // number -> config_value_led_trigger
+	CONFIG_OPTION_RED_LED_TRIGGER,         // number -> config_value_led_trigger
+	CONFIG_OPTION_SPI_STACK_TRANSFER_DELAY // number -> microseconds [50..inf]
+}
+
+enum config_value_led_trigger {
+	CONFIG_VALUE_LED_TRIGGER_CPU = 0,
+	CONFIG_VALUE_LED_TRIGGER_GPIO,
+	CONFIG_VALUE_LED_TRIGGER_HEARTBEAT,
+	CONFIG_VALUE_LED_TRIGGER_MMC,
+	CONFIG_VALUE_LED_TRIGGER_OFF,
+	CONFIG_VALUE_LED_TRIGGER_ON
+}
+
+? set_config_number(uint32_t option, int64_t value)            -> uint8_t error_code
+? set_config_boolean(uint32_t option, bool value)              -> uint8_t error_code
+? set_config_string(uint32_t option, uint16_t value_string_id) -> uint8_t error_code
+? get_config_number(uint32_t option)                           -> uint8_t error_code, int64_t value
+? get_config_boolean(uint32_t option)                          -> uint8_t error_code, bool value
+? get_config_string(uint32_t option)                           -> uint8_t error_code, uint16_t value_string_id
+
+
+enum option_group {
+	OPTION_GROUP_BRICKD = 0,
+	OPTION_GROUP_REDAPID = 0,
+}
+
+? set_option_value (uint8_t group, uint16_t name_string_id, uint16_t value_string_id) -> uint8_t error_code
+? get_option_value (uint8_t group, uint16_t name_string_id)                           -> uint8_t error_code, uint16_t value_string_id
+? remove_option    (uint8_t group, uint16_t name_string_id)                           -> uint8_t error_code
 
 /*
  * misc

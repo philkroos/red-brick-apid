@@ -26,26 +26,8 @@
 
 #include "list.h"
 #include "object.h"
+#include "program_config.h"
 #include "string.h"
-
-typedef enum {
-	PROGRAM_STDIO_REDIRECTION_DEV_NULL = 0,
-	PROGRAM_STDIO_REDIRECTION_PIPE,
-	PROGRAM_STDIO_REDIRECTION_FILE
-} ProgramStdioRedirection;
-
-typedef enum {
-	PROGRAM_SCHEDULE_START_CONDITION_NEVER = 0,
-	PROGRAM_SCHEDULE_START_CONDITION_NOW,
-	PROGRAM_SCHEDULE_START_CONDITION_BOOT,
-	PROGRAM_SCHEDULE_START_CONDITION_TIME
-} ProgramScheduleStartCondition;
-
-typedef enum {
-	PROGRAM_SCHEDULE_REPEAT_MODE_NEVER = 0,
-	PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE,
-	PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE
-} ProgramScheduleRepeatMode;
 
 typedef struct {
 	Object base;
@@ -53,26 +35,7 @@ typedef struct {
 	bool defined;
 	String *identifier;
 	String *directory; // <home>/programs/<identifier>
-	String *executable;
-	List *arguments;
-	List *environment;
-	ProgramStdioRedirection stdin_redirection;
-	String *stdin_file_name; // only != NULL if stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE
-	ProgramStdioRedirection stdout_redirection;
-	String *stdout_file_name; // only != NULL if stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE
-	ProgramStdioRedirection stderr_redirection;
-	String *stderr_file_name; // only != NULL if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
-	ProgramScheduleStartCondition start_condition;
-	uint64_t start_time; // UNIX timestamp
-	uint32_t start_delay; // seconds
-	ProgramScheduleRepeatMode repeat_mode;
-	uint32_t repeat_interval; // seconds
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint32_t repeat_hour_mask;
-	uint32_t repeat_day_mask;
-	uint16_t repeat_month_mask;
-	uint8_t repeat_weekday_mask;
+	ProgramConfig config;
 } Program;
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
@@ -102,10 +65,10 @@ APIE program_get_stdio_redirection(ObjectID id,
                                    ObjectID *stderr_file_name_id);
 
 APIE program_set_schedule(ObjectID id,
-                          ProgramScheduleStartCondition start_condition,
+                          ProgramStartCondition start_condition,
                           uint64_t start_time,
                           uint32_t start_delay,
-                          ProgramScheduleRepeatMode repeat_mode,
+                          ProgramRepeatMode repeat_mode,
                           uint32_t repeat_interval,
                           uint64_t repeat_second_mask,
                           uint64_t repeat_minute_mask,

@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-09.      *
+ * This file was automatically generated on 2014-09-17.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -604,37 +604,37 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_START_CONDITION_NEVER 0
+#define RED_PROGRAM_START_CONDITION_NEVER 0
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_START_CONDITION_NOW 1
+#define RED_PROGRAM_START_CONDITION_NOW 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_START_CONDITION_BOOT 2
+#define RED_PROGRAM_START_CONDITION_BOOT 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_START_CONDITION_TIME 2
+#define RED_PROGRAM_START_CONDITION_TIME 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_REPEAT_MODE_NEVER 0
+#define RED_PROGRAM_REPEAT_MODE_NEVER 0
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE 1
+#define RED_PROGRAM_REPEAT_MODE_INTERVAL 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE 2
+#define RED_PROGRAM_REPEAT_MODE_SELECTION 2
 
 /**
  * \ingroup BrickRED

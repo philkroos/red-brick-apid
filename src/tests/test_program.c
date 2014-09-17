@@ -49,6 +49,24 @@ int main() {
 	}
 	printf("red_define_program -> pid %u\n", pid);
 
+	rc = red_set_program_schedule(&red, pid, RED_PROGRAM_START_CONDITION_NOW, 0, 12345,
+	                              RED_PROGRAM_REPEAT_MODE_SELECTION, 0,
+	                              (1ULL << 59) | 1,
+	                              (1ULL << 59) | 1,
+	                              (1 << 23) | 1,
+	                              (1 << 30) | 1,
+	                              (1 << 11) | 1,
+	                              (1 << 6) | 1,
+	                              &ec);
+	if (rc < 0) {
+		printf("red_set_program_schedule -> rc %d\n", rc);
+		goto cleanup2;
+	}
+	if (ec != 0) {
+		printf("red_set_program_schedule -> ec %u\n", ec);
+		goto cleanup2;
+	}
+
 	uint16_t pdsid;
 	rc = red_get_program_directory(&red, pid, &ec, &pdsid);
 	if (rc < 0) {

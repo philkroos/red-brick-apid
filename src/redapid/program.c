@@ -36,7 +36,6 @@
 #include "api.h"
 #include "directory.h"
 #include "inventory.h"
-#include "string.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
@@ -70,12 +69,12 @@ static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirecti
 	}
 }
 
-static bool program_is_valid_schedule_start_condition(ProgramScheduleStartCondition condition) {
+static bool program_is_valid_start_condition(ProgramStartCondition condition) {
 	switch (condition) {
-	case PROGRAM_SCHEDULE_START_CONDITION_NEVER:
-	case PROGRAM_SCHEDULE_START_CONDITION_NOW:
-	case PROGRAM_SCHEDULE_START_CONDITION_BOOT:
-	case PROGRAM_SCHEDULE_START_CONDITION_TIME:
+	case PROGRAM_START_CONDITION_NEVER:
+	case PROGRAM_START_CONDITION_NOW:
+	case PROGRAM_START_CONDITION_BOOT:
+	case PROGRAM_START_CONDITION_TIME:
 		return true;
 
 	default:
@@ -83,11 +82,11 @@ static bool program_is_valid_schedule_start_condition(ProgramScheduleStartCondit
 	}
 }
 
-static bool program_is_valid_schedule_repeat_mode(ProgramScheduleRepeatMode mode) {
+static bool program_is_valid_repeat_mode(ProgramRepeatMode mode) {
 	switch (mode) {
-	case PROGRAM_SCHEDULE_REPEAT_MODE_NEVER:
-	case PROGRAM_SCHEDULE_REPEAT_MODE_RELATIVE:
-	case PROGRAM_SCHEDULE_REPEAT_MODE_ABSOLUTE:
+	case PROGRAM_REPEAT_MODE_NEVER:
+	case PROGRAM_REPEAT_MODE_INTERVAL:
+	case PROGRAM_REPEAT_MODE_SELECTION:
 		return true;
 
 	default:
@@ -98,21 +97,21 @@ static bool program_is_valid_schedule_repeat_mode(ProgramScheduleRepeatMode mode
 static void program_destroy(Object *object) {
 	Program *program = (Program *)object;
 
-	if (program->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program->stderr_file_name);
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->config.stderr_file_name);
 	}
 
-	if (program->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program->stdout_file_name);
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->config.stdout_file_name);
 	}
 
-	if (program->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program->stdin_file_name);
+	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->config.stdin_file_name);
 	}
 
-	list_vacate(program->environment);
-	list_vacate(program->arguments);
-	string_vacate(program->executable);
+	list_vacate(program->config.environment);
+	list_vacate(program->config.arguments);
+	string_vacate(program->config.executable);
 	string_vacate(program->directory);
 	string_vacate(program->identifier);
 
@@ -215,7 +214,8 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	error_code = string_wrap(buffer,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED, NULL, &directory);
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -231,8 +231,6 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	}
 
 	phase = 7;
-
-	// FIXME: create persistent program configuration on disk
 
 	// allocate program object
 	program = calloc(1, sizeof(Program));
@@ -252,26 +250,32 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->defined = true;
 	program->identifier = identifier;
 	program->directory = directory;
-	program->executable = executable;
-	program->arguments = arguments;
-	program->environment = environment;
-	program->stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program->stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program->stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program->stdin_file_name = NULL;
-	program->stdout_file_name = NULL;
-	program->stderr_file_name = NULL;
-	program->start_condition = PROGRAM_SCHEDULE_START_CONDITION_NEVER;
-	program->start_time = 0;
-	program->start_delay = 0;
-	program->repeat_mode = PROGRAM_SCHEDULE_REPEAT_MODE_NEVER;
-	program->repeat_interval = 0;
-	program->repeat_second_mask = 0;
-	program->repeat_minute_mask = 0;
-	program->repeat_hour_mask = 0;
-	program->repeat_day_mask = 0;
-	program->repeat_month_mask = 0;
-	program->repeat_weekday_mask = 0;
+	program->config.executable = executable;
+	program->config.arguments = arguments;
+	program->config.environment = environment;
+	program->config.stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->config.stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->config.stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	program->config.stdin_file_name = NULL;
+	program->config.stdout_file_name = NULL;
+	program->config.stderr_file_name = NULL;
+	program->config.start_condition = PROGRAM_START_CONDITION_NEVER;
+	program->config.start_time = 0;
+	program->config.start_delay = 0;
+	program->config.repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
+	program->config.repeat_interval = 0;
+	program->config.repeat_second_mask = 0;
+	program->config.repeat_minute_mask = 0;
+	program->config.repeat_hour_mask = 0;
+	program->config.repeat_day_mask = 0;
+	program->config.repeat_month_mask = 0;
+	program->config.repeat_weekday_mask = 0;
+
+	error_code = program_config_save(&program->config, program->directory->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
 
 	error_code = object_create(&program->base,
 	                           OBJECT_TYPE_PROGRAM,
@@ -298,7 +302,7 @@ cleanup:
 		free(program);
 
 	case 7:
-		rmdir(directory->buffer);
+		rmdir(directory->buffer); // FIXME: do a recursive remove here
 
 	case 6:
 		string_vacate(directory);
@@ -422,14 +426,25 @@ APIE program_set_command(ObjectID id, ObjectID executable_id,
 	}
 
 	// vacate old objects
-	string_vacate(program->executable);
-	list_vacate(program->arguments);
-	list_vacate(program->environment);
+	string_vacate(program->config.executable);
+	list_vacate(program->config.arguments);
+	list_vacate(program->config.environment);
 
 	// store new objects
-	program->executable = executable;
-	program->arguments = arguments;
-	program->environment = environment;
+	program->config.executable = executable;
+	program->config.arguments = arguments;
+	program->config.environment = environment;
+
+	// save modified config
+	error_code = program_config_save(&program->config, program->directory->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		// FIXME: the config in memory got updated, but an error occurred while
+		//        updating the config on disk. now they are out of sync and the
+		//        call to this public API function will report an error to the
+		//        caller. how to recover/rollback from this state?
+		goto cleanup;
+	}
 
 	phase = 3;
 
@@ -458,13 +473,13 @@ APIE program_get_command(ObjectID id, ObjectID *executable_id,
 		return error_code;
 	}
 
-	object_add_external_reference(&program->executable->base);
-	object_add_external_reference(&program->arguments->base);
-	object_add_external_reference(&program->environment->base);
+	object_add_external_reference(&program->config.executable->base);
+	object_add_external_reference(&program->config.arguments->base);
+	object_add_external_reference(&program->config.environment->base);
 
-	*executable_id = program->executable->base.id;
-	*arguments_id = program->arguments->base.id;
-	*environment_id = program->environment->base.id;
+	*executable_id = program->config.executable->base.id;
+	*arguments_id = program->config.arguments->base.id;
+	*environment_id = program->config.environment->base.id;
 
 	return API_E_SUCCESS;
 }
@@ -546,40 +561,51 @@ APIE program_set_stdio_redirection(ObjectID id,
 	phase = 3;
 
 	// vacate old objects
-	if (program->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program->stdin_file_name);
+	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->config.stdin_file_name);
 	}
 
-	if (program->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program->stdout_file_name);
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->config.stdout_file_name);
 	}
 
-	if (program->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program->stderr_file_name);
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program->config.stderr_file_name);
 	}
 
 	// store new objects
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		program->stdin_file_name = stdin_file_name;
+		program->config.stdin_file_name = stdin_file_name;
 	} else {
-		program->stdin_file_name = NULL;
+		program->config.stdin_file_name = NULL;
 	}
 
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		program->stdout_file_name = stdout_file_name;
+		program->config.stdout_file_name = stdout_file_name;
 	} else {
-		program->stdout_file_name = NULL;
+		program->config.stdout_file_name = NULL;
 	}
 
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		program->stderr_file_name = stderr_file_name;
+		program->config.stderr_file_name = stderr_file_name;
 	} else {
-		program->stderr_file_name = NULL;
+		program->config.stderr_file_name = NULL;
 	}
 
-	program->stdin_redirection = stdin_redirection;
-	program->stdout_redirection = stdout_redirection;
-	program->stderr_redirection = stderr_redirection;
+	program->config.stdin_redirection = stdin_redirection;
+	program->config.stdout_redirection = stdout_redirection;
+	program->config.stderr_redirection = stderr_redirection;
+
+	// save modified config
+	error_code = program_config_save(&program->config, program->directory->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		// FIXME: the config in memory got updated, but an error occurred while
+		//        updating the config on disk. now they are out of sync and the
+		//        call to this public API function will report an error to the
+		//        caller. how to recover/rollback from this state?
+		goto cleanup;
+	}
 
 	phase = 4;
 
@@ -622,43 +648,43 @@ APIE program_get_stdio_redirection(ObjectID id,
 		return error_code;
 	}
 
-	if (program->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		object_add_external_reference(&program->stdin_file_name->base);
+	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		object_add_external_reference(&program->config.stdin_file_name->base);
 
-		*stdin_file_name_id = program->stdin_file_name->base.id;
+		*stdin_file_name_id = program->config.stdin_file_name->base.id;
 	} else {
 		*stdin_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	if (program->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		object_add_external_reference(&program->stdout_file_name->base);
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		object_add_external_reference(&program->config.stdout_file_name->base);
 
-		*stdout_file_name_id = program->stdout_file_name->base.id;
+		*stdout_file_name_id = program->config.stdout_file_name->base.id;
 	} else {
 		*stdout_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	if (program->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		object_add_external_reference(&program->stderr_file_name->base);
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		object_add_external_reference(&program->config.stderr_file_name->base);
 
-		*stderr_file_name_id = program->stderr_file_name->base.id;
+		*stderr_file_name_id = program->config.stderr_file_name->base.id;
 	} else {
 		*stderr_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	*stdin_redirection = program->stdin_redirection;
-	*stdout_redirection = program->stdout_redirection;
-	*stderr_redirection = program->stderr_redirection;
+	*stdin_redirection = program->config.stdin_redirection;
+	*stdout_redirection = program->config.stdout_redirection;
+	*stderr_redirection = program->config.stderr_redirection;
 
 	return API_E_SUCCESS;
 }
 
 // public API
 APIE program_set_schedule(ObjectID id,
-                          ProgramScheduleStartCondition start_condition,
+                          ProgramStartCondition start_condition,
                           uint64_t start_time,
                           uint32_t start_delay,
-                          ProgramScheduleRepeatMode repeat_mode,
+                          ProgramRepeatMode repeat_mode,
                           uint32_t repeat_interval,
                           uint64_t repeat_second_mask,
                           uint64_t repeat_minute_mask,
@@ -673,29 +699,40 @@ APIE program_set_schedule(ObjectID id,
 		return error_code;
 	}
 
-	if (!program_is_valid_schedule_start_condition(start_condition)) {
-		log_warn("Invalid program schedule start condition %d", start_condition);
+	if (!program_is_valid_start_condition(start_condition)) {
+		log_warn("Invalid program start condition %d", start_condition);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (!program_is_valid_schedule_repeat_mode(repeat_mode)) {
-		log_warn("Invalid program schedule repeat mode %d", repeat_mode);
+	if (!program_is_valid_repeat_mode(repeat_mode)) {
+		log_warn("Invalid program repeat mode %d", repeat_mode);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	program->start_condition = start_condition;
-	program->start_time = start_time;
-	program->start_delay = start_delay;
-	program->repeat_mode = repeat_mode;
-	program->repeat_interval = repeat_interval;
-	program->repeat_second_mask = repeat_second_mask;
-	program->repeat_minute_mask = repeat_minute_mask;
-	program->repeat_hour_mask = repeat_hour_mask;
-	program->repeat_day_mask = repeat_day_mask;
-	program->repeat_month_mask = repeat_month_mask;
-	program->repeat_weekday_mask = repeat_weekday_mask;
+	program->config.start_condition = start_condition;
+	program->config.start_time = start_time;
+	program->config.start_delay = start_delay;
+	program->config.repeat_mode = repeat_mode;
+	program->config.repeat_interval = repeat_interval;
+	program->config.repeat_second_mask = repeat_second_mask;
+	program->config.repeat_minute_mask = repeat_minute_mask;
+	program->config.repeat_hour_mask = repeat_hour_mask;
+	program->config.repeat_day_mask = repeat_day_mask;
+	program->config.repeat_month_mask = repeat_month_mask;
+	program->config.repeat_weekday_mask = repeat_weekday_mask;
+
+	// save modified config
+	error_code = program_config_save(&program->config, program->directory->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		// FIXME: the config in memory got updated, but an error occurred while
+		//        updating the config on disk. now they are out of sync and the
+		//        call to this public API function will report an error to the
+		//        caller. how to recover/rollback from this state?
+		return error_code;
+	}
 
 	return API_E_SUCCESS;
 }
@@ -720,17 +757,17 @@ APIE program_get_schedule(ObjectID id,
 		return error_code;
 	}
 
-	*start_condition = program->start_condition;
-	*start_time = program->start_time;
-	*start_delay = program->start_delay;
-	*repeat_mode = program->repeat_mode;
-	*repeat_interval = program->repeat_interval;
-	*repeat_second_mask = program->repeat_second_mask;
-	*repeat_minute_mask = program->repeat_minute_mask;
-	*repeat_hour_mask = program->repeat_hour_mask;
-	*repeat_day_mask = program->repeat_day_mask;
-	*repeat_month_mask = program->repeat_month_mask;
-	*repeat_weekday_mask = program->repeat_weekday_mask;
+	*start_condition = program->config.start_condition;
+	*start_time = program->config.start_time;
+	*start_delay = program->config.start_delay;
+	*repeat_mode = program->config.repeat_mode;
+	*repeat_interval = program->config.repeat_interval;
+	*repeat_second_mask = program->config.repeat_second_mask;
+	*repeat_minute_mask = program->config.repeat_minute_mask;
+	*repeat_hour_mask = program->config.repeat_hour_mask;
+	*repeat_day_mask = program->config.repeat_day_mask;
+	*repeat_month_mask = program->config.repeat_month_mask;
+	*repeat_weekday_mask = program->config.repeat_weekday_mask;
 
 	return API_E_SUCCESS;
 }
