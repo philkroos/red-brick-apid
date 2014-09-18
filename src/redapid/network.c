@@ -85,7 +85,6 @@ static void network_handle_accept(void *opaque) {
 }
 
 int network_init(const char *socket_filename) {
-	int phase = 0;
 	struct sockaddr_un address;
 
 	_socket_filename = socket_filename;
@@ -95,7 +94,7 @@ int network_init(const char *socket_filename) {
 	if (strlen(socket_filename) >= sizeof(address.sun_path)) {
 		log_error("UNIX domain socket filename '%s' is too long", socket_filename);
 
-		goto cleanup;
+		return -1;
 	}
 
 	// create socket
@@ -103,10 +102,8 @@ int network_init(const char *socket_filename) {
 		log_error("Could not create socket: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		goto cleanup;
+		return -1;
 	}
-
-	phase = 1;
 
 	log_debug("Opening UNIX domain server socket at '%s'", socket_filename);
 
@@ -114,12 +111,13 @@ int network_init(const char *socket_filename) {
 		log_error("Could not open UNIX domain server socket: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		goto cleanup;
+		goto error;
 	}
 
-	// bind socket and start to listen
+	// remove stale socket, if it exists
 	unlink(socket_filename);
 
+	// bind socket and start to listen
 	address.sun_family = AF_UNIX;
 	strcpy(address.sun_path, socket_filename);
 
@@ -127,35 +125,29 @@ int network_init(const char *socket_filename) {
 		log_error("Could not bind UNIX domain server socket to '%s': %s (%d)",
 		          socket_filename, get_errno_name(errno), errno);
 
-		goto cleanup;
+		goto error;
 	}
 
 	if (socket_listen(&_server_socket, 10, socket_create_allocated) < 0) {
 		log_error("Could not listen to UNIX domain server socket bound to '%s': %s (%d)",
 		          socket_filename, get_errno_name(errno), errno);
 
-		goto cleanup;
+		goto error;
 	}
 
 	log_debug("Started listening to '%s'", socket_filename);
 
 	if (event_add_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC,
 	                     EVENT_READ, network_handle_accept, NULL) < 0) {
-		goto cleanup;
+		goto error;
 	}
 
-	phase = 2;
+	return 0;
 
-cleanup:
-	switch (phase) { // no breaks, all cases fall through intentionally
-	case 1:
-		socket_destroy(&_server_socket);
+error:
+	socket_destroy(&_server_socket);
 
-	default:
-		break;
-	}
-
-	return phase == 2 ? 0 : -1;
+	return -1;
 }
 
 void network_exit(void) {
