@@ -76,17 +76,45 @@ static int prepare_paths(void) {
 		home = pw->pw_dir;
 	}
 
-	if (strlen(home) + strlen("/.redapid/redapid.socket") >= sizeof(redapid_dirname)) {
-		fprintf(stderr, "Home directory name is too long\n");
+	if (robust_snprintf(redapid_dirname, sizeof(redapid_dirname),
+	                    "%s/.redapid", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid directory name: %s (%d)\n",
+		        get_errno_name(errno), errno);
 
 		return -1;
 	}
 
-	snprintf(redapid_dirname, sizeof(redapid_dirname), "%s/.redapid", home);
-	snprintf(_config_filename, sizeof(_config_filename), "%s/.redapid/redapid.conf", home);
-	snprintf(_pid_filename, sizeof(_pid_filename), "%s/.redapid/redapid.pid", home);
-	snprintf(_socket_filename, sizeof(_socket_filename), "%s/.redapid/redapid.socket", home);
-	snprintf(_log_filename, sizeof(_log_filename), "%s/.redapid/redapid.log", home);
+	if (robust_snprintf(_config_filename, sizeof(_config_filename),
+	                    "%s/.redapid/redapid.conf", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid/redapid.conf file name: %s (%d)\n",
+		        get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	if (robust_snprintf(_pid_filename, sizeof(_pid_filename),
+	                    "%s/.redapid/redapid.pid", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid/redapid.pid file name: %s (%d)\n",
+		        get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	if (robust_snprintf(_socket_filename, sizeof(_socket_filename),
+	                    "%s/.redapid/redapid.socket", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid/redapid.socket file name: %s (%d)\n",
+		        get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	if (robust_snprintf(_log_filename, sizeof(_log_filename),
+	                    "%s/.redapid/redapid.log", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid/redapid.log file name: %s (%d)\n",
+		        get_errno_name(errno), errno);
+
+		return -1;
+	}
 
 	if (mkdir(redapid_dirname, 0755) < 0) {
 		if (errno != EEXIST) {
@@ -239,7 +267,7 @@ int main(int argc, char **argv) {
 	}
 
 	led_set_trigger(LED_GREEN, LED_TRIGGER_HEARTBEAT);
-	led_set_trigger(LED_RED,   LED_TRIGGER_OFF);
+	led_set_trigger(LED_RED, LED_TRIGGER_OFF);
 
 	if (event_run(network_cleanup_brickd) < 0) {
 		goto error_run;
