@@ -126,7 +126,7 @@ static APIE program_config_set_integer(ConfFile *conf_file, const char *name,
 		buffer[i--] = 'b';
 		buffer[i--] = '0';
 
-		memmove(buffer, buffer + i + 1, sizeof(buffer) - i);
+		memmove(buffer, &buffer[i + 1], sizeof(buffer) - i - 1);
 
 		buffer[sizeof(buffer) - i - 1] = '\0';
 	}
