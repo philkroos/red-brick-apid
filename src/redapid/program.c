@@ -247,9 +247,9 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	phase = 8;
 
 	// create program object
-	program->defined = true;
 	program->identifier = identifier;
 	program->directory = directory;
+	program->config.defined = true;
 	program->config.executable = executable;
 	program->config.arguments = arguments;
 	program->config.environment = environment;
@@ -338,16 +338,22 @@ APIE program_undefine(ObjectID id) {
 		return error_code;
 	}
 
-	if (!program->defined) {
+	if (!program->config.defined) {
 		log_warn("Cannot undefine already undefined program object (id: %u, identifier: %s)",
 		         id, program->identifier->buffer);
 
 		return API_E_INVALID_OPERATION;
 	}
 
-	program->defined = false;
+	program->config.defined = false;
 
-	// FIXME: need to mark persistent configuration on disk as undefined
+	error_code = program_config_save(&program->config, program->directory->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		program->config.defined = true;
+
+		return error_code;
+	}
 
 	object_remove_internal_reference(&program->base);
 

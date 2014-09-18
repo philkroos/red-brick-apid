@@ -143,6 +143,21 @@ static APIE program_config_set_integer(ConfFile *conf_file, const char *name,
 	return API_E_SUCCESS;
 }
 
+static APIE program_config_set_boolean(ConfFile *conf_file, const char *name, bool value) {
+	APIE error_code;
+
+	if (conf_file_set_option_value(conf_file, name, value ? "true" : "false") < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not set '%s' option for program.conf object: %s (%d)",
+		          name, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	return API_E_SUCCESS;
+}
+
 static APIE program_config_set_enum(ConfFile *conf_file, const char *name, int value,
                                     ProgramConfigEnumToNameFunction function) {
 	APIE error_code;
@@ -214,6 +229,14 @@ APIE program_config_save(ProgramConfig *program_config, const char *directory) {
 	}
 
 	// FIXME: load old config, if existing
+
+	// set defined
+	error_code = program_config_set_boolean(&conf_file, "defined",
+	                                        program_config->defined);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
 
 	// set executable
 	error_code = program_config_set_string(&conf_file, "executable",

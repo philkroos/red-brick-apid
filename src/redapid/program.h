@@ -32,7 +32,6 @@
 typedef struct {
 	Object base;
 
-	bool defined;
 	String *identifier;
 	String *directory; // <home>/programs/<identifier>
 	ProgramConfig config;

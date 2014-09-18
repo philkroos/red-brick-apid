@@ -22,6 +22,7 @@
 #ifndef REDAPID_PROGRAM_CONFIG_H
 #define REDAPID_PROGRAM_CONFIG_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "list.h"
@@ -47,6 +48,7 @@ typedef enum {
 } ProgramRepeatMode;
 
 typedef struct {
+	bool defined;
 	String *executable;
 	List *arguments;
 	List *environment;
