@@ -22,7 +22,6 @@
 #define _GNU_SOURCE // for asprintf from stdio.h
 
 #include <errno.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -112,6 +111,7 @@ static void program_destroy(Object *object) {
 	list_vacate(program->config.environment);
 	list_vacate(program->config.arguments);
 	string_vacate(program->config.executable);
+	free(program->config_filename);
 	string_vacate(program->directory);
 	string_vacate(program->identifier);
 
@@ -127,9 +127,9 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *identifier;
-	struct passwd *pw;
-	char *buffer;
+	char buffer[1024];
 	String *directory;
+	char *config_filename;
 	String *executable;
 	List *arguments;
 	List *environment;
@@ -152,6 +152,49 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
+	// create directory string object
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s",
+	                    inventory_get_programs_directory(), identifier->buffer) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not format program directory name: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	error_code = string_wrap(buffer,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &directory);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// create config filename
+	if (asprintf(&config_filename, "%s/program.conf", directory->buffer) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create program config name: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 3;
+
+	// create program directory as default user (UID 1000, GID 1000)
+	error_code = directory_create_internal(directory->buffer, true, 0755, 1000, 1000);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	// create executable string object
 	error_code = string_wrap("",
 	                         OBJECT_CREATE_FLAG_INTERNAL |
@@ -162,7 +205,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 2;
+	phase = 5;
 
 	// create arguments list object
 	error_code = list_create(0,
@@ -174,57 +217,13 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 3;
+	phase = 6;
 
 	// create environment list object
 	error_code = list_create(0,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_OCCUPIED,
 	                         NULL, &environment);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	phase = 4;
-
-	// get home directory of the default user (UID 1000)
-	pw = getpwuid(1000);
-
-	if (pw == NULL) {
-		error_code = api_get_error_code_from_errno();
-
-		log_error("Could not determine home directory for UID 1000: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	// create directory string object
-	if (asprintf(&buffer, "%s/programs/%s", pw->pw_dir, identifier->buffer) < 0) {
-		error_code = api_get_error_code_from_errno();
-
-		log_error("Could not create program directory name: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	phase = 5;
-
-	error_code = string_wrap(buffer,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
-	                         NULL, &directory);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	phase = 6;
-
-	// create program directory as default user (UID 1000, GID 1000)
-	error_code = directory_create_internal(directory->buffer, true, 0755, 1000, 1000);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -249,6 +248,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	// create program object
 	program->identifier = identifier;
 	program->directory = directory;
+	program->config_filename = config_filename;
 	program->config.defined = true;
 	program->config.executable = executable;
 	program->config.arguments = arguments;
@@ -271,7 +271,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->config.repeat_month_mask = 0;
 	program->config.repeat_weekday_mask = 0;
 
-	error_code = program_config_save(&program->config, program->directory->buffer);
+	error_code = program_config_save(&program->config, program->config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -294,30 +294,28 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	phase = 9;
 
-	free(buffer);
-
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 8:
 		free(program);
 
 	case 7:
-		rmdir(directory->buffer); // FIXME: do a recursive remove here
-
-	case 6:
-		string_vacate(directory);
-
-	case 5:
-		free(buffer);
-
-	case 4:
 		list_vacate(environment);
 
-	case 3:
+	case 6:
 		list_vacate(arguments);
 
-	case 2:
+	case 5:
 		string_vacate(executable);
+
+	case 4:
+		rmdir(directory->buffer); // FIXME: do a recursive remove here
+
+	case 3:
+		free(config_filename);
+
+	case 2:
+		string_vacate(directory);
 
 	case 1:
 		string_vacate(identifier);
@@ -347,7 +345,7 @@ APIE program_undefine(ObjectID id) {
 
 	program->config.defined = false;
 
-	error_code = program_config_save(&program->config, program->directory->buffer);
+	error_code = program_config_save(&program->config, program->config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		program->config.defined = true;
@@ -447,7 +445,7 @@ APIE program_set_command(ObjectID id, ObjectID executable_id,
 	phase = 3;
 
 	// save modified config
-	error_code = program_config_save(&program->config, program->directory->buffer);
+	error_code = program_config_save(&program->config, program->config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -619,7 +617,7 @@ APIE program_set_stdio_redirection(ObjectID id,
 	phase = 3;
 
 	// save modified config
-	error_code = program_config_save(&program->config, program->directory->buffer);
+	error_code = program_config_save(&program->config, program->config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -785,7 +783,7 @@ APIE program_set_schedule(ObjectID id,
 	program->config.repeat_weekday_mask = repeat_weekday_mask;
 
 	// save modified config
-	error_code = program_config_save(&program->config, program->directory->buffer);
+	error_code = program_config_save(&program->config, program->config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		program->config.start_condition = old_start_condition;

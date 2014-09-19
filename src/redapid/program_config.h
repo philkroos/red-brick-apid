@@ -71,6 +71,6 @@ typedef struct {
 	uint8_t repeat_weekday_mask; // week starts on monday
 } ProgramConfig;
 
-APIE program_config_save(ProgramConfig *program_config, const char *directory);
+APIE program_config_save(ProgramConfig *program_config, const char *filename);
 
 #endif // REDAPID_PROGRAM_H

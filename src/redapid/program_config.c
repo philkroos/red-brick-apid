@@ -19,10 +19,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _GNU_SOURCE // for asprintf from stdio.h
-
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -205,10 +202,9 @@ static APIE program_config_set_string_list(ConfFile *conf_file, const char *name
 	return API_E_SUCCESS;
 }
 
-APIE program_config_save(ProgramConfig *program_config, const char *directory) {
+APIE program_config_save(ProgramConfig *program_config, const char *filename) {
 	APIE error_code = API_E_UNKNOWN_ERROR;
 	ConfFile conf_file;
-	char *filename = NULL;
 
 	if (conf_file_create(&conf_file) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -217,15 +213,6 @@ APIE program_config_save(ProgramConfig *program_config, const char *directory) {
 		          get_errno_name(errno), errno);
 
 		return error_code;
-	}
-
-	if (asprintf(&filename, "%s/programs.conf", directory) < 0) {
-		error_code = api_get_error_code_from_errno();
-
-		log_error("Could not create program config name: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
 	}
 
 	// FIXME: load old config, if existing
@@ -428,7 +415,6 @@ APIE program_config_save(ProgramConfig *program_config, const char *directory) {
 	error_code = API_E_SUCCESS;
 
 cleanup:
-	free(filename);
 	conf_file_destroy(&conf_file);
 
 	return error_code;

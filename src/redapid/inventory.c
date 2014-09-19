@@ -35,8 +35,11 @@
  * used as object ID for an actual object.
  */
 
+#include <dirent.h>
 #include <errno.h>
+#include <pwd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <daemonlib/array.h>
 #include <daemonlib/log.h>
@@ -55,6 +58,7 @@ typedef struct {
 	int index;
 } Inventory;
 
+static char _programs_directory[1024]; // <home>/programs
 static ObjectID _next_id = 1; // don't use object ID zero
 static Array _objects[MAX_OBJECT_TYPES];
 
@@ -118,9 +122,28 @@ static APIE inventory_get_next_id(ObjectID *id) {
 }
 
 int inventory_init(void) {
+	struct passwd *pw;
 	int type;
 
 	log_debug("Initializing inventory subsystem");
+
+	// get home directory of the default user (UID 1000)
+	pw = getpwuid(1000);
+
+	if (pw == NULL) {
+		log_error("Could not determine home directory for UID 1000: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	if (robust_snprintf(_programs_directory, sizeof(_programs_directory),
+	                    "%s/programs", pw->pw_dir) < 0) {
+		log_error("Could not format programs directory name: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return -1;
+	}
 
 	// allocate object arrays
 	for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
@@ -154,6 +177,10 @@ void inventory_exit(void) {
 
 	// ...before destroying the inventory objects
 	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], inventory_destroy_object);
+}
+
+const char *inventory_get_programs_directory(void) {
+	return _programs_directory;
 }
 
 APIE inventory_add_object(Object *object) {
