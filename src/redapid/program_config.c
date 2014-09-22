@@ -34,6 +34,7 @@
 #define LOG_CATEGORY LOG_CATEGORY_API
 
 typedef const char *(*ProgramConfigGetNameFunction)(int value);
+typedef int (*ProgramConfigGetValueFunction)(const char *name, int *value);
 
 static const char *program_config_get_stdio_redirection_name(int redirection) {
 	switch (redirection) {
@@ -42,6 +43,21 @@ static const char *program_config_get_stdio_redirection_name(int redirection) {
 	case PROGRAM_STDIO_REDIRECTION_FILE:     return "file";
 	default:                                 return "<unknown>";
 	}
+}
+
+static int program_config_get_stdio_redirection_value(const char *name,
+                                                      int *redirection) {
+	if (strcasecmp(name, "/dev/null") == 0) {
+		*redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	} else if (strcasecmp(name, "pipe") == 0) {
+		*redirection = PROGRAM_STDIO_REDIRECTION_PIPE;
+	} else if (strcasecmp(name, "file") == 0) {
+		*redirection = PROGRAM_STDIO_REDIRECTION_FILE;
+	} else {
+		return -1;
+	}
+
+	return 0;
 }
 
 static const char *program_config_get_start_condition_name(int condition) {
@@ -54,6 +70,23 @@ static const char *program_config_get_start_condition_name(int condition) {
 	}
 }
 
+static int program_config_get_start_condition_value(const char *name,
+                                                    int *condition) {
+	if (strcasecmp(name, "never") == 0) {
+		*condition = PROGRAM_START_CONDITION_NEVER;
+	} else if (strcasecmp(name, "now") == 0) {
+		*condition = PROGRAM_START_CONDITION_NOW;
+	} else if (strcasecmp(name, "boot") == 0) {
+		*condition = PROGRAM_START_CONDITION_BOOT;
+	} else if (strcasecmp(name, "time") == 0) {
+		*condition = PROGRAM_START_CONDITION_TIME;
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
 static const char *program_config_get_repeat_mode_name(int mode) {
 	switch (mode) {
 	case PROGRAM_REPEAT_MODE_NEVER:     return "never";
@@ -61,6 +94,20 @@ static const char *program_config_get_repeat_mode_name(int mode) {
 	case PROGRAM_REPEAT_MODE_SELECTION: return "selection";
 	default:                            return "<unknown>";
 	}
+}
+
+static int program_config_get_repeat_mode_value(const char *name, int *mode) {
+	if (strcasecmp(name, "never") == 0) {
+		*mode = PROGRAM_REPEAT_MODE_NEVER;
+	} else if (strcasecmp(name, "interval") == 0) {
+		*mode = PROGRAM_REPEAT_MODE_INTERVAL;
+	} else if (strcasecmp(name, "selection") == 0) {
+		*mode = PROGRAM_REPEAT_MODE_SELECTION;
+	} else {
+		return -1;
+	}
+
+	return 0;
 }
 
 static APIE program_config_set_empty(ProgramConfig *program_config,
@@ -88,6 +135,33 @@ static APIE program_config_set_string(ProgramConfig *program_config,
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not set '%s' option in '%s': %s (%d)",
+		          name, program_config->filename, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	return API_E_SUCCESS;
+}
+
+static APIE program_config_get_string(ProgramConfig *program_config,
+                                      ConfFile *conf_file, const char *name,
+                                      String **value) {
+	APIE error_code;
+	const char *string = conf_file_get_option_value(conf_file, name);
+
+	if (string == NULL) {
+		*value = NULL;
+
+		return API_E_SUCCESS;
+	}
+
+	error_code = string_wrap(string,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, value);
+
+	if (error_code != API_E_SUCCESS) {
+		log_error("Could not create string object from '%s' option in '%s': %s (%d)",
 		          name, program_config->filename, get_errno_name(errno), errno);
 
 		return error_code;
@@ -144,6 +218,80 @@ static APIE program_config_set_integer(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 }
 
+static APIE program_config_get_integer(ProgramConfig *program_config,
+                                       ConfFile *conf_file, const char *name,
+                                       uint64_t *value, uint64_t default_value) {
+	const char *string = conf_file_get_option_value(conf_file, name);
+	int length;
+	const char *p;
+	uint64_t base = 1;
+	char *end = NULL;
+	long long int tmp;
+
+	if (string == NULL) {
+		*value = default_value;
+
+		return API_E_SUCCESS;
+	}
+
+	string = string + strspn(string, " \f\n\r\t\v");
+
+	if (*string == '0' && (*(string + 1) == 'b' || *(string + 1) == 'B')) {
+		string += 2;
+		length = strlen(string);
+
+		if (length > 64) {
+			log_error("Value of '%s' option in '%s' is too long",
+			          name, program_config->filename);
+
+			return API_E_MALFORMED_PROGRAM_CONFIG;
+		}
+
+		*value = 0;
+
+		for (p = string + length - 1; p >= string; --p, base *= 2) {
+			if (*p == '1') {
+				*value += base;
+			} else if (*p != '0') {
+				log_error("Value of '%s' option in '%s' contains invalid digits",
+				          name, program_config->filename);
+
+				return API_E_MALFORMED_PROGRAM_CONFIG;
+			}
+		}
+
+		return API_E_SUCCESS;
+	} else {
+		errno = 0;
+		tmp = strtoll(string, &end, 0);
+
+		if (errno != 0) {
+			log_error("Could not parse integer from value of '%s' option in '%s': %s (%d)",
+			          name, program_config->filename, get_errno_name(errno), errno);
+
+			return API_E_MALFORMED_PROGRAM_CONFIG;
+		}
+
+		if (end == NULL || *end != '\0') {
+			log_error("Value of '%s' option in '%s' has a non-numerical suffix",
+			          name, program_config->filename);
+
+			return API_E_MALFORMED_PROGRAM_CONFIG;
+		}
+
+		if (tmp < 0) {
+			log_error("Value of '%s' option in '%s' cannot be negative",
+			          name, program_config->filename);
+
+			return API_E_MALFORMED_PROGRAM_CONFIG;
+		}
+
+		*value = tmp;
+
+		return API_E_SUCCESS;
+	}
+}
+
 static APIE program_config_set_boolean(ProgramConfig *program_config,
                                        ConfFile *conf_file, const char *name,
                                        bool value) {
@@ -161,6 +309,33 @@ static APIE program_config_set_boolean(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 }
 
+static APIE program_config_get_boolean(ProgramConfig *program_config,
+                                       ConfFile *conf_file, const char *name,
+                                       bool *value, bool default_value) {
+	const char *string = conf_file_get_option_value(conf_file, name);
+
+	if (string == NULL) {
+		*value = default_value;
+
+		return API_E_SUCCESS;
+	}
+
+	if (strcasecmp(string, "true") == 0) {
+		*value = true;
+
+		return API_E_SUCCESS;
+	} else if (strcasecmp(string, "false") == 0) {
+		*value = false;
+
+		return API_E_SUCCESS;
+	}
+
+	log_error("Could not parse boolean from value of '%s' option in '%s': %s (%d)",
+	          name, program_config->filename, get_errno_name(errno), errno);
+
+	return API_E_MALFORMED_PROGRAM_CONFIG;
+}
+
 static APIE program_config_set_symbol(ProgramConfig *program_config,
                                       ConfFile *conf_file,
                                       const char *name, int value,
@@ -174,6 +349,28 @@ static APIE program_config_set_symbol(ProgramConfig *program_config,
 		          name, program_config->filename, get_errno_name(errno), errno);
 
 		return error_code;
+	}
+
+	return API_E_SUCCESS;
+}
+
+static APIE program_config_get_symbol(ProgramConfig *program_config,
+                                      ConfFile *conf_file, const char *name,
+                                      int *value, int default_value,
+                                      ProgramConfigGetValueFunction function) {
+	const char *string = conf_file_get_option_value(conf_file, name);
+
+	if (string == NULL) {
+		*value = default_value;
+
+		return API_E_SUCCESS;
+	}
+
+	if (function(string, value) < 0) {
+		log_error("Invalid symbol for '%s' option in '%s'",
+		          name, program_config->filename);
+
+		return API_E_MALFORMED_PROGRAM_CONFIG;
 	}
 
 	return API_E_SUCCESS;
@@ -211,6 +408,76 @@ static APIE program_config_set_string_list(ProgramConfig *program_config,
 	}
 
 	return API_E_SUCCESS;
+}
+
+static APIE program_config_get_string_list(ProgramConfig *program_config,
+                                           ConfFile *conf_file,
+                                           const char *name, List **value) {
+	APIE error_code;
+	char buffer[1024];
+	uint64_t length;
+	int i;
+	String *item;
+	String **item_ptr;
+
+	// get <name>.length
+	snprintf(buffer, sizeof(buffer), "%s.length", name);
+
+	error_code = program_config_get_integer(program_config, conf_file, buffer,
+	                                        &length, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	// create list object
+	error_code = list_create(length,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, value);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	// get <name>.item<i>
+	for (i = 0; i < (int)length; ++i) {
+		snprintf(buffer, sizeof(buffer), "%s.item%d", name, i);
+
+		error_code = program_config_get_string(program_config, conf_file,
+		                                       buffer, &item);
+
+		if (error_code != API_E_SUCCESS) {
+			goto error;
+		}
+
+		if (item == NULL) {
+			error_code = API_E_MALFORMED_PROGRAM_CONFIG;
+
+			log_error("Missing item %d for '%s' option in '%s'",
+			          i, name, program_config->filename);
+
+			goto error;
+		}
+
+		item_ptr = array_append(&(*value)->items);
+
+		if (item_ptr == NULL) {
+			log_error("Could not append item to list object for '%s' option in '%s': %s (%d)",
+			          name, program_config->filename, get_errno_name(errno), errno);
+
+			goto error;
+		}
+
+		*item_ptr = item;
+	}
+
+	return API_E_SUCCESS;
+
+error:
+	list_vacate(*value);
+
+	return error_code;
 }
 
 APIE program_config_create(ProgramConfig *program_config, const char *filename) {
@@ -329,6 +596,367 @@ void program_config_destroy(ProgramConfig *program_config) {
 	free(program_config->filename);
 }
 
+APIE program_config_load(ProgramConfig *program_config) {
+	int phase = 0;
+	APIE error_code = API_E_UNKNOWN_ERROR;
+	ConfFile conf_file;
+	uint64_t version;
+	bool defined;
+	String *executable;
+	List *arguments;
+	List *environment;
+	int stdin_redirection;
+	String *stdin_file_name;
+	int stdout_redirection;
+	String *stdout_file_name;
+	int stderr_redirection;
+	String *stderr_file_name;
+	int start_condition;
+	uint64_t start_time;
+	uint64_t start_delay;
+	int repeat_mode;
+	uint64_t repeat_interval;
+	uint64_t repeat_second_mask;
+	uint64_t repeat_minute_mask;
+	uint64_t repeat_hour_mask;
+	uint64_t repeat_day_mask;
+	uint64_t repeat_month_mask;
+	uint64_t repeat_weekday_mask;
+
+	if (conf_file_create(&conf_file) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create program.conf object: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	if (conf_file_read(&conf_file, program_config->filename, NULL, NULL) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		if (errno != ENOENT) {
+			log_error("Could not read from '%s': %s (%d)",
+			          program_config->filename, get_errno_name(errno), errno);
+		}
+
+		goto cleanup;
+	}
+
+	// get version
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "version", &version, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// check version
+	if (version != 1) {
+		error_code = API_E_MALFORMED_PROGRAM_CONFIG;
+
+		log_error("Invalid version value %llu in '%s'",
+		          (unsigned long long int)version, program_config->filename);
+
+		goto cleanup;
+	}
+
+	// get defined
+	error_code = program_config_get_boolean(program_config, &conf_file,
+	                                        "defined", &defined, false);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get executable
+	error_code = program_config_get_string(program_config, &conf_file,
+	                                       "executable", &executable);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// get arguments
+	error_code = program_config_get_string_list(program_config, &conf_file,
+	                                            "arguments", &arguments);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 3;
+
+	// get environment
+	error_code = program_config_get_string_list(program_config, &conf_file,
+	                                            "environment", &environment);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
+
+	// get stdin.redirection
+	error_code = program_config_get_symbol(program_config, &conf_file,
+	                                       "stdin.redirection",
+	                                       &stdin_redirection,
+	                                       PROGRAM_STDIO_REDIRECTION_DEV_NULL,
+	                                       program_config_get_stdio_redirection_value);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get stdin.file_name
+	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = program_config_get_string(program_config, &conf_file,
+		                                       "stdin.file_name",
+		                                       &stdin_file_name);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	} else {
+		stdin_file_name = NULL;
+	}
+
+	phase = 5;
+
+	// get stdout.redirection
+	error_code = program_config_get_symbol(program_config, &conf_file,
+	                                       "stdout.redirection",
+	                                       &stdout_redirection,
+	                                       PROGRAM_STDIO_REDIRECTION_DEV_NULL,
+	                                       program_config_get_stdio_redirection_value);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get stdout.file_name
+	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = program_config_get_string(program_config, &conf_file,
+		                                       "stdout.file_name",
+		                                       &stdout_file_name);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	} else {
+		stdout_file_name = NULL;
+	}
+
+	phase = 6;
+
+	// get stderr.redirection
+	error_code = program_config_get_symbol(program_config, &conf_file,
+	                                       "stderr.redirection",
+	                                       &stderr_redirection,
+	                                       PROGRAM_STDIO_REDIRECTION_DEV_NULL,
+	                                       program_config_get_stdio_redirection_value);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get stderr.file_name
+	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = program_config_get_string(program_config, &conf_file,
+		                                       "stderr.file_name",
+		                                       &stderr_file_name);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	} else {
+		stderr_file_name = NULL;
+	}
+
+	phase = 7;
+
+	// get start.condition
+	error_code = program_config_get_symbol(program_config, &conf_file,
+	                                       "start.condition", &start_condition,
+	                                       PROGRAM_START_CONDITION_NEVER,
+	                                       program_config_get_start_condition_value);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get start.time
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "start.time", &start_time, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get start.delay
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "start.delay", &start_delay, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.mode
+	error_code = program_config_get_symbol(program_config, &conf_file,
+	                                       "repeat.mode", &repeat_mode,
+	                                       PROGRAM_REPEAT_MODE_NEVER,
+	                                       program_config_get_repeat_mode_value);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.interval
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.interval",
+	                                        &repeat_interval, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.second_mask
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.second_mask",
+	                                        &repeat_second_mask, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.minute_mask
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.minute_mask",
+	                                        &repeat_minute_mask, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.hour_mask
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.hour_mask",
+	                                        &repeat_hour_mask, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.day_mask
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.day_mask",
+	                                        &repeat_day_mask, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// set repeat.month_mask
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.month_mask",
+	                                        &repeat_month_mask, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// get repeat.weekday_mask
+	error_code = program_config_get_integer(program_config, &conf_file,
+	                                        "repeat.weekday_mask",
+	                                        &repeat_weekday_mask, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// vacate old objects
+	string_vacate(program_config->executable);
+	list_vacate(program_config->arguments);
+	list_vacate(program_config->environment);
+
+	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program_config->stdin_file_name);
+	}
+
+	if (program_config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program_config->stdout_file_name);
+	}
+
+	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		string_vacate(program_config->stderr_file_name);
+	}
+
+	// set new objects
+	program_config->executable          = executable;
+	program_config->arguments           = arguments;
+	program_config->environment         = environment;
+	program_config->stdin_redirection   = stdin_redirection;
+	program_config->stdin_file_name     = stdin_file_name;
+	program_config->stdout_redirection  = stdout_redirection;
+	program_config->stdout_file_name    = stdout_file_name;
+	program_config->stderr_redirection  = stderr_redirection;
+	program_config->stderr_file_name    = stderr_file_name;
+	program_config->start_condition     = start_condition;
+	program_config->start_time          = start_time;
+	program_config->start_delay         = start_delay;
+	program_config->repeat_mode         = repeat_mode;
+	program_config->repeat_interval     = repeat_interval;
+	program_config->repeat_second_mask  = repeat_second_mask;
+	program_config->repeat_minute_mask  = repeat_minute_mask;
+	program_config->repeat_hour_mask    = repeat_hour_mask;
+	program_config->repeat_day_mask     = repeat_day_mask;
+	program_config->repeat_month_mask   = repeat_month_mask;
+	program_config->repeat_weekday_mask = repeat_weekday_mask;
+
+	phase = 8;
+
+	conf_file_destroy(&conf_file);
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 7:
+		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_vacate(stderr_file_name);
+		}
+
+	case 6:
+		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_vacate(stdout_file_name);
+		}
+
+	case 5:
+		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_vacate(stdin_file_name);
+		}
+
+	case 4:
+		list_vacate(environment);
+
+	case 3:
+		list_vacate(arguments);
+
+	case 2:
+		string_vacate(executable);
+
+	case 1:
+		conf_file_destroy(&conf_file);
+
+	default:
+		break;
+	}
+
+	return phase == 8 ? API_E_SUCCESS : error_code;
+}
+
 APIE program_config_save(ProgramConfig *program_config) {
 	APIE error_code = API_E_UNKNOWN_ERROR;
 	ConfFile conf_file;
@@ -342,7 +970,23 @@ APIE program_config_save(ProgramConfig *program_config) {
 		return error_code;
 	}
 
-	// FIXME: load old config, if existing
+	if (conf_file_read(&conf_file, program_config->filename, NULL, NULL) < 0 &&
+	    errno != ENOENT) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not read from '%s': %s (%d)",
+		          program_config->filename, get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	// set version
+	error_code = program_config_set_integer(program_config, &conf_file,
+	                                        "version", 1, 10, 0);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
 
 	// set defined
 	error_code = program_config_set_boolean(program_config, &conf_file,

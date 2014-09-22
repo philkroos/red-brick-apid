@@ -75,6 +75,7 @@ typedef struct {
 APIE program_config_create(ProgramConfig *program_config, const char *filename);
 void program_config_destroy(ProgramConfig *program_config);
 
+APIE program_config_load(ProgramConfig *program_config);
 APIE program_config_save(ProgramConfig *program_config);
 
 #endif // REDAPID_PROGRAM_H
