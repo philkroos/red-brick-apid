@@ -48,6 +48,7 @@ typedef enum {
 } ProgramRepeatMode;
 
 typedef struct {
+	char *filename; // <home>/programs/<identifier>/program.conf
 	bool defined;
 	String *executable;
 	List *arguments;
@@ -71,6 +72,9 @@ typedef struct {
 	uint8_t repeat_weekday_mask; // week starts on monday
 } ProgramConfig;
 
-APIE program_config_save(ProgramConfig *program_config, const char *filename);
+APIE program_config_create(ProgramConfig *program_config, const char *filename);
+void program_config_destroy(ProgramConfig *program_config);
+
+APIE program_config_save(ProgramConfig *program_config);
 
 #endif // REDAPID_PROGRAM_H

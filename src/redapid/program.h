@@ -34,7 +34,6 @@ typedef struct {
 
 	String *identifier;
 	String *directory; // <home>/programs/<identifier>
-	char *config_filename; // <home>/programs/<identifier>/program.conf
 	ProgramConfig config;
 } Program;
 
