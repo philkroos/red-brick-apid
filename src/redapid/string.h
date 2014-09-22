@@ -37,7 +37,7 @@ typedef struct {
 } String;
 
 APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id);
-APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id, String **object);
+APIE string_wrap(const char *buffer, uint16_t create_flags, ObjectID *id, String **object);
 
 APIE string_truncate(ObjectID id, uint32_t length);
 APIE string_get_length(ObjectID id, uint32_t *length);

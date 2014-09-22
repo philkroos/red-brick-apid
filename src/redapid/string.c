@@ -163,7 +163,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 	return API_E_SUCCESS;
 }
 
-APIE string_wrap(char *buffer, uint16_t create_flags, ObjectID *id, String **object) {
+APIE string_wrap(const char *buffer, uint16_t create_flags, ObjectID *id, String **object) {
 	uint32_t length = strlen(buffer);
 	APIE error_code;
 	String *string;
