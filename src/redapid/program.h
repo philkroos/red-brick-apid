@@ -37,6 +37,8 @@ typedef struct {
 	ProgramConfig config;
 } Program;
 
+APIE program_load(const char *identifier, const char *directory, const char *filename);
+
 APIE program_define(ObjectID identifier_id, ObjectID *id);
 APIE program_undefine(ObjectID id);
 

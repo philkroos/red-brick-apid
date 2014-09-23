@@ -48,6 +48,7 @@
 #include "inventory.h"
 
 #include "api.h"
+#include "program.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
@@ -181,6 +182,95 @@ void inventory_exit(void) {
 
 const char *inventory_get_programs_directory(void) {
 	return _programs_directory;
+}
+
+int inventory_load_programs(void) {
+	bool success = false;
+	DIR *dp;
+	struct dirent *dirent;
+	const char *identifier;
+	char directory[1024];
+	char filename[1024];
+
+	log_debug("Loading program configurations from '%s'", _programs_directory);
+
+	dp = opendir(_programs_directory);
+
+	if (dp == NULL) {
+		if (errno == ENOENT) {
+			// no programs directory, nothing to load
+			return 0;
+		}
+
+		log_warn("Could not open programs directory '%s': %s (%d)",
+		         _programs_directory, get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	for (;;) {
+		errno = 0;
+		dirent = readdir(dp);
+
+		if (dirent == NULL) {
+			if (errno == 0) {
+				// end-of-directory reached
+				break;
+			} else {
+				log_warn("Could not get next entry of programs directory '%s': %s (%d)",
+				         _programs_directory, get_errno_name(errno), errno);
+
+				goto cleanup;
+			}
+		}
+
+		if (strcmp(dirent->d_name, ".") == 0 ||
+		    strcmp(dirent->d_name, "..") == 0 ||
+		    dirent->d_type != DT_DIR) {
+			continue;
+		}
+
+		identifier = dirent->d_name;
+
+		if (robust_snprintf(directory, sizeof(directory), "%s/%s",
+		                    _programs_directory, identifier) < 0) {
+			log_error("Could not format program directory name: %s (%d)",
+			          get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		if (robust_snprintf(filename, sizeof(filename), "%s/program.conf",
+		                    directory) < 0) {
+			log_error("Could not format program config name: %s (%d)",
+			          get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		program_load(identifier, directory, filename); // ignore load errors
+	}
+
+	success = true;
+
+cleanup:
+	closedir(dp);
+
+	return success ? 0 : -1;
+}
+
+void inventory_unload_programs(void) {
+	int i;
+	Object *program;
+
+	// object_remove_internal_reference can remove program objects from the
+	// objects array. iterate backwards so remaining part of the indizes is
+	// not affected by this
+	for (i = _objects[OBJECT_TYPE_PROGRAM].count - 1; i >= 0; --i) {
+		program = *(Object **)array_get(&_objects[OBJECT_TYPE_PROGRAM], i);
+
+		object_remove_internal_reference(program);
+	}
 }
 
 APIE inventory_add_object(Object *object) {

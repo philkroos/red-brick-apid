@@ -266,6 +266,10 @@ int main(int argc, char **argv) {
 		goto error_network;
 	}
 
+	if (inventory_load_programs() < 0) {
+		goto error_load_programs;
+	}
+
 	led_set_trigger(LED_GREEN, LED_TRIGGER_HEARTBEAT);
 	led_set_trigger(LED_RED, LED_TRIGGER_OFF);
 
@@ -276,6 +280,9 @@ int main(int argc, char **argv) {
 	exit_code = EXIT_SUCCESS;
 
 error_run:
+	inventory_unload_programs();
+
+error_load_programs:
 	network_exit();
 
 error_network:

@@ -107,6 +107,123 @@ static APIE program_get(ObjectID id, Program **program) {
 	return inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)program);
 }
 
+APIE program_load(const char *identifier, const char *directory, const char *filename) {
+	int phase = 0;
+	APIE error_code;
+	ProgramConfig program_config;
+	String *identifier_object;
+	String *directory_object;
+	Program *program;
+
+	// check identifier
+	if (!program_is_valid_identifier(identifier)) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_error("Cannot load program with invalid identifier '%s'", identifier);
+
+		goto cleanup;
+	}
+
+	// load config
+	error_code = program_config_create(&program_config, filename);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	error_code = program_config_load(&program_config);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// check if program is defined
+	if (!program_config.defined) {
+		program_config_destroy(&program_config);
+
+		return API_E_SUCCESS;
+	}
+
+	// wrap identifier string
+	error_code = string_wrap(identifier,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &identifier_object);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// wrap directory string
+	error_code = string_wrap(directory,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         NULL, &directory_object);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 3;
+
+	// allocate program object
+	program = calloc(1, sizeof(Program));
+
+	if (program == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
+		log_error("Could not allocate program object: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		goto cleanup;
+	}
+
+	phase = 4;
+
+	// create program object
+	program->identifier = identifier_object;
+	program->directory = directory_object;
+	memcpy(&program->config, &program_config, sizeof(program->config));
+
+	error_code = object_create(&program->base,
+	                           OBJECT_TYPE_PROGRAM,
+	                           OBJECT_CREATE_FLAG_INTERNAL,
+	                           program_destroy);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	log_debug("Loaded program object (id: %u, identifier: %s)",
+	          program->base.id, identifier);
+
+	phase = 5;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 4:
+		free(program);
+
+	case 3:
+		string_vacate(directory_object);
+
+	case 2:
+		string_vacate(identifier_object);
+
+	case 1:
+		program_config_destroy(&program_config);
+
+	default:
+		break;
+	}
+
+	return phase == 5 ? API_E_SUCCESS : error_code;
+}
+
 // public API
 APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	int phase = 0;
@@ -125,6 +242,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	phase = 1;
 
+	// check identifier
 	if (!program_is_valid_identifier(identifier->buffer)) {
 		error_code = API_E_INVALID_PARAMETER;
 
@@ -198,6 +316,8 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
+	phase = 5;
+
 	error_code = program_config_save(&program->config);
 
 	if (error_code != API_E_SUCCESS) {
@@ -219,10 +339,13 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	log_debug("Defined program object (id: %u, identifier: %s)",
 	          program->base.id, identifier->buffer);
 
-	phase = 5;
+	phase = 6;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 5:
+		program_config_destroy(&program->config);
+
 	case 4:
 		free(program);
 
@@ -239,7 +362,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 5 ? API_E_SUCCESS : error_code;
+	return phase == 6 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -372,7 +495,7 @@ APIE program_set_command(ObjectID id, ObjectID executable_id,
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
-		memcpy(&program->config, &backup, sizeof(backup));
+		memcpy(&program->config, &backup, sizeof(program->config));
 
 		list_vacate(environment);
 
@@ -540,7 +663,7 @@ APIE program_set_stdio_redirection(ObjectID id,
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
-		memcpy(&program->config, &backup, sizeof(backup));
+		memcpy(&program->config, &backup, sizeof(program->config));
 
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_vacate(stderr_file_name);
@@ -662,7 +785,7 @@ APIE program_set_schedule(ObjectID id,
 	error_code = program_config_save(&program->config);
 
 	if (error_code != API_E_SUCCESS) {
-		memcpy(&program->config, &backup, sizeof(backup));
+		memcpy(&program->config, &backup, sizeof(program->config));
 
 		return error_code;
 	}

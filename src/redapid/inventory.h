@@ -29,6 +29,9 @@ void inventory_exit(void);
 
 const char *inventory_get_programs_directory(void);
 
+int inventory_load_programs(void);
+void inventory_unload_programs(void);
+
 APIE inventory_add_object(Object *object);
 void inventory_remove_object(Object *object);
 
