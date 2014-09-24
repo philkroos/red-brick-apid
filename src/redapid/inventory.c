@@ -166,17 +166,26 @@ int inventory_init(void) {
 void inventory_exit(void) {
 	log_debug("Shutting down inventory subsystem");
 
-	// destroy all objects that could have references to string objects...
+	// object types have to be destroyed in a specific order. if objects of
+	// type A can use (have a reference to) objects of type B then A has to be
+	// destroyed before B. so A has a chance to properly release its references
+	// to type B objects. otherwise type B object could already be destroyed
+	// when type A objects try to release them.
+	//
+	// there are the following relationships:
+	// - program uses process, list and string
+	// - process uses file, list and string
+	// - directory uses string
+	// - file uses string
+	// - list can contain any object as item, currently only string is used
+	// - string doesn't use other objects
+	// - inventory doesn't use other objects
 	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_PROCESS], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_FILE], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_LIST], inventory_destroy_object);
-
-	// ...before destroying the remaining string objects...
 	array_destroy(&_objects[OBJECT_TYPE_STRING], inventory_destroy_object);
-
-	// ...before destroying the inventory objects
 	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], inventory_destroy_object);
 }
 
@@ -264,8 +273,8 @@ void inventory_unload_programs(void) {
 	Object *program;
 
 	// object_remove_internal_reference can remove program objects from the
-	// objects array. iterate backwards so remaining part of the indizes is
-	// not affected by this
+	// objects array if it removed the last reference. iterate backwards so
+	// the remaining part of the indices is not affected by this
 	for (i = _objects[OBJECT_TYPE_PROGRAM].count - 1; i >= 0; --i) {
 		program = *(Object **)array_get(&_objects[OBJECT_TYPE_PROGRAM], i);
 
