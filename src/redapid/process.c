@@ -169,7 +169,7 @@ static void process_handle_state_change(void *opaque) {
 	process->state = change.state;
 	process->exit_code = change.exit_code;
 
-	// only send process-state-changed callback if there is at least one
+	// only send a process-state-changed callback if there is at least one
 	// external reference to the process object. otherwise there is no one that
 	// could be interested in this callback anyway. also this logic avoids
 	// sending process-state-changed callbacks for scheduled program executions

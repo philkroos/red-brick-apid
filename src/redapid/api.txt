@@ -264,7 +264,7 @@ enum program_repeat_mode {
                                                                      uint16_t stdout_file_name_string_id,
                                                                      uint8_t stderr_redirection,
                                                                      uint16_t stderr_file_name_string_id
-? set_program_schedule            (uint16_t program_id,
++ set_program_schedule            (uint16_t program_id,
                                    uint8_t start_condition,
                                    uint64_t start_time,
                                    uint32_t start_delay,
@@ -276,7 +276,7 @@ enum program_repeat_mode {
                                    uint32_t repeat_day_mask,
                                    uint16_t repeat_month_mask,
                                    uint8_t repeat_weekday_mask)   -> uint8_t error_code
-? get_program_schedule            (uint16_t program_id)           -> uint8_t error_code
++ get_program_schedule            (uint16_t program_id)           -> uint8_t error_code
                                                                      uint8_t start_condition,
                                                                      uint64_t start_time,
                                                                      uint32_t start_delay,

@@ -208,6 +208,26 @@ static void file_destroy(Object *object) {
 	free(file);
 }
 
+static void file_send_async_read_callback(File *file, APIE error_code,
+                                          uint8_t *buffer, uint8_t length_read) {
+	// only send a async-file-read callback if there is at least one
+	// external reference to the file object. otherwise there is no one that
+	// could be interested in this callback anyway
+	if (file->base.external_reference_count > 0) {
+		api_send_async_file_read_callback(file->base.id, error_code, buffer, length_read);
+	}
+}
+
+static void file_send_async_write_callback(File *file, APIE error_code,
+                                          uint8_t length_written) {
+	// only send a async-file-write callback if there is at least one
+	// external reference to the file object. otherwise there is no one that
+	// could be interested in this callback anyway
+	if (file->base.external_reference_count > 0) {
+		api_send_async_file_write_callback(file->base.id, error_code, length_written);
+	}
+}
+
 // sets errno on error
 static int file_handle_read(File *file, void *buffer, int length) {
 	if ((file->flags & FILE_FLAG_NON_BLOCKING) == 0) {
@@ -300,7 +320,7 @@ static void file_handle_async_read(void *opaque) {
 
 			file->length_to_read_async = 0;
 
-			api_send_async_file_read_callback(file->base.id, error_code, buffer, 0);
+			file_send_async_read_callback(file, error_code, buffer, 0);
 		}
 
 		return;
@@ -314,7 +334,7 @@ static void file_handle_async_read(void *opaque) {
 
 		file->length_to_read_async = 0;
 
-		api_send_async_file_read_callback(file->base.id, API_E_NO_MORE_DATA, buffer, 0);
+		file_send_async_read_callback(file, API_E_NO_MORE_DATA, buffer, 0);
 
 		return;
 	}
@@ -328,7 +348,7 @@ static void file_handle_async_read(void *opaque) {
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
-	api_send_async_file_read_callback(file->base.id, API_E_SUCCESS, buffer, length_read);
+	file_send_async_read_callback(file, API_E_SUCCESS, buffer, length_read);
 
 	if (file->length_to_read_async == 0) {
 		log_debug("Finished asynchronous reading from file object ("FILE_SIGNATURE_FORMAT")",
@@ -1024,7 +1044,7 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 
 	if (length_to_read == 0) {
 		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_read_callback(file->base.id, API_E_SUCCESS, buffer, 0);
+		file_send_async_read_callback(file, API_E_SUCCESS, buffer, 0);
 
 		return API_E_SUCCESS;
 	}
@@ -1066,7 +1086,7 @@ APIE file_abort_async_read(ObjectID id) {
 	file->length_to_read_async = 0;
 
 	// FIXME: this callback should be delivered after the response of this function
-	api_send_async_file_read_callback(file->base.id, API_E_OPERATION_ABORTED, buffer, 0);
+	file_send_async_read_callback(file, API_E_OPERATION_ABORTED, buffer, 0);
 
 	return API_E_SUCCESS;
 }
@@ -1157,7 +1177,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 
 	if (error_code != API_E_SUCCESS) {
 		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_write_callback(id, error_code, 0);
+		file_send_async_write_callback(file, error_code, 0);
 
 		if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
 			return ERROR_CODE_INVALID_PARAMETER;
@@ -1171,7 +1191,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		         length_to_write);
 
 		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_write_callback(id, API_E_INVALID_PARAMETER, 0);
+		file_send_async_write_callback(file, API_E_INVALID_PARAMETER, 0);
 
 		return ERROR_CODE_INVALID_PARAMETER;
 	}
@@ -1181,7 +1201,7 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		         length_to_write, file->length_to_read_async, file_expand_signature(file));
 
 		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_write_callback(id, API_E_INVALID_OPERATION, 0);
+		file_send_async_write_callback(file, API_E_INVALID_OPERATION, 0);
 
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
@@ -1196,13 +1216,13 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 		         get_errno_name(errno), errno);
 
 		// FIXME: this callback should be delivered after the response of this function
-		api_send_async_file_write_callback(id, error_code, 0);
+		file_send_async_write_callback(file, error_code, 0);
 
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
 
 	// FIXME: this callback should be delivered after the response of this function
-	api_send_async_file_write_callback(id, API_E_SUCCESS, length_written);
+	file_send_async_write_callback(file, API_E_SUCCESS, length_written);
 
 	return ERROR_CODE_OK;
 }
