@@ -177,15 +177,9 @@ void network_dispatch_response(Packet *response) {
 	char packet_signature[PACKET_MAX_SIGNATURE_LENGTH];
 
 	if (!_brickd_connected) {
-		// FIXME: avoid packet_header_get_sequence_number call if log_debug is disabled
-		if (packet_header_get_sequence_number(&response->header) == 0) {
-			log_debug("No Brick Daemon connected, dropping %scallback (%s)",
-			          packet_get_callback_type(response),
-			          packet_get_callback_signature(packet_signature, response));
-		} else {
-			log_debug("No Brick Daemon connected, dropping response (%s)",
-			          packet_get_response_signature(packet_signature, response));
-		}
+		log_debug("No Brick Daemon connected, dropping %s (%s)",
+		          packet_get_response_type(response),
+		          packet_get_response_signature(packet_signature, response));
 
 		return;
 	}

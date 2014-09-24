@@ -103,7 +103,7 @@ static void brickd_handle_read(void *opaque) {
 			          packet_get_request_signature(packet_signature, &brickd->request));
 		} else {
 			log_debug("Received %s request (%s) from Brick Daemon",
-			          api_get_function_name_from_id(brickd->request.header.function_id),
+			          api_get_function_name(brickd->request.header.function_id),
 			          packet_get_request_signature(packet_signature, &brickd->request));
 
 			api_handle_request(&brickd->request);
@@ -186,16 +186,9 @@ void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 		return;
 	}
 
-	// FIXME: avoid packet_header_get_sequence_number call if log_debug is disabled
-	if (packet_header_get_sequence_number(&response->header) == 0) {
-		log_debug("%s %s callback (%s) to Brick Daemon",
-		          enqueued ? "Enqueued" : "Sent",
-		          api_get_function_name_from_id(response->header.function_id),
-		          packet_get_callback_signature(packet_signature, response));
-	} else {
-		log_debug("%s %s response (%s) to Brick Daemon",
-		          enqueued ? "Enqueued" : "Sent",
-		          api_get_function_name_from_id(response->header.function_id),
-		          packet_get_response_signature(packet_signature, response));
-	}
+	log_debug("%s %s %s (%s) to Brick Daemon",
+	          enqueued ? "Enqueued" : "Sent",
+	          api_get_function_name(response->header.function_id),
+	          packet_get_response_type(response),
+	          packet_get_response_signature(packet_signature, response));
 }

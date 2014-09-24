@@ -675,7 +675,7 @@ APIE api_get_error_code_from_errno(void) {
 	}
 }
 
-const char *api_get_function_name_from_id(int function_id) {
+const char *api_get_function_name(int function_id) {
 	switch (function_id) {
 	// object
 	case FUNCTION_RELEASE_OBJECT:                return "release-object";
