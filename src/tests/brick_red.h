@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-17.      *
+ * This file was automatically generated on 2014-09-24.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -600,6 +600,16 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_PROGRAM_STDIO_REDIRECTION_FILE 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_REDIRECTION_STDOUT 3
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_REDIRECTION_LOG 4
 
 /**
  * \ingroup BrickRED

@@ -19,8 +19,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _GNU_SOURCE // for asprintf from stdio.h
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +59,8 @@ static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirecti
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 	case PROGRAM_STDIO_REDIRECTION_PIPE:
 	case PROGRAM_STDIO_REDIRECTION_FILE:
+	case PROGRAM_STDIO_REDIRECTION_STDOUT:
+	case PROGRAM_STDIO_REDIRECTION_LOG:
 		return true;
 
 	default:
@@ -553,7 +553,9 @@ APIE program_set_stdio_redirection(ObjectID id,
 		goto cleanup;
 	}
 
-	if (!program_is_valid_stdio_redirection(stdin_redirection)) {
+	if (!program_is_valid_stdio_redirection(stdin_redirection) ||
+	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT ||
+	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG) {
 		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("Invalid program stdin redirection %d", stdin_redirection);
@@ -561,7 +563,8 @@ APIE program_set_stdio_redirection(ObjectID id,
 		goto cleanup;
 	}
 
-	if (!program_is_valid_stdio_redirection(stdout_redirection)) {
+	if (!program_is_valid_stdio_redirection(stdout_redirection) ||
+	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
 		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("Invalid program stdout redirection %d", stdout_redirection);

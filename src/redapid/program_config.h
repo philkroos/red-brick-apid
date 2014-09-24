@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * program_config.h: Program configuration helpers
+ * program_config.h: Program object configuration
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,9 @@
 typedef enum {
 	PROGRAM_STDIO_REDIRECTION_DEV_NULL = 0,
 	PROGRAM_STDIO_REDIRECTION_PIPE,
-	PROGRAM_STDIO_REDIRECTION_FILE
+	PROGRAM_STDIO_REDIRECTION_FILE,
+	PROGRAM_STDIO_REDIRECTION_STDOUT, // can only be used to redirect stderr to stdout
+	PROGRAM_STDIO_REDIRECTION_LOG     // can only be used for stdout and stderr
 } ProgramStdioRedirection;
 
 typedef enum {
@@ -49,6 +51,7 @@ typedef enum {
 
 typedef struct {
 	char *filename; // <home>/programs/<identifier>/program.conf
+
 	bool defined;
 	String *executable;
 	List *arguments;
@@ -78,4 +81,4 @@ void program_config_destroy(ProgramConfig *program_config);
 APIE program_config_load(ProgramConfig *program_config);
 APIE program_config_save(ProgramConfig *program_config);
 
-#endif // REDAPID_PROGRAM_H
+#endif // REDAPID_PROGRAM_CONFIG_H

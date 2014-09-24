@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * program_config.c: Program configuration helpers
+ * program_config.c: Program object configuration
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ static const char *program_config_get_stdio_redirection_name(int redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL: return "/dev/null";
 	case PROGRAM_STDIO_REDIRECTION_PIPE:     return "pipe";
 	case PROGRAM_STDIO_REDIRECTION_FILE:     return "file";
+	case PROGRAM_STDIO_REDIRECTION_STDOUT:   return "stdout";
+	case PROGRAM_STDIO_REDIRECTION_LOG:      return "log";
 	default:                                 return "<unknown>";
 	}
 }
@@ -53,6 +55,10 @@ static int program_config_get_stdio_redirection_value(const char *name,
 		*redirection = PROGRAM_STDIO_REDIRECTION_PIPE;
 	} else if (strcasecmp(name, "file") == 0) {
 		*redirection = PROGRAM_STDIO_REDIRECTION_FILE;
+	} else if (strcasecmp(name, "stdout") == 0) {
+		*redirection = PROGRAM_STDIO_REDIRECTION_STDOUT;
+	} else if (strcasecmp(name, "log") == 0) {
+		*redirection = PROGRAM_STDIO_REDIRECTION_LOG;
 	} else {
 		return -1;
 	}
@@ -712,6 +718,16 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
+	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT ||
+	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG) {
+		error_code = API_E_MALFORMED_PROGRAM_CONFIG;
+
+		log_error("Invalid 'stdin.redirection' option in '%s'",
+		          program_config->filename);
+
+		goto cleanup;
+	}
+
 	// get stdin.file_name
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
@@ -735,6 +751,15 @@ APIE program_config_load(ProgramConfig *program_config) {
 	                                       program_config_get_stdio_redirection_value);
 
 	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
+		error_code = API_E_MALFORMED_PROGRAM_CONFIG;
+
+		log_error("Invalid 'stdout.redirection' option in '%s'",
+		          program_config->filename);
+
 		goto cleanup;
 	}
 
