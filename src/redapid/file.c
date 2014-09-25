@@ -911,8 +911,8 @@ cleanup:
 // public API
 APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *user_id, uint32_t *group_id,
-                   uint64_t *length, uint64_t *access_time,
-                   uint64_t *modification_time, uint64_t *status_change_time) {
+                   uint64_t *length, uint64_t *access_timestamp,
+                   uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
 	File *file;
 	APIE error_code = file_get(id, &file);
 	struct stat st;
@@ -940,9 +940,9 @@ APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flag
 		*user_id = 0;
 		*group_id = 0;
 		*length = 0;
-		*access_time = 0;
-		*modification_time = 0;
-		*status_change_time = 0;
+		*access_timestamp = 0;
+		*modification_timestamp = 0;
+		*status_change_timestamp = 0;
 	} else {
 		rc = fstat(file->fd, &st);
 
@@ -968,9 +968,9 @@ APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flag
 		*user_id = st.st_uid;
 		*group_id = st.st_gid;
 		*length = st.st_size;
-		*access_time = st.st_atime;
-		*modification_time = st.st_mtime;
-		*status_change_time = st.st_ctime;
+		*access_timestamp = st.st_atime;
+		*modification_timestamp = st.st_mtime;
+		*status_change_timestamp = st.st_ctime;
 	}
 
 	return API_E_SUCCESS;
@@ -1331,8 +1331,8 @@ void file_vacate(File *file) {
 // public API
 APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
                       uint8_t *type, uint16_t *permissions, uint32_t *user_id,
-                      uint32_t *group_id, uint64_t *length, uint64_t *access_time,
-                      uint64_t *modification_time, uint64_t *status_change_time) {
+                      uint32_t *group_id, uint64_t *length, uint64_t *access_timestamp,
+                      uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
 	String *name;
 	APIE error_code = string_get(name_id, &name);
 	struct stat st;
@@ -1369,9 +1369,9 @@ APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
 	*user_id = st.st_uid;
 	*group_id = st.st_gid;
 	*length = st.st_size;
-	*access_time = st.st_atime;
-	*modification_time = st.st_mtime;
-	*status_change_time = st.st_ctime;
+	*access_timestamp = st.st_atime;
+	*modification_timestamp = st.st_mtime;
+	*status_change_timestamp = st.st_ctime;
 
 	return API_E_SUCCESS;
 }

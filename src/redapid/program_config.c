@@ -68,11 +68,11 @@ static int program_config_get_stdio_redirection_value(const char *name,
 
 static const char *program_config_get_start_condition_name(int condition) {
 	switch (condition) {
-	case PROGRAM_START_CONDITION_NEVER: return "never";
-	case PROGRAM_START_CONDITION_NOW:   return "now";
-	case PROGRAM_START_CONDITION_BOOT:  return "boot";
-	case PROGRAM_START_CONDITION_TIME:  return "time";
-	default:                            return "<unknown>";
+	case PROGRAM_START_CONDITION_NEVER:     return "never";
+	case PROGRAM_START_CONDITION_NOW:       return "now";
+	case PROGRAM_START_CONDITION_REBOOT:    return "reboot";
+	case PROGRAM_START_CONDITION_TIMESTAMP: return "timestamp";
+	default:                                return "<unknown>";
 	}
 }
 
@@ -82,10 +82,10 @@ static int program_config_get_start_condition_value(const char *name,
 		*condition = PROGRAM_START_CONDITION_NEVER;
 	} else if (strcasecmp(name, "now") == 0) {
 		*condition = PROGRAM_START_CONDITION_NOW;
-	} else if (strcasecmp(name, "boot") == 0) {
-		*condition = PROGRAM_START_CONDITION_BOOT;
-	} else if (strcasecmp(name, "time") == 0) {
-		*condition = PROGRAM_START_CONDITION_TIME;
+	} else if (strcasecmp(name, "reboot") == 0) {
+		*condition = PROGRAM_START_CONDITION_REBOOT;
+	} else if (strcasecmp(name, "timestamp") == 0) {
+		*condition = PROGRAM_START_CONDITION_TIMESTAMP;
 	} else {
 		return -1;
 	}
@@ -552,7 +552,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->stdout_file_name = NULL;
 	program_config->stderr_file_name = NULL;
 	program_config->start_condition = PROGRAM_START_CONDITION_NEVER;
-	program_config->start_time = 0;
+	program_config->start_timestamp = 0;
 	program_config->start_delay = 0;
 	program_config->repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
 	program_config->repeat_interval = 0;
@@ -618,7 +618,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	int stderr_redirection;
 	String *stderr_file_name;
 	int start_condition;
-	uint64_t start_time;
+	uint64_t start_timestamp;
 	uint64_t start_delay;
 	int repeat_mode;
 	uint64_t repeat_interval;
@@ -814,9 +814,9 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// get start.time
+	// get start.timestamp
 	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "start.time", &start_time, 0);
+	                                        "start.timestamp", &start_timestamp, 0);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -931,7 +931,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->stderr_redirection  = stderr_redirection;
 	program_config->stderr_file_name    = stderr_file_name;
 	program_config->start_condition     = start_condition;
-	program_config->start_time          = start_time;
+	program_config->start_timestamp     = start_timestamp;
 	program_config->start_delay         = start_delay;
 	program_config->repeat_mode         = repeat_mode;
 	program_config->repeat_interval     = repeat_interval;
@@ -1130,10 +1130,10 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set start.time
+	// set start.timestamp
 	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "start.time",
-	                                        program_config->start_time, 10, 0);
+	                                        "start.timestamp",
+	                                        program_config->start_timestamp, 10, 0);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

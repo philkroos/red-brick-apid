@@ -261,9 +261,9 @@ typedef struct {
 	uint32_t user_id;
 	uint32_t group_id;
 	uint64_t length;
-	uint64_t access_time;
-	uint64_t modification_time;
-	uint64_t status_change_time;
+	uint64_t access_timestamp;
+	uint64_t modification_timestamp;
+	uint64_t status_change_timestamp;
 } ATTRIBUTE_PACKED GetFileInfoResponse;
 
 typedef struct {
@@ -365,9 +365,9 @@ typedef struct {
 	uint32_t user_id;
 	uint32_t group_id;
 	uint64_t length;
-	uint64_t access_time;
-	uint64_t modification_time;
-	uint64_t status_change_time;
+	uint64_t access_timestamp;
+	uint64_t modification_timestamp;
+	uint64_t status_change_timestamp;
 } ATTRIBUTE_PACKED LookupFileInfoResponse;
 
 typedef struct {
@@ -660,7 +660,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint8_t start_condition;
-	uint64_t start_time;
+	uint64_t start_timestamp;
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
@@ -686,7 +686,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t start_condition;
-	uint64_t start_time;
+	uint64_t start_timestamp;
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;

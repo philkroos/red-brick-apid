@@ -261,9 +261,9 @@ FORWARD_FUNCTION(GetFileInfo, get_file_info, {
 	                                    &response.name_string_id, &response.flags,
 	                                    &response.permissions, &response.user_id,
 	                                    &response.group_id, &response.length,
-	                                    &response.access_time,
-	                                    &response.modification_time,
-	                                    &response.status_change_time);
+	                                    &response.access_timestamp,
+	                                    &response.modification_timestamp,
+	                                    &response.status_change_timestamp);
 })
 
 FORWARD_FUNCTION(ReadFile, read_file, {
@@ -315,9 +315,9 @@ FORWARD_FUNCTION(LookupFileInfo, lookup_file_info, {
 	                                       request->follow_symlink,
 	                                       &response.type, &response.permissions,
 	                                       &response.user_id, &response.group_id,
-	                                       &response.length, &response.access_time,
-	                                       &response.modification_time,
-	                                       &response.status_change_time);
+	                                       &response.length, &response.access_timestamp,
+	                                       &response.modification_timestamp,
+	                                       &response.status_change_timestamp);
 })
 
 FORWARD_FUNCTION(LookupSymlinkTarget, lookup_symlink_target, {
@@ -464,7 +464,7 @@ FORWARD_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
 FORWARD_FUNCTION(SetProgramSchedule, set_program_schedule, {
 	response.error_code = program_set_schedule(request->program_id,
 	                                                    request->start_condition,
-	                                                    request->start_time,
+	                                                    request->start_timestamp,
 	                                                    request->start_delay,
 	                                                    request->repeat_mode,
 	                                                    request->repeat_interval,
@@ -479,7 +479,7 @@ FORWARD_FUNCTION(SetProgramSchedule, set_program_schedule, {
 FORWARD_FUNCTION(GetProgramSchedule, get_program_schedule, {
 	response.error_code = program_get_schedule(request->program_id,
 	                                           &response.start_condition,
-	                                           &response.start_time,
+	                                           &response.start_timestamp,
 	                                           &response.start_delay,
 	                                           &response.repeat_mode,
 	                                           &response.repeat_interval,

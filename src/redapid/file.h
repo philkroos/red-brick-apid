@@ -143,8 +143,8 @@ APIE pipe_create_(ObjectID *id, uint16_t flags);
 
 APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *user_id, uint32_t *group_id,
-                   uint64_t *length, uint64_t *access_time,
-                   uint64_t *modification_time, uint64_t *status_change_time);
+                   uint64_t *length, uint64_t *access_timestamp,
+                   uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
 APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read);
@@ -169,8 +169,8 @@ void file_vacate(File *file);
 
 APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
                       uint8_t *type, uint16_t *permissions, uint32_t *user_id,
-                      uint32_t *group_id, uint64_t *length, uint64_t *access_time,
-                      uint64_t *modification_time, uint64_t *status_change_time);
+                      uint32_t *group_id, uint64_t *length, uint64_t *access_timestamp,
+                      uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
 APIE symlink_lookup_target(ObjectID name_id, bool canonicalize, ObjectID *target_id);
 

@@ -39,8 +39,8 @@ typedef enum {
 typedef enum {
 	PROGRAM_START_CONDITION_NEVER = 0,
 	PROGRAM_START_CONDITION_NOW,
-	PROGRAM_START_CONDITION_BOOT,
-	PROGRAM_START_CONDITION_TIME
+	PROGRAM_START_CONDITION_REBOOT,
+	PROGRAM_START_CONDITION_TIMESTAMP
 } ProgramStartCondition;
 
 typedef enum {
@@ -63,7 +63,7 @@ typedef struct {
 	ProgramStdioRedirection stderr_redirection;
 	String *stderr_file_name; // only != NULL if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
 	ProgramStartCondition start_condition;
-	uint64_t start_time; // UNIX timestamp
+	uint64_t start_timestamp;
 	uint32_t start_delay; // seconds
 	ProgramRepeatMode repeat_mode;
 	uint32_t repeat_interval; // seconds

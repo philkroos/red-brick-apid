@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-24.      *
+ * This file was automatically generated on 2014-09-25.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -251,9 +251,9 @@ typedef struct {
 	uint32_t user_id;
 	uint32_t group_id;
 	uint64_t length;
-	uint64_t access_time;
-	uint64_t modification_time;
-	uint64_t status_change_time;
+	uint64_t access_timestamp;
+	uint64_t modification_timestamp;
+	uint64_t status_change_timestamp;
 } ATTRIBUTE_PACKED GetFileInfoResponse_;
 
 typedef struct {
@@ -370,9 +370,9 @@ typedef struct {
 	uint32_t user_id;
 	uint32_t group_id;
 	uint64_t length;
-	uint64_t access_time;
-	uint64_t modification_time;
-	uint64_t status_change_time;
+	uint64_t access_timestamp;
+	uint64_t modification_timestamp;
+	uint64_t status_change_timestamp;
 } ATTRIBUTE_PACKED LookupFileInfoResponse_;
 
 typedef struct {
@@ -638,7 +638,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint8_t start_condition;
-	uint64_t start_time;
+	uint64_t start_timestamp;
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
@@ -664,7 +664,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t start_condition;
-	uint64_t start_time;
+	uint64_t start_timestamp;
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
@@ -1297,7 +1297,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
 	return ret;
 }
 
-int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time) {
+int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp) {
 	DevicePrivate *device_p = red->p;
 	GetFileInfo_ request;
 	GetFileInfoResponse_ response;
@@ -1324,9 +1324,9 @@ int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
 	*ret_user_id = leconvert_uint32_from(response.user_id);
 	*ret_group_id = leconvert_uint32_from(response.group_id);
 	*ret_length = leconvert_uint64_from(response.length);
-	*ret_access_time = leconvert_uint64_from(response.access_time);
-	*ret_modification_time = leconvert_uint64_from(response.modification_time);
-	*ret_status_change_time = leconvert_uint64_from(response.status_change_time);
+	*ret_access_timestamp = leconvert_uint64_from(response.access_timestamp);
+	*ret_modification_timestamp = leconvert_uint64_from(response.modification_timestamp);
+	*ret_status_change_timestamp = leconvert_uint64_from(response.status_change_timestamp);
 
 
 
@@ -1542,7 +1542,7 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
 	return ret;
 }
 
-int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_time, uint64_t *ret_modification_time, uint64_t *ret_status_change_time) {
+int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp) {
 	DevicePrivate *device_p = red->p;
 	LookupFileInfo_ request;
 	LookupFileInfoResponse_ response;
@@ -1568,9 +1568,9 @@ int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink,
 	*ret_user_id = leconvert_uint32_from(response.user_id);
 	*ret_group_id = leconvert_uint32_from(response.group_id);
 	*ret_length = leconvert_uint64_from(response.length);
-	*ret_access_time = leconvert_uint64_from(response.access_time);
-	*ret_modification_time = leconvert_uint64_from(response.modification_time);
-	*ret_status_change_time = leconvert_uint64_from(response.status_change_time);
+	*ret_access_timestamp = leconvert_uint64_from(response.access_timestamp);
+	*ret_modification_timestamp = leconvert_uint64_from(response.modification_timestamp);
+	*ret_status_change_timestamp = leconvert_uint64_from(response.status_change_timestamp);
 
 
 
@@ -2149,7 +2149,7 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t *re
 	return ret;
 }
 
-int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_time, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint64_t repeat_second_mask, uint64_t repeat_minute_mask, uint32_t repeat_hour_mask, uint32_t repeat_day_mask, uint16_t repeat_month_mask, uint8_t repeat_weekday_mask, uint8_t *ret_error_code) {
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint64_t repeat_second_mask, uint64_t repeat_minute_mask, uint32_t repeat_hour_mask, uint32_t repeat_day_mask, uint16_t repeat_month_mask, uint8_t repeat_weekday_mask, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	SetProgramSchedule_ request;
 	SetProgramScheduleResponse_ response;
@@ -2163,7 +2163,7 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
 
 	request.program_id = leconvert_uint16_to(program_id);
 	request.start_condition = start_condition;
-	request.start_time = leconvert_uint64_to(start_time);
+	request.start_timestamp = leconvert_uint64_to(start_timestamp);
 	request.start_delay = leconvert_uint32_to(start_delay);
 	request.repeat_mode = repeat_mode;
 	request.repeat_interval = leconvert_uint32_to(repeat_interval);
@@ -2186,7 +2186,7 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
 	return ret;
 }
 
-int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_time, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask) {
+int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask) {
 	DevicePrivate *device_p = red->p;
 	GetProgramSchedule_ request;
 	GetProgramScheduleResponse_ response;
@@ -2207,7 +2207,7 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_c
 	}
 	*ret_error_code = response.error_code;
 	*ret_start_condition = response.start_condition;
-	*ret_start_time = leconvert_uint64_from(response.start_time);
+	*ret_start_timestamp = leconvert_uint64_from(response.start_timestamp);
 	*ret_start_delay = leconvert_uint32_from(response.start_delay);
 	*ret_repeat_mode = response.repeat_mode;
 	*ret_repeat_interval = leconvert_uint32_from(response.repeat_interval);

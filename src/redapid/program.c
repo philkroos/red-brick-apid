@@ -72,8 +72,8 @@ static bool program_is_valid_start_condition(ProgramStartCondition condition) {
 	switch (condition) {
 	case PROGRAM_START_CONDITION_NEVER:
 	case PROGRAM_START_CONDITION_NOW:
-	case PROGRAM_START_CONDITION_BOOT:
-	case PROGRAM_START_CONDITION_TIME:
+	case PROGRAM_START_CONDITION_REBOOT:
+	case PROGRAM_START_CONDITION_TIMESTAMP:
 		return true;
 
 	default:
@@ -738,7 +738,7 @@ APIE program_get_stdio_redirection(ObjectID id,
 // public API
 APIE program_set_schedule(ObjectID id,
                           ProgramStartCondition start_condition,
-                          uint64_t start_time,
+                          uint64_t start_timestamp,
                           uint32_t start_delay,
                           ProgramRepeatMode repeat_mode,
                           uint32_t repeat_interval,
@@ -773,7 +773,7 @@ APIE program_set_schedule(ObjectID id,
 
 	// set new values
 	program->config.start_condition     = start_condition;
-	program->config.start_time          = start_time;
+	program->config.start_timestamp     = start_timestamp;
 	program->config.start_delay         = start_delay;
 	program->config.repeat_mode         = repeat_mode;
 	program->config.repeat_interval     = repeat_interval;
@@ -799,7 +799,7 @@ APIE program_set_schedule(ObjectID id,
 // public API
 APIE program_get_schedule(ObjectID id,
                           uint8_t *start_condition,
-                          uint64_t *start_time,
+                          uint64_t *start_timestamp,
                           uint32_t *start_delay,
                           uint8_t *repeat_mode,
                           uint32_t *repeat_interval,
@@ -817,7 +817,7 @@ APIE program_get_schedule(ObjectID id,
 	}
 
 	*start_condition     = program->config.start_condition;
-	*start_time          = program->config.start_time;
+	*start_timestamp     = program->config.start_timestamp;
 	*start_delay         = program->config.start_delay;
 	*repeat_mode         = program->config.repeat_mode;
 	*repeat_interval     = program->config.repeat_interval;
