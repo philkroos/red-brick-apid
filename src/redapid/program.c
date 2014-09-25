@@ -777,12 +777,12 @@ APIE program_set_schedule(ObjectID id,
 	program->config.start_delay         = start_delay;
 	program->config.repeat_mode         = repeat_mode;
 	program->config.repeat_interval     = repeat_interval;
-	program->config.repeat_second_mask  = repeat_second_mask;
-	program->config.repeat_minute_mask  = repeat_minute_mask;
-	program->config.repeat_hour_mask    = repeat_hour_mask;
-	program->config.repeat_day_mask     = repeat_day_mask;
-	program->config.repeat_month_mask   = repeat_month_mask;
-	program->config.repeat_weekday_mask = repeat_weekday_mask;
+	program->config.repeat_second_mask  = repeat_second_mask  & ((1ULL << 60) - 1);
+	program->config.repeat_minute_mask  = repeat_minute_mask  & ((1ULL << 60) - 1);
+	program->config.repeat_hour_mask    = repeat_hour_mask    & ((1ULL << 24) - 1);
+	program->config.repeat_day_mask     = repeat_day_mask     & ((1ULL << 31) - 1);
+	program->config.repeat_month_mask   = repeat_month_mask   & ((1ULL << 12) - 1);
+	program->config.repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
 
 	// save modified config
 	error_code = program_config_save(&program->config);

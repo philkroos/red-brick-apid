@@ -935,12 +935,12 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->start_delay         = start_delay;
 	program_config->repeat_mode         = repeat_mode;
 	program_config->repeat_interval     = repeat_interval;
-	program_config->repeat_second_mask  = repeat_second_mask;
-	program_config->repeat_minute_mask  = repeat_minute_mask;
-	program_config->repeat_hour_mask    = repeat_hour_mask;
-	program_config->repeat_day_mask     = repeat_day_mask;
-	program_config->repeat_month_mask   = repeat_month_mask;
-	program_config->repeat_weekday_mask = repeat_weekday_mask;
+	program_config->repeat_second_mask  = repeat_second_mask  & ((1ULL << 60) - 1);
+	program_config->repeat_minute_mask  = repeat_minute_mask  & ((1ULL << 60) - 1);
+	program_config->repeat_hour_mask    = repeat_hour_mask    & ((1ULL << 24) - 1);
+	program_config->repeat_day_mask     = repeat_day_mask     & ((1ULL << 31) - 1);
+	program_config->repeat_month_mask   = repeat_month_mask   & ((1ULL << 12) - 1);
+	program_config->repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
 
 	phase = 8;
 
