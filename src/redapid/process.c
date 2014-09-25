@@ -41,10 +41,6 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-#define EXIT_CANCELED      125 // error before exec
-#define EXIT_CANNOT_INVOKE 126 // command exists but could not exec
-#define EXIT_ENOENT        127 // could not find command to exec
-
 typedef struct {
 	ProcessState state;
 	uint8_t exit_code;
@@ -121,6 +117,21 @@ static void process_wait(void *opaque) {
 			change.state = PROCESS_STATE_EXITED;
 			change.exit_code = WEXITSTATUS(status);
 			change.fatal = true;
+
+			// the child process has limited capabilities to report errors. the
+			// coreutils env executable that executes other programs reserves
+			// three exit codes to report errors (125, 126, 127). the child
+			// process uses the same mechanism. check for these three exit codes
+			// and change state to error if found. the downside of this approach
+			// is that these three exit codes can be used by the program to be
+			// executed as normal exit codes with a different meaning, leading
+			// to a misinterpretation here. but the coreutils env executable has
+			// the same problem, so we will live with this
+			if (change.exit_code == PROCESS_ERROR_CODE_INTERNAL_ERROR ||
+			    change.exit_code == PROCESS_ERROR_CODE_CANNOT_EXECUTE ||
+			    change.exit_code == PROCESS_ERROR_CODE_DOES_NOT_EXIST) {
+				change.state = PROCESS_STATE_ERROR;
+			}
 		} else if (WIFSIGNALED(status)) {
 			change.state = PROCESS_STATE_KILLED;
 			change.exit_code = WTERMSIG(status);
@@ -238,7 +249,7 @@ APIE process_fork(pid_t *pid) {
 			log_error("Could not unblock signals: %s (%d)",
 			          get_errno_name(errno), errno);
 
-			_exit(EXIT_CANCELED);
+			_exit(PROCESS_ERROR_CODE_INTERNAL_ERROR);
 		}
 
 		return API_E_SUCCESS;
@@ -560,9 +571,9 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 		execvpe(executable->buffer, (char **)arguments_array.bytes, (char **)environment_array.bytes);
 
 		if (errno == ENOENT) {
-			_exit(EXIT_ENOENT);
+			_exit(PROCESS_ERROR_CODE_DOES_NOT_EXIST);
 		} else {
-			_exit(EXIT_CANNOT_INVOKE);
+			_exit(PROCESS_ERROR_CODE_CANNOT_EXECUTE);
 		}
 
 	child_error:
@@ -576,7 +587,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 		close(status_pipe[1]);
 
-		_exit(EXIT_CANCELED);
+		_exit(PROCESS_ERROR_CODE_INTERNAL_ERROR);
 	}
 
 	phase = 11;

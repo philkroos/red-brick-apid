@@ -574,17 +574,22 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROCESS_STATE_EXITED 2
+#define RED_PROCESS_STATE_ERROR 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROCESS_STATE_KILLED 3
+#define RED_PROCESS_STATE_EXITED 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROCESS_STATE_STOPPED 4
+#define RED_PROCESS_STATE_KILLED 4
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROCESS_STATE_STOPPED 5
 
 /**
  * \ingroup BrickRED
@@ -1226,16 +1231,24 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * 
  * * Unknown = 0
  * * Running = 1
- * * Exited = 2
- * * Killed = 3
- * * Stopped = 4
+ * * Error = 2
+ * * Exited = 3
+ * * Killed = 4
+ * * Stopped = 5
  * 
- * The exit code is only valid if the state is *Exited*, *Killed* or *Stopped* and
- * has different meanings depending on the state:
+ * The exit code is only valid if the state is *Error*, *Exited*, *Killed* or
+ * *Stopped* and has different meanings depending on the state:
  * 
+ * * Error: error code for error occurred while spawning the process (see below)
  * * Exited: exit status of the process
  * * Killed: UNIX signal number used to kill the process
  * * Stopped: UNIX signal number used to stop the process
+ * 
+ * Possible exit/error codes in *Error* state are:
+ * 
+ * * InternalError = 125
+ * * CannotExecute = 126
+ * * DoesNotExist = 127
  */
 int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
 

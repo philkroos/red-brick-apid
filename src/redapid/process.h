@@ -46,10 +46,17 @@ typedef enum {
 typedef enum {
 	PROCESS_STATE_UNKNOWN = 0,
 	PROCESS_STATE_RUNNING,
+	PROCESS_STATE_ERROR,
 	PROCESS_STATE_EXITED, // terminated normally
 	PROCESS_STATE_KILLED, // terminated by signal
 	PROCESS_STATE_STOPPED // stopped by signal
 } ProcessState;
+
+typedef enum {
+	PROCESS_ERROR_CODE_INTERNAL_ERROR = 125, // EXIT_CANCELED: internal error prior to exec attempt
+	PROCESS_ERROR_CODE_CANNOT_EXECUTE = 126, // EXIT_CANNOT_INVOKE: executable located, but not usable
+	PROCESS_ERROR_CODE_DOES_NOT_EXIST = 127  // EXIT_ENOENT: could not find executable to exec
+} ProcessErrorCode;
 
 typedef struct {
 	Object base;
