@@ -248,8 +248,8 @@ FORWARD_FUNCTION(RemoveFromList, remove_from_list, {
 
 FORWARD_FUNCTION(OpenFile, open_file, {
 	response.error_code = file_open(request->name_string_id, request->flags,
-	                                request->permissions, request->user_id,
-	                                request->group_id, &response.file_id);
+	                                request->permissions, request->uid,
+	                                request->gid, &response.file_id);
 })
 
 FORWARD_FUNCTION(CreatePipe, create_pipe, {
@@ -259,8 +259,8 @@ FORWARD_FUNCTION(CreatePipe, create_pipe, {
 FORWARD_FUNCTION(GetFileInfo, get_file_info, {
 	response.error_code = file_get_info(request->file_id, &response.type,
 	                                    &response.name_string_id, &response.flags,
-	                                    &response.permissions, &response.user_id,
-	                                    &response.group_id, &response.length,
+	                                    &response.permissions, &response.uid,
+	                                    &response.gid, &response.length,
 	                                    &response.access_timestamp,
 	                                    &response.modification_timestamp,
 	                                    &response.status_change_timestamp);
@@ -314,7 +314,7 @@ FORWARD_FUNCTION(LookupFileInfo, lookup_file_info, {
 	response.error_code = file_lookup_info(request->name_string_id,
 	                                       request->follow_symlink,
 	                                       &response.type, &response.permissions,
-	                                       &response.user_id, &response.group_id,
+	                                       &response.uid, &response.gid,
 	                                       &response.length, &response.access_timestamp,
 	                                       &response.modification_timestamp,
 	                                       &response.status_change_timestamp);
@@ -353,7 +353,7 @@ FORWARD_FUNCTION(RewindDirectory, rewind_directory, {
 FORWARD_FUNCTION(CreateDirectory, create_directory, {
 	response.error_code = directory_create(request->name_string_id,
 	                                       request->recursive, request->permissions,
-	                                       request->user_id, request->group_id);
+	                                       request->uid, request->gid);
 })
 
 //
@@ -365,8 +365,7 @@ FORWARD_FUNCTION(SpawnProcess, spawn_process, {
 	                                    request->arguments_list_id,
 	                                    request->environment_list_id,
 	                                    request->working_directory_string_id,
-	                                    request->user_id,
-	                                    request->group_id,
+	                                    request->uid, request->gid,
 	                                    request->stdin_file_id,
 	                                    request->stdout_file_id,
 	                                    request->stderr_file_id,
@@ -387,8 +386,7 @@ FORWARD_FUNCTION(GetProcessCommand, get_process_command, {
 
 FORWARD_FUNCTION(GetProcessIdentity, get_process_identity, {
 	response.error_code = process_get_identity(request->process_id,
-	                                           &response.user_id,
-	                                           &response.group_id);
+	                                           &response.uid, &response.gid);
 })
 
 FORWARD_FUNCTION(GetProcessStdio, get_process_stdio, {
@@ -401,6 +399,7 @@ FORWARD_FUNCTION(GetProcessStdio, get_process_stdio, {
 FORWARD_FUNCTION(GetProcessState, get_process_state, {
 	response.error_code = process_get_state(request->process_id,
 	                                        &response.state,
+	                                        &response.pid,
 	                                        &response.exit_code);
 })
 
@@ -775,8 +774,9 @@ void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
 }
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
-                                             uint8_t exit_code) {
+                                             uint32_t pid, uint8_t exit_code) {
 	_process_state_changed_callback.process_id = process_id;
+	_process_state_changed_callback.pid = pid;
 	_process_state_changed_callback.state = state;
 	_process_state_changed_callback.exit_code = exit_code;
 

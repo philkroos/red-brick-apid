@@ -137,12 +137,12 @@ struct _File {
 mode_t file_get_mode_from_permissions(uint16_t permissions);
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
-               uint32_t user_id, uint32_t group_id, ObjectID *id);
+               uint32_t uid, uint32_t gid, ObjectID *id);
 
 APIE pipe_create_(ObjectID *id, uint16_t flags);
 
 APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
-                   uint16_t *permissions, uint32_t *user_id, uint32_t *group_id,
+                   uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
                    uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
@@ -168,8 +168,8 @@ APIE file_occupy(ObjectID id, File **file);
 void file_vacate(File *file);
 
 APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
-                      uint8_t *type, uint16_t *permissions, uint32_t *user_id,
-                      uint32_t *group_id, uint64_t *length, uint64_t *access_timestamp,
+                      uint8_t *type, uint16_t *permissions, uint32_t *uid,
+                      uint32_t *gid, uint64_t *length, uint64_t *access_timestamp,
                       uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
 APIE symlink_lookup_target(ObjectID name_id, bool canonicalize, ObjectID *target_id);

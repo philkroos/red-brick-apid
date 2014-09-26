@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-25.      *
+ * This file was automatically generated on 2014-09-26.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -301,7 +301,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  *
- * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
+ * Signature: \code void callback(uint16_t process_id, uint8_t state, uint32_t pid, uint8_t exit_code, void *user_data) \endcode
  */
 #define RED_CALLBACK_PROCESS_STATE_CHANGED 42
 
@@ -932,7 +932,7 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * 
  * Returns the object ID of the new file object and the resulting error code.
  */
-int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
+int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -976,7 +976,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
  * 
  * FIXME: everything except flags is invalid if file type is *Pipe*
  */
-int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
+int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
 
 /**
  * \ingroup BrickRED
@@ -1102,7 +1102,7 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
  * See {@link red_get_file_info} for a list of possible file types and see
  * {@link red_open_file} for a list of possible file permissions.
  */
-int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_user_id, uint32_t *ret_group_id, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
+int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
 
 /**
  * \ingroup BrickRED
@@ -1168,14 +1168,14 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
  *
  * FIXME: name has to be absolute
  */
-int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t user_id, uint32_t group_id, uint8_t *ret_error_code);
+int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t user_id, uint32_t group_id, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
+int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t uid, uint32_t gid, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
 
 /**
  * \ingroup BrickRED
@@ -1211,7 +1211,7 @@ int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_co
  * Returns the user and group ID used to spawn a process object, as passed to
  * {@link red_spawn_process}, and the resulting error code.
  */
-int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_user_id, uint32_t *ret_group_id);
+int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_uid, uint32_t *ret_gid);
 
 /**
  * \ingroup BrickRED
@@ -1224,8 +1224,8 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
 /**
  * \ingroup BrickRED
  *
- * Returns the current state and exit code of a process object, and the resulting
- * error code.
+ * Returns the current state, process ID and exit code of a process object, and
+ * the resulting error code.
  * 
  * Possible process states are:
  * 
@@ -1235,6 +1235,8 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * Exited = 3
  * * Killed = 4
  * * Stopped = 5
+ * 
+ * The process ID is only valid if the state is *Running* or *Stopped*.
  * 
  * The exit code is only valid if the state is *Error*, *Exited*, *Killed* or
  * *Stopped* and has different meanings depending on the state:
@@ -1250,7 +1252,7 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * CannotExecute = 126
  * * DoesNotExist = 127
  */
-int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint32_t *ret_pid, uint8_t *ret_exit_code);
 
 /**
  * \ingroup BrickRED

@@ -133,7 +133,7 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 }
 
 APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
-                               uint32_t user_id, uint32_t group_id) {
+                               uint32_t uid, uint32_t gid) {
 	mode_t mode;
 	char *tmp;
 	APIE error_code;
@@ -165,7 +165,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 		return API_E_NO_FREE_MEMORY;
 	}
 
-	if (geteuid() == user_id && getegid() == group_id) {
+	if (geteuid() == uid && getegid() == gid) {
 		error_code = directory_create_helper(tmp, recursive, mode);
 	} else {
 		error_code = process_fork(&pid);
@@ -176,21 +176,21 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 
 		if (pid == 0) { // child
 			// change group
-			if (setregid(group_id, group_id) < 0) {
+			if (setregid(gid, gid) < 0) {
 				error_code = api_get_error_code_from_errno();
 
 				log_error("Could not change to group %u for creating directory '%s': %s (%d)",
-				          group_id, name, get_errno_name(errno), errno);
+				          gid, name, get_errno_name(errno), errno);
 
 				goto child_cleanup;
 			}
 
 			// change user
-			if (setreuid(user_id, user_id) < 0) {
+			if (setreuid(uid, uid) < 0) {
 				error_code = api_get_error_code_from_errno();
 
 				log_error("Could not change to user %u for creating directory '%s': %s (%d)",
-				          user_id, name, get_errno_name(errno), errno);
+				          uid, name, get_errno_name(errno), errno);
 
 				goto child_cleanup;
 			}
@@ -212,7 +212,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not wait for child process creating directory '%s' as %u:%u: %s (%d)",
-			          name, user_id, group_id, get_errno_name(errno), errno);
+			          name, uid, gid, get_errno_name(errno), errno);
 
 			goto cleanup;
 		}
@@ -222,7 +222,7 @@ APIE directory_create_internal(const char *name, bool recursive, uint16_t permis
 			error_code = API_E_INTERNAL_ERROR;
 
 			log_error("Child process creating directory '%s' as %u:%u did not exit normally",
-			          name, user_id, group_id);
+			          name, uid, gid);
 
 			goto cleanup;
 		}
@@ -434,7 +434,7 @@ APIE directory_rewind(ObjectID id) {
 
 // public API
 APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
-                      uint32_t user_id, uint32_t group_id) {
+                      uint32_t uid, uint32_t gid) {
 	String *name;
 	APIE error_code = string_get(name_id, &name);
 
@@ -442,6 +442,5 @@ APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
 		return error_code;
 	}
 
-	return directory_create_internal(name->buffer, recursive, permissions,
-	                                 user_id, group_id);
+	return directory_create_internal(name->buffer, recursive, permissions, uid, gid);
 }

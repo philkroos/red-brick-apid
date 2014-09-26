@@ -43,6 +43,7 @@
 
 typedef struct {
 	ProcessState state;
+	uint32_t pid;
 	uint8_t exit_code;
 	bool fatal;
 } ProcessStateChange;
@@ -150,12 +151,15 @@ static void process_wait(void *opaque) {
 			change.fatal = false;
 		}
 
-		log_debug("State of child process (executable: %s, pid: %u) changed (state: %u, exit_code: %u)",
-		          process->executable->buffer, process->pid, change.state, change.exit_code);
-
 		if (change.fatal) {
 			process->alive = false;
+			process->pid = 0;
 		}
+
+		change.pid = process->pid;
+
+		log_debug("State of child process (executable: %s, pid: %u) changed (state: %u, exit_code: %u)",
+		          process->executable->buffer, process->pid, change.state, change.exit_code);
 
 		if (pipe_write(&process->state_change_pipe, &change, sizeof(change)) < 0) {
 			log_error("Could not write to state change pipe for child process (executable: %s, pid: %u): %s (%d)",
@@ -186,7 +190,7 @@ static void process_handle_state_change(void *opaque) {
 	// sending process-state-changed callbacks for scheduled program executions
 	if (process->base.external_reference_count > 0) {
 		api_send_process_state_changed_callback(process->base.id, change.state,
-		                                        change.exit_code);
+		                                        change.pid, change.exit_code);
 	}
 
 	if (change.fatal) {
@@ -259,7 +263,7 @@ APIE process_fork(pid_t *pid) {
 // public API
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
-                   uint32_t user_id, uint32_t group_id, ObjectID stdin_id,
+                   uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
@@ -463,21 +467,21 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 		close(status_pipe[0]);
 
 		// change group
-		if (setregid(group_id, group_id) < 0) {
+		if (setregid(gid, gid) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not change to group %u for child process (executable: %s, pid: %u): %s (%d)",
-			          group_id, executable->buffer, getpid(), get_errno_name(errno), errno);
+			          gid, executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
 
 		// change user
-		if (setreuid(user_id, user_id) < 0) {
+		if (setreuid(uid, uid) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not change to user %u for child process (executable: %s, pid: %u): %s (%d)",
-			          user_id, executable->buffer, getpid(), get_errno_name(errno), errno);
+			          uid, executable->buffer, getpid(), get_errno_name(errno), errno);
 
 			goto child_error;
 		}
@@ -625,8 +629,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->arguments = arguments;
 	process->environment = environment;
 	process->working_directory = working_directory;
-	process->user_id = user_id;
-	process->group_id = group_id;
+	process->uid = uid;
+	process->gid = gid;
 	process->stdin = stdin;
 	process->stdout = stdout;
 	process->stderr = stderr;
@@ -787,7 +791,7 @@ APIE process_get_command(ObjectID id, ObjectID *executable_id,
 }
 
 // public API
-APIE process_get_identity(ObjectID id, uint32_t *user_id, uint32_t *group_id) {
+APIE process_get_identity(ObjectID id, uint32_t *uid, uint32_t *gid) {
 	Process *process;
 	APIE error_code = process_get(id, &process);
 
@@ -795,8 +799,8 @@ APIE process_get_identity(ObjectID id, uint32_t *user_id, uint32_t *group_id) {
 		return error_code;
 	}
 
-	*user_id = process->user_id;
-	*group_id = process->group_id;
+	*uid = process->uid;
+	*gid = process->gid;
 
 	return API_E_SUCCESS;
 }
@@ -823,7 +827,8 @@ APIE process_get_stdio(ObjectID id, ObjectID *stdin_id, ObjectID *stdout_id,
 }
 
 // public API
-APIE process_get_state(ObjectID id, uint8_t *state, uint8_t *exit_code) {
+APIE process_get_state(ObjectID id, uint8_t *state, uint32_t *pid,
+                       uint8_t *exit_code) {
 	Process *process;
 	APIE error_code = process_get(id, &process);
 
@@ -832,6 +837,7 @@ APIE process_get_state(ObjectID id, uint8_t *state, uint8_t *exit_code) {
 	}
 
 	*state = process->state;
+	*pid = process->pid;
 	*exit_code = process->exit_code;
 
 	return API_E_SUCCESS;

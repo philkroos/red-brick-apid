@@ -357,7 +357,7 @@ static void file_handle_async_read(void *opaque) {
 }
 
 static APIE file_open_as(const char *name, int oflags, mode_t mode,
-                         uint32_t user_id, uint32_t group_id, int *fd_) {
+                         uint32_t uid, uint32_t gid, int *fd_) {
 	APIE error_code;
 	int pair[2];
 	pid_t pid;
@@ -386,21 +386,21 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		close(pair[0]);
 
 		// change group
-		if (setregid(group_id, group_id) < 0) {
+		if (setregid(gid, gid) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not change to group %u for opening file '%s': %s (%d)",
-			          group_id, name, get_errno_name(errno), errno);
+			          gid, name, get_errno_name(errno), errno);
 
 			goto child_cleanup;
 		}
 
 		// change user
-		if (setreuid(user_id, user_id) < 0) {
+		if (setreuid(uid, uid) < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_error("Could not change to user %u for opening file '%s': %s (%d)",
-			          user_id, name, get_errno_name(errno), errno);
+			          uid, name, get_errno_name(errno), errno);
 
 			goto child_cleanup;
 		}
@@ -412,7 +412,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 			error_code = api_get_error_code_from_errno();
 
 			log_warn("Could not open file '%s' as %u:%u: %s (%d)",
-			         name, user_id, group_id, get_errno_name(errno), errno);
+			         name, uid, gid, get_errno_name(errno), errno);
 
 			goto child_cleanup;
 		}
@@ -453,7 +453,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not receive file descriptor from child process opening file '%s' as %u:%u: %s (%d)",
-		          name, user_id, group_id, get_errno_name(errno), errno);
+		          name, uid, gid, get_errno_name(errno), errno);
 
 		// close socket pair read end in parent
 		close(pair[0]);
@@ -476,7 +476,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not wait for child process opening file '%s' as %u:%u: %s (%d)",
-		          name, user_id, group_id, get_errno_name(errno), errno);
+		          name, uid, gid, get_errno_name(errno), errno);
 
 		if (fd >= 0) {
 			close(fd);
@@ -488,7 +488,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 	// check if child exited normally
 	if (!WIFEXITED(status)) {
 		log_error("Child process opening file '%s' as %u:%u did not exit normally",
-		          name, user_id, group_id);
+		          name, uid, gid);
 
 		if (fd >= 0) {
 			close(fd);
@@ -512,7 +512,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 	// should not be possible. the check is here just to be on the safe side
 	if (fd < 0) {
 		log_error("Child process opening file '%s' as %u:%u succeeded, but returned an invalid file descriptor",
-		          name, user_id, group_id);
+		          name, uid, gid);
 
 		return API_E_INTERNAL_ERROR;
 	}
@@ -604,7 +604,7 @@ mode_t file_get_mode_from_permissions(uint16_t permissions) {
 
 // public API
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
-               uint32_t user_id, uint32_t group_id, ObjectID *id) {
+               uint32_t uid, uint32_t gid, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -683,19 +683,19 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	}
 
 	// open file
-	if (geteuid() == user_id && getegid() == group_id) {
+	if (geteuid() == uid && getegid() == gid) {
 		fd = open(name->buffer, oflags, mode);
 
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_warn("Could not open file '%s' as %u:%u: %s (%d)",
-			         name->buffer, user_id, group_id, get_errno_name(errno), errno);
+			         name->buffer, uid, gid, get_errno_name(errno), errno);
 
 			goto cleanup;
 		}
 	} else {
-		error_code = file_open_as(name->buffer, oflags, mode, user_id, group_id, &fd);
+		error_code = file_open_as(name->buffer, oflags, mode, uid, gid, &fd);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -777,14 +777,14 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	*id = file->base.id;
 
 	if ((flags & FILE_FLAG_TEMPORARY) != 0) {
-		log_debug("Created temporary file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, user-id: %u, group-id: %u, handle: %d)",
-		          file_expand_signature(file), permissions, user_id, group_id, fd);
+		log_debug("Created temporary file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, uid: %u, gid: %u, handle: %d)",
+		          file_expand_signature(file), permissions, uid, gid, fd);
 	} else if ((flags & FILE_FLAG_CREATE) != 0) {
-		log_debug("Opened/Created file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, user-id: %u, group-id: %u, handle: %d)",
-		          file_expand_signature(file), permissions, user_id, group_id, fd);
+		log_debug("Opened/Created file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, uid: %u, gid: %u, handle: %d)",
+		          file_expand_signature(file), permissions, uid, gid, fd);
 	} else {
-		log_debug("Opened file object ("FILE_SIGNATURE_FORMAT", user-id: %u, group-id: %u, handle: %d)",
-		          file_expand_signature(file), user_id, group_id, fd);
+		log_debug("Opened file object ("FILE_SIGNATURE_FORMAT", uid: %u, gid: %u, handle: %d)",
+		          file_expand_signature(file), uid, gid, fd);
 	}
 
 	phase = 5;
@@ -910,7 +910,7 @@ cleanup:
 
 // public API
 APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
-                   uint16_t *permissions, uint32_t *user_id, uint32_t *group_id,
+                   uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
                    uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
 	File *file;
@@ -937,8 +937,8 @@ APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flag
 
 	if (file->type == FILE_TYPE_PIPE) {
 		*permissions = 0;
-		*user_id = 0;
-		*group_id = 0;
+		*uid = 0;
+		*gid = 0;
 		*length = 0;
 		*access_timestamp = 0;
 		*modification_timestamp = 0;
@@ -965,8 +965,8 @@ APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flag
 		}
 
 		*permissions = file_get_permissions_from_stat_mode(st.st_mode);
-		*user_id = st.st_uid;
-		*group_id = st.st_gid;
+		*uid = st.st_uid;
+		*gid = st.st_gid;
 		*length = st.st_size;
 		*access_timestamp = st.st_atime;
 		*modification_timestamp = st.st_mtime;
@@ -1330,8 +1330,8 @@ void file_vacate(File *file) {
 
 // public API
 APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
-                      uint8_t *type, uint16_t *permissions, uint32_t *user_id,
-                      uint32_t *group_id, uint64_t *length, uint64_t *access_timestamp,
+                      uint8_t *type, uint16_t *permissions, uint32_t *uid,
+                      uint32_t *gid, uint64_t *length, uint64_t *access_timestamp,
                       uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
 	String *name;
 	APIE error_code = string_get(name_id, &name);
@@ -1366,8 +1366,8 @@ APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
 
 	*type = file_get_type_from_stat_mode(st.st_mode);
 	*permissions = file_get_permissions_from_stat_mode(st.st_mode);
-	*user_id = st.st_uid;
-	*group_id = st.st_gid;
+	*uid = st.st_uid;
+	*gid = st.st_gid;
 	*length = st.st_size;
 	*access_timestamp = st.st_atime;
 	*modification_timestamp = st.st_mtime;

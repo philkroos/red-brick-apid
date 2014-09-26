@@ -225,8 +225,8 @@ typedef struct {
 	uint16_t name_string_id;
 	uint16_t flags;
 	uint16_t permissions;
-	uint32_t user_id;
-	uint32_t group_id;
+	uint32_t uid;
+	uint32_t gid;
 } ATTRIBUTE_PACKED OpenFileRequest;
 
 typedef struct {
@@ -258,8 +258,8 @@ typedef struct {
 	uint16_t name_string_id;
 	uint16_t flags;
 	uint16_t permissions;
-	uint32_t user_id;
-	uint32_t group_id;
+	uint32_t uid;
+	uint32_t gid;
 	uint64_t length;
 	uint64_t access_timestamp;
 	uint64_t modification_timestamp;
@@ -362,8 +362,8 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t type;
 	uint16_t permissions;
-	uint32_t user_id;
-	uint32_t group_id;
+	uint32_t uid;
+	uint32_t gid;
 	uint64_t length;
 	uint64_t access_timestamp;
 	uint64_t modification_timestamp;
@@ -450,8 +450,8 @@ typedef struct {
 	uint16_t name_string_id;
 	tfpbool recursive;
 	uint16_t permissions;
-	uint32_t user_id;
-	uint32_t group_id;
+	uint32_t uid;
+	uint32_t gid;
 } ATTRIBUTE_PACKED CreateDirectoryRequest;
 
 typedef struct {
@@ -469,8 +469,8 @@ typedef struct {
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
 	uint16_t working_directory_string_id;
-	uint32_t user_id;
-	uint32_t group_id;
+	uint32_t uid;
+	uint32_t gid;
 	uint16_t stdin_file_id;
 	uint16_t stdout_file_id;
 	uint16_t stderr_file_id;
@@ -515,8 +515,8 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint32_t user_id;
-	uint32_t group_id;
+	uint32_t uid;
+	uint32_t gid;
 } ATTRIBUTE_PACKED GetProcessIdentityResponse;
 
 typedef struct {
@@ -541,6 +541,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t state;
+	uint32_t pid;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED GetProcessStateResponse;
 
@@ -548,6 +549,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
 	uint8_t state;
+	uint32_t pid;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED ProcessStateChangedCallback;
 
