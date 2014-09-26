@@ -230,7 +230,7 @@ FORWARD_FUNCTION(GetListLength, get_list_length, {
 
 FORWARD_FUNCTION(GetListItem, get_list_item, {
 	response.error_code = list_get_item(request->list_id, request->index,
-	                                    &response.item_object_id);
+	                                    &response.item_object_id, &response.type);
 })
 
 FORWARD_FUNCTION(AppendToList, append_to_list, {

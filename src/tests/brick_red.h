@@ -863,10 +863,10 @@ int red_get_list_length(RED *red, uint16_t list_id, uint8_t *ret_error_code, uin
 /**
  * \ingroup BrickRED
  *
- * Returns the object ID of the object stored at ``index`` in a list object and
- * returns the resulting error code.
+ * Returns the object ID and type of the object stored at ``index`` in a list
+ * object and returns the resulting error code.
  */
-int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id);
+int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id, uint8_t *ret_type);
 
 /**
  * \ingroup BrickRED

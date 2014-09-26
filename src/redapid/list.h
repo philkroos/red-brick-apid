@@ -36,7 +36,7 @@ APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **o
 APIE list_allocate(uint16_t reserve, ObjectID *id);
 
 APIE list_get_length(ObjectID id, uint16_t *length);
-APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id);
+APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id, uint8_t *type);
 
 APIE list_append_to(ObjectID id, ObjectID item_id);
 APIE list_remove_from(ObjectID id, uint16_t index);

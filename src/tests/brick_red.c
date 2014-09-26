@@ -186,6 +186,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t item_object_id;
+	uint8_t type;
 } ATTRIBUTE_PACKED GetListItemResponse_;
 
 typedef struct {
@@ -1160,7 +1161,7 @@ int red_get_list_length(RED *red, uint16_t list_id, uint8_t *ret_error_code, uin
 	return ret;
 }
 
-int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id) {
+int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id, uint8_t *ret_type) {
 	DevicePrivate *device_p = red->p;
 	GetListItem_ request;
 	GetListItemResponse_ response;
@@ -1182,6 +1183,7 @@ int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_e
 	}
 	*ret_error_code = response.error_code;
 	*ret_item_object_id = leconvert_uint16_from(response.item_object_id);
+	*ret_type = response.type;
 
 
 

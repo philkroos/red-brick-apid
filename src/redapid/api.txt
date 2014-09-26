@@ -42,7 +42,7 @@ enum object_type {
 
 + allocate_list    (uint16_t length_to_reserve)                -> uint8_t error_code, uint16_t list_id
 + get_list_length  (uint16_t list_id)                          -> uint8_t error_code, uint16_t length
-+ get_list_item    (uint16_t list_id, uint16_t index)          -> uint8_t error_code, uint16_t item_object_id
++ get_list_item    (uint16_t list_id, uint16_t index)          -> uint8_t error_code, uint16_t item_object_id, uint8_t type
 + append_to_list   (uint16_t list_id, uint16_t item_object_id) -> uint8_t error_code
 + remove_from_list (uint16_t list_id, uint16_t index)          -> uint8_t error_code
 

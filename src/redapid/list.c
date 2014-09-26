@@ -132,7 +132,7 @@ APIE list_get_length(ObjectID id, uint16_t *length) {
 }
 
 // public API
-APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
+APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id, uint8_t *type) {
 	List *list;
 	APIE error_code = list_get(id, &list);
 	Object *item;
@@ -153,6 +153,7 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id) {
 	object_add_external_reference(item);
 
 	*item_id = item->id;
+	*type = item->type;
 
 	return API_E_SUCCESS;
 }

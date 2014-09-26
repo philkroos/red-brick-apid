@@ -214,6 +214,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t item_object_id;
+	uint8_t type;
 } ATTRIBUTE_PACKED GetListItemResponse;
 
 //
