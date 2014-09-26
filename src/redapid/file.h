@@ -166,11 +166,11 @@ IOHandle file_get_write_handle(File *file);
 APIE file_occupy(ObjectID id, File **file);
 void file_vacate(File *file);
 
-APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
+APIE file_lookup_info(const char *name, bool follow_symlink,
                       uint8_t *type, uint16_t *permissions, uint32_t *uid,
                       uint32_t *gid, uint64_t *length, uint64_t *access_timestamp,
                       uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
-APIE symlink_lookup_target(ObjectID name_id, bool canonicalize, ObjectID *target_id);
+APIE symlink_lookup_target(const char *name, bool canonicalize, ObjectID *target_id);
 
 #endif // REDAPID_FILE_H

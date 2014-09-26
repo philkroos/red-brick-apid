@@ -182,6 +182,20 @@ static ErrorCode api_get_tfp_error_code(APIE error_code) {
 		network_dispatch_response((Packet *)&response); \
 	}
 
+#define CALL_FUNCTION_WITH_STRING(packet_prefix, function_suffix, variable, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		String *variable; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, \
+		                                                 request->variable##_string_id, \
+		                                                 (Object **)&variable); \
+		if (response.error_code == API_E_SUCCESS) { \
+			body \
+		} \
+		network_dispatch_response((Packet *)&response); \
+	}
+
 //
 // object
 //
@@ -381,9 +395,8 @@ CALL_FILE_FUNCTION(GetFilePosition, get_file_position, {
 	response.error_code = file_get_position(file, &response.position);
 })
 
-CALL_FUNCTION(LookupFileInfo, lookup_file_info, {
-	response.error_code = file_lookup_info(request->name_string_id,
-	                                       request->follow_symlink,
+CALL_FUNCTION_WITH_STRING(LookupFileInfo, lookup_file_info, name, {
+	response.error_code = file_lookup_info(name->buffer, request->follow_symlink,
 	                                       &response.type, &response.permissions,
 	                                       &response.uid, &response.gid,
 	                                       &response.length, &response.access_timestamp,
@@ -391,8 +404,8 @@ CALL_FUNCTION(LookupFileInfo, lookup_file_info, {
 	                                       &response.status_change_timestamp);
 })
 
-CALL_FUNCTION(LookupSymlinkTarget, lookup_symlink_target, {
-	response.error_code = symlink_lookup_target(request->name_string_id,
+CALL_FUNCTION_WITH_STRING(LookupSymlinkTarget, lookup_symlink_target, name, {
+	response.error_code = symlink_lookup_target(name->buffer,
 	                                            request->canonicalize,
 	                                            &response.target_string_id);
 })
@@ -427,9 +440,9 @@ CALL_DIRECTORY_FUNCTION(RewindDirectory, rewind_directory, {
 	response.error_code = directory_rewind(directory);
 })
 
-CALL_FUNCTION(CreateDirectory, create_directory, {
-	response.error_code = directory_create(request->name_string_id,
-	                                       request->recursive, request->permissions,
+CALL_FUNCTION_WITH_STRING(CreateDirectory, create_directory, name, {
+	response.error_code = directory_create(name->buffer, request->recursive,
+	                                       request->permissions,
 	                                       request->uid, request->gid);
 })
 
@@ -581,6 +594,7 @@ CALL_PROGRAM_FUNCTION(GetProgramSchedule, get_program_schedule, {
 
 #undef CALL_PROGRAM_FUNCTION
 
+#undef CALL_FUNCTION_WITH_STRING
 #undef CALL_TYPE_FUNCTION
 #undef CALL_FUNCTION
 

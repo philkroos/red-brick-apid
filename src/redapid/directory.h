@@ -38,9 +38,6 @@ typedef struct {
 	char buffer[DIRECTORY_MAX_NAME_LENGTH + 1 /* for / */ + DIRECTORY_MAX_ENTRY_LENGTH + 1 /* for \0 */];
 } Directory;
 
-APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
-                               uint32_t uid, uint32_t gid);
-
 APIE directory_open(ObjectID name_id, ObjectID *id);
 
 APIE directory_get_name(Directory *directory, ObjectID *name_id);
@@ -48,7 +45,7 @@ APIE directory_get_name(Directory *directory, ObjectID *name_id);
 APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *type);
 APIE directory_rewind(Directory *directory);
 
-APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
+APIE directory_create(const char *name, bool recursive, uint16_t permissions,
                       uint32_t uid, uint32_t gid);
 
 #endif // REDAPID_DIRECTORY_H

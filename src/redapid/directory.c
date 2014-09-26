@@ -116,111 +116,6 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 	return API_E_SUCCESS;
 }
 
-APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
-                               uint32_t uid, uint32_t gid) {
-	mode_t mode;
-	char *tmp;
-	APIE error_code;
-	pid_t pid;
-	int rc;
-	int status;
-
-	if (*name != '/') {
-		log_warn("Cannot create relative directory '%s'", name);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	if ((permissions & ~FILE_PERMISSION_ALL) != 0) {
-		log_warn("Invalid file permissions %04o", permissions);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	mode = file_get_mode_from_permissions(permissions);
-
-	// duplicate name, because directory_create_helper might modify it
-	tmp = strdup(name);
-
-	if (tmp == NULL) {
-		log_error("Could not duplicate directory name: %s (%d)",
-		          get_errno_name(ENOMEM), ENOMEM);
-
-		return API_E_NO_FREE_MEMORY;
-	}
-
-	if (geteuid() == uid && getegid() == gid) {
-		error_code = directory_create_helper(tmp, recursive, mode);
-	} else {
-		error_code = process_fork(&pid);
-
-		if (error_code != API_E_SUCCESS) {
-			goto cleanup;
-		}
-
-		if (pid == 0) { // child
-			// change group
-			if (setregid(gid, gid) < 0) {
-				error_code = api_get_error_code_from_errno();
-
-				log_error("Could not change to group %u for creating directory '%s': %s (%d)",
-				          gid, name, get_errno_name(errno), errno);
-
-				goto child_cleanup;
-			}
-
-			// change user
-			if (setreuid(uid, uid) < 0) {
-				error_code = api_get_error_code_from_errno();
-
-				log_error("Could not change to user %u for creating directory '%s': %s (%d)",
-				          uid, name, get_errno_name(errno), errno);
-
-				goto child_cleanup;
-			}
-
-			// create directory
-			error_code = directory_create_helper(tmp, recursive, mode);
-
-		child_cleanup:
-			// report error code as exit status
-			_exit(error_code);
-		}
-
-		// wait for child to exit
-		do {
-			rc = waitpid(pid, &status, 0);
-		} while (rc < 0 && errno_interrupted());
-
-		if (rc < 0) {
-			error_code = api_get_error_code_from_errno();
-
-			log_error("Could not wait for child process creating directory '%s' as %u:%u: %s (%d)",
-			          name, uid, gid, get_errno_name(errno), errno);
-
-			goto cleanup;
-		}
-
-		// check if child exited normally
-		if (!WIFEXITED(status)) {
-			error_code = API_E_INTERNAL_ERROR;
-
-			log_error("Child process creating directory '%s' as %u:%u did not exit normally",
-			          name, uid, gid);
-
-			goto cleanup;
-		}
-
-		// get child error code from child exit status
-		error_code = WEXITSTATUS(status);
-	}
-
-cleanup:
-	free(tmp);
-
-	return error_code;
-}
-
 // public API
 APIE directory_open(ObjectID name_id, ObjectID *id) {
 	int phase = 0;
@@ -399,14 +294,107 @@ APIE directory_rewind(Directory *directory) {
 }
 
 // public API
-APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
+APIE directory_create(const char *name, bool recursive, uint16_t permissions,
                       uint32_t uid, uint32_t gid) {
-	String *name;
-	APIE error_code = string_get(name_id, &name);
+	mode_t mode;
+	char *tmp;
+	APIE error_code;
+	pid_t pid;
+	int rc;
+	int status;
 
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
+	if (*name != '/') {
+		log_warn("Cannot create relative directory '%s'", name);
+
+		return API_E_INVALID_PARAMETER;
 	}
 
-	return directory_create_internal(name->buffer, recursive, permissions, uid, gid);
+	if ((permissions & ~FILE_PERMISSION_ALL) != 0) {
+		log_warn("Invalid file permissions %04o", permissions);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	mode = file_get_mode_from_permissions(permissions);
+
+	// duplicate name, because directory_create_helper might modify it
+	tmp = strdup(name);
+
+	if (tmp == NULL) {
+		log_error("Could not duplicate directory name: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		return API_E_NO_FREE_MEMORY;
+	}
+
+	if (geteuid() == uid && getegid() == gid) {
+		error_code = directory_create_helper(tmp, recursive, mode);
+	} else {
+		error_code = process_fork(&pid);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+
+		if (pid == 0) { // child
+			// change group
+			if (setregid(gid, gid) < 0) {
+				error_code = api_get_error_code_from_errno();
+
+				log_error("Could not change to group %u for creating directory '%s': %s (%d)",
+				          gid, name, get_errno_name(errno), errno);
+
+				goto child_cleanup;
+			}
+
+			// change user
+			if (setreuid(uid, uid) < 0) {
+				error_code = api_get_error_code_from_errno();
+
+				log_error("Could not change to user %u for creating directory '%s': %s (%d)",
+				          uid, name, get_errno_name(errno), errno);
+
+				goto child_cleanup;
+			}
+
+			// create directory
+			error_code = directory_create_helper(tmp, recursive, mode);
+
+		child_cleanup:
+			// report error code as exit status
+			_exit(error_code);
+		}
+
+		// wait for child to exit
+		do {
+			rc = waitpid(pid, &status, 0);
+		} while (rc < 0 && errno_interrupted());
+
+		if (rc < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not wait for child process creating directory '%s' as %u:%u: %s (%d)",
+			          name, uid, gid, get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		// check if child exited normally
+		if (!WIFEXITED(status)) {
+			error_code = API_E_INTERNAL_ERROR;
+
+			log_error("Child process creating directory '%s' as %u:%u did not exit normally",
+			          name, uid, gid);
+
+			goto cleanup;
+		}
+
+		// get child error code from child exit status
+		error_code = WEXITSTATUS(status);
+	}
+
+cleanup:
+	free(tmp);
+
+	return error_code;
 }

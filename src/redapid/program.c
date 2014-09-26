@@ -280,7 +280,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	}
 
 	// create program directory as default user (UID 1000, GID 1000)
-	error_code = directory_create_internal(directory->buffer, true, 0755, 1000, 1000);
+	error_code = directory_create(directory->buffer, true, 0755, 1000, 1000);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

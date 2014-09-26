@@ -1267,37 +1267,31 @@ void file_vacate(File *file) {
 }
 
 // public API
-APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
+APIE file_lookup_info(const char *name, bool follow_symlink,
                       uint8_t *type, uint16_t *permissions, uint32_t *uid,
                       uint32_t *gid, uint64_t *length, uint64_t *access_timestamp,
                       uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
-	String *name;
-	APIE error_code = string_get(name_id, &name);
 	struct stat st;
 	int rc;
+	APIE error_code;
 
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	if (*name->buffer != '/') {
-		log_warn("Cannot get information for relative file '%s'",
-		         name->buffer);
+	if (*name != '/') {
+		log_warn("Cannot get information for relative file '%s'", name);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
 	if (follow_symlink) {
-		rc = stat(name->buffer, &st);
+		rc = stat(name, &st);
 	} else {
-		rc = lstat(name->buffer, &st);
+		rc = lstat(name, &st);
 	}
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_warn("Could not get information for file '%s': %s (%d)",
-		         name->buffer, get_errno_name(errno), errno);
+		         name, get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -1315,42 +1309,37 @@ APIE file_lookup_info(ObjectID name_id, bool follow_symlink,
 }
 
 // public API
-APIE symlink_lookup_target(ObjectID name_id, bool canonicalize, ObjectID *target_id) {
-	String *name;
-	APIE error_code = string_get(name_id, &name);
+APIE symlink_lookup_target(const char *name, bool canonicalize, ObjectID *target_id) {
 	char *target;
 	char buffer[1024 + 1];
 	ssize_t rc;
+	APIE error_code;
 
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	if (*name->buffer != '/') {
-		log_warn("Cannot get target of relative symlink '%s'", name->buffer);
+	if (*name != '/') {
+		log_warn("Cannot get target of relative symlink '%s'", name);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
 	if (canonicalize) {
-		target = realpath(name->buffer, NULL);
+		target = realpath(name, NULL);
 
 		if (target == NULL) {
 			error_code = api_get_error_code_from_errno();
 
 			log_warn("Could not get target of symlink '%s': %s (%d)",
-			         name->buffer, get_errno_name(errno), errno);
+			         name, get_errno_name(errno), errno);
 
 			return error_code;
 		}
 	} else {
-		rc = readlink(name->buffer, buffer, sizeof(buffer) - 1);
+		rc = readlink(name, buffer, sizeof(buffer) - 1);
 
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
 			log_warn("Could not get target of symlink '%s': %s (%d)",
-			         name->buffer, get_errno_name(errno), errno);
+			         name, get_errno_name(errno), errno);
 
 			return error_code;
 		}
