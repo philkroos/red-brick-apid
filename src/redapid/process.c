@@ -57,6 +57,7 @@ static void process_destroy(Object *object) {
 	// callbacks in case the child process is still alive and has to be killed
 	event_remove_source(process->state_change_pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
 
+	// FIXME: this code here has the same race condition as process_kill
 	if (process->alive) {
 		log_warn("Destroying process object (id: %u, executable: %s) while child process (pid: %u) is still alive",
 		         process->base.id, process->executable->buffer, process->pid);
@@ -736,6 +737,10 @@ APIE process_kill(Process *process, ProcessSignal signal) {
 	int rc;
 	APIE error_code;
 
+	// FIXME: here is a race condition, because the wait thread directly
+	//        changes the alive and pid variable. there is a related race
+	//        condition between the child process exiting, the wait thread
+	//        waiting for it and this function trying to kill it
 	if (!process->alive) {
 		log_warn("Cannot send signal (number: %d) to an already dead child process (executable: %s)",
 		         signal, process->executable->buffer);
