@@ -47,10 +47,6 @@ static void list_destroy(Object *object) {
 	free(list);
 }
 
-static APIE list_get(ObjectID id, List **list) {
-	return inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
-}
-
 APIE list_create(uint16_t reserve, uint16_t create_flags, ObjectID *id, List **object) {
 	int phase = 0;
 	APIE error_code;
@@ -118,32 +114,19 @@ APIE list_allocate(uint16_t reserve, ObjectID *id) {
 }
 
 // public API
-APIE list_get_length(ObjectID id, uint16_t *length) {
-	List *list;
-	APIE error_code = list_get(id, &list);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE list_get_length(List *list, uint16_t *length) {
 	*length = list->items.count;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id, uint8_t *type) {
-	List *list;
-	APIE error_code = list_get(id, &list);
+APIE list_get_item(List *list, uint16_t index, ObjectID *item_id, uint8_t *type) {
 	Object *item;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
 
 	if (index >= list->items.count) {
 		log_warn("Index of %u exceeds list object (id: %u) length of %u",
-		         index, id, list->items.count);
+		         index, list->base.id, list->items.count);
 
 		return API_E_OUT_OF_RANGE;
 	}
@@ -159,32 +142,28 @@ APIE list_get_item(ObjectID id, uint16_t index, ObjectID *item_id, uint8_t *type
 }
 
 // public API
-APIE list_append_to(ObjectID id, ObjectID item_id) {
-	List *list;
-	APIE error_code = list_get(id, &list);
+APIE list_append_to(List *list, ObjectID item_id) {
+	APIE error_code;
 	Object *item;
 	Object **appended_item;
 
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	if (item_id == id) {
-		log_warn("Cannot append list object (id: %u) as item to itself", id);
+	if (item_id == list->base.id) {
+		log_warn("Cannot append list object (id: %u) as item to itself",
+		         list->base.id);
 
 		return API_E_NOT_SUPPORTED;
 	}
 
 	if (list->base.usage_count > 0) {
 		log_warn("Cannot append item (id: %u) to list object (id: %u) while it is used",
-		         item_id, id);
+		         item_id, list->base.id);
 
 		return API_E_OBJECT_IN_USE;
 	}
 
 	if (list->items.count == UINT16_MAX) {
 		log_warn("Cannot append item (id: %u) to full list object (id: %u)",
-		         item_id, id);
+		         item_id, list->base.id);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -201,7 +180,7 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not append to list object (id: %u) item array: %s (%d)",
-		          id, get_errno_name(errno), errno);
+		          list->base.id, get_errno_name(errno), errno);
 
 		object_vacate(item);
 
@@ -214,24 +193,17 @@ APIE list_append_to(ObjectID id, ObjectID item_id) {
 }
 
 // public API
-APIE list_remove_from(ObjectID id, uint16_t index) {
-	List *list;
-	APIE error_code = list_get(id, &list);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE list_remove_from(List *list, uint16_t index) {
 	if (list->base.usage_count > 0) {
 		log_warn("Cannot remove item (index: %u) from list object (id: %u) while it is used",
-		         index, id);
+		         index, list->base.id);
 
 		return API_E_OBJECT_IN_USE;
 	}
 
 	if (index >= list->items.count) {
 		log_warn("Index of %u exceeds list object (id: %u) length of %u",
-		         index, id, list->items.count);
+		         index, list->base.id, list->items.count);
 
 		return API_E_OUT_OF_RANGE;
 	}

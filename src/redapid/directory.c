@@ -20,7 +20,6 @@
  */
 
 #include <errno.h>
-#include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -40,17 +39,6 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-#define MAX_NAME_LENGTH 1024
-#define MAX_ENTRY_LENGTH 1024
-
-typedef struct {
-	Object base;
-
-	String *name;
-	DIR *dp;
-	char buffer[MAX_NAME_LENGTH + 1 /* for / */ + MAX_ENTRY_LENGTH + 1 /* for \0 */];
-} Directory;
-
 static void directory_destroy(Object *object) {
 	Directory *directory = (Directory *)object;
 
@@ -59,10 +47,6 @@ static void directory_destroy(Object *object) {
 	string_vacate(directory->name);
 
 	free(directory);
-}
-
-static APIE directory_get(ObjectID id, Directory **directory) {
-	return inventory_get_typed_object(OBJECT_TYPE_DIRECTORY, id, (Object **)directory);
 }
 
 // NOTE: assumes that name is absolute (starts with '/')
@@ -263,7 +247,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	}
 
 	// check name string length
-	if (name->length > MAX_NAME_LENGTH) {
+	if (name->length > DIRECTORY_MAX_NAME_LENGTH) {
 		error_code = API_E_OUT_OF_RANGE;
 
 		log_warn("Directory name string object (id: %u) is too long", name_id);
@@ -343,14 +327,7 @@ cleanup:
 }
 
 // public API
-APIE directory_get_name(ObjectID id, ObjectID *name_id) {
-	Directory *directory;
-	APIE error_code = directory_get(id, &directory);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE directory_get_name(Directory *directory, ObjectID *name_id) {
 	object_add_external_reference(&directory->name->base);
 
 	*name_id = directory->name->base.id;
@@ -359,14 +336,9 @@ APIE directory_get_name(ObjectID id, ObjectID *name_id) {
 }
 
 // public API
-APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
-	Directory *directory;
-	APIE error_code = directory_get(id, &directory);
+APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *type) {
 	struct dirent *dirent;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	for (;;) {
 		errno = 0;
@@ -375,14 +347,15 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 		if (dirent == NULL) {
 			if (errno == 0) {
 				log_debug("Reached end of directory object (id: %u, name: %s)",
-				          id, directory->name->buffer);
+				          directory->base.id, directory->name->buffer);
 
 				return API_E_NO_MORE_DATA;
 			} else {
 				error_code = api_get_error_code_from_errno();
 
 				log_warn("Could not get next entry of directory object (id: %u, name: %s): %s (%d)",
-				         id, directory->name->buffer, get_errno_name(errno), errno);
+				         directory->base.id, directory->name->buffer,
+				         get_errno_name(errno), errno);
 
 				return error_code;
 			}
@@ -392,7 +365,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 			continue;
 		}
 
-		if (strlen(dirent->d_name) > MAX_ENTRY_LENGTH) {
+		if (strlen(dirent->d_name) > DIRECTORY_MAX_ENTRY_LENGTH) {
 			log_warn("Directory entry name is too long");
 
 			return API_E_OUT_OF_RANGE;
@@ -419,14 +392,7 @@ APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type) {
 }
 
 // public API
-APIE directory_rewind(ObjectID id) {
-	Directory *directory;
-	APIE error_code = directory_get(id, &directory);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE directory_rewind(Directory *directory) {
 	rewinddir(directory->dp);
 
 	return API_E_SUCCESS;

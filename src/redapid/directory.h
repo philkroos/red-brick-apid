@@ -22,17 +22,31 @@
 #ifndef REDAPID_DIRECTORY_H
 #define REDAPID_DIRECTORY_H
 
+#include <dirent.h>
+
 #include "object.h"
+#include "string.h"
+
+#define DIRECTORY_MAX_NAME_LENGTH 1024
+#define DIRECTORY_MAX_ENTRY_LENGTH 1024
+
+typedef struct {
+	Object base;
+
+	String *name;
+	DIR *dp;
+	char buffer[DIRECTORY_MAX_NAME_LENGTH + 1 /* for / */ + DIRECTORY_MAX_ENTRY_LENGTH + 1 /* for \0 */];
+} Directory;
 
 APIE directory_create_internal(const char *name, bool recursive, uint16_t permissions,
                                uint32_t uid, uint32_t gid);
 
 APIE directory_open(ObjectID name_id, ObjectID *id);
 
-APIE directory_get_name(ObjectID id, ObjectID *name_id);
+APIE directory_get_name(Directory *directory, ObjectID *name_id);
 
-APIE directory_get_next_entry(ObjectID id, ObjectID *name_id, uint8_t *type);
-APIE directory_rewind(ObjectID id);
+APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *type);
+APIE directory_rewind(Directory *directory);
 
 APIE directory_create(ObjectID name_id, bool recursive, uint16_t permissions,
                       uint32_t uid, uint32_t gid);

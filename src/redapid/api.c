@@ -111,9 +111,9 @@ static ProcessStateChangedCallback _process_state_changed_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
 	// memset'ing the whole response to zero first ensures that all members
-	// have a known initial value, that no random heap/stack data can leak
-	// to the client and that all potential object ID members are set to
-	// zero to indicate that there is no object here
+	// have a known initial value, that no random heap/stack data can leak to
+	// the client and that all potential object ID members are set to zero to
+	// indicate that there is no object here
 	memset(response, 0, length);
 
 	response->header.uid = request->header.uid;
@@ -150,11 +150,35 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 	network_dispatch_response((Packet *)&response);
 }
 
-#define FORWARD_FUNCTION(packet_prefix, function_suffix, call) \
+static ErrorCode api_get_tfp_error_code(APIE error_code) {
+	if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
+		return ERROR_CODE_INVALID_PARAMETER;
+	} else if (error_code != API_E_SUCCESS) {
+		return ERROR_CODE_UNKNOWN_ERROR;
+	} else {
+		return ERROR_CODE_OK;
+	}
+}
+
+#define CALL_FUNCTION(packet_prefix, function_suffix, body) \
 	static void api_##function_suffix(packet_prefix##Request *request) { \
 		packet_prefix##Response response; \
 		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
-		call \
+		body \
+		network_dispatch_response((Packet *)&response); \
+	}
+
+#define CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, object_type, type, variable) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		type *variable; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = inventory_get_typed_object(object_type, \
+		                                                 request->variable##_id, \
+		                                                 (Object **)&variable); \
+		if (response.error_code == API_E_SUCCESS) { \
+			body \
+		} \
 		network_dispatch_response((Packet *)&response); \
 	}
 
@@ -162,102 +186,154 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 // object
 //
 
-FORWARD_FUNCTION(ReleaseObject, release_object, {
-	response.error_code = object_release(request->object_id);
+#define CALL_OBJECT_FUNCTION(packet_prefix, function_suffix, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		Object *object; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = inventory_get_object(request->object_id, &object); \
+		if (response.error_code == API_E_SUCCESS) { \
+			body \
+		} \
+		network_dispatch_response((Packet *)&response); \
+	}
+
+CALL_OBJECT_FUNCTION(ReleaseObject, release_object, {
+	response.error_code = object_release(object);
 })
+
+#undef CALL_OBJECT_FUNCTION
 
 //
 // inventory
 //
 
-FORWARD_FUNCTION(OpenInventory, open_inventory, {
+#define CALL_INVENTORY_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_INVENTORY, Inventory, inventory)
+
+CALL_FUNCTION(OpenInventory, open_inventory, {
 	response.error_code = inventory_open(request->type, &response.inventory_id);
 })
 
-FORWARD_FUNCTION(GetInventoryType, get_inventory_type, {
-	response.error_code = inventory_get_type(request->inventory_id,
-	                                         &response.type);
+CALL_INVENTORY_FUNCTION(GetInventoryType, get_inventory_type, {
+	response.error_code = inventory_get_type(inventory, &response.type);
 })
 
-FORWARD_FUNCTION(GetNextInventoryEntry, get_next_inventory_entry, {
-	response.error_code = inventory_get_next_entry(request->inventory_id,
-	                                               &response.object_id);
+CALL_INVENTORY_FUNCTION(GetNextInventoryEntry, get_next_inventory_entry, {
+	response.error_code = inventory_get_next_entry(inventory, &response.object_id);
 })
 
-FORWARD_FUNCTION(RewindInventory, rewind_inventory, {
-	response.error_code = inventory_rewind(request->inventory_id);
+CALL_INVENTORY_FUNCTION(RewindInventory, rewind_inventory, {
+	response.error_code = inventory_rewind(inventory);
 })
+
+#undef CALL_INVENTORY_FUNCTION
 
 //
 // string
 //
 
-FORWARD_FUNCTION(AllocateString, allocate_string, {
+#define CALL_STRING_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_STRING, String, string)
+
+CALL_FUNCTION(AllocateString, allocate_string, {
 	response.error_code = string_allocate(request->length_to_reserve,
 	                                      request->buffer, &response.string_id);
 })
 
-FORWARD_FUNCTION(TruncateString, truncate_string, {
-	response.error_code = string_truncate(request->string_id, request->length);
+CALL_STRING_FUNCTION(TruncateString, truncate_string, {
+	response.error_code = string_truncate(string, request->length);
 })
 
-FORWARD_FUNCTION(GetStringLength, get_string_length, {
-	response.error_code = string_get_length(request->string_id, &response.length);
+CALL_STRING_FUNCTION(GetStringLength, get_string_length, {
+	response.error_code = string_get_length(string, &response.length);
 })
 
-FORWARD_FUNCTION(SetStringChunk, set_string_chunk, {
-	response.error_code = string_set_chunk(request->string_id, request->offset,
-	                                       request->buffer);
+CALL_STRING_FUNCTION(SetStringChunk, set_string_chunk, {
+	response.error_code = string_set_chunk(string, request->offset, request->buffer);
 })
 
-FORWARD_FUNCTION(GetStringChunk, get_string_chunk, {
-	response.error_code = string_get_chunk(request->string_id, request->offset,
-	                                       response.buffer);
+CALL_STRING_FUNCTION(GetStringChunk, get_string_chunk, {
+	response.error_code = string_get_chunk(string, request->offset, response.buffer);
 })
+
+#undef CALL_STRING_FUNCTION
 
 //
 // list
 //
 
-FORWARD_FUNCTION(AllocateList, allocate_list, {
+#define CALL_LIST_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_LIST, List, list)
+
+CALL_FUNCTION(AllocateList, allocate_list, {
 	response.error_code = list_allocate(request->length_to_reserve,
 	                                    &response.list_id);
 })
 
-FORWARD_FUNCTION(GetListLength, get_list_length, {
-	response.error_code = list_get_length(request->list_id, &response.length);
+CALL_LIST_FUNCTION(GetListLength, get_list_length, {
+	response.error_code = list_get_length(list, &response.length);
 })
 
-FORWARD_FUNCTION(GetListItem, get_list_item, {
-	response.error_code = list_get_item(request->list_id, request->index,
-	                                    &response.item_object_id, &response.type);
+CALL_LIST_FUNCTION(GetListItem, get_list_item, {
+	response.error_code = list_get_item(list, request->index,
+	                                    &response.item_object_id,
+	                                    &response.type);
 })
 
-FORWARD_FUNCTION(AppendToList, append_to_list, {
-	response.error_code = list_append_to(request->list_id,
-	                                     request->item_object_id);
+CALL_LIST_FUNCTION(AppendToList, append_to_list, {
+	response.error_code = list_append_to(list, request->item_object_id);
 })
 
-FORWARD_FUNCTION(RemoveFromList, remove_from_list, {
-	response.error_code = list_remove_from(request->list_id, request->index);
+CALL_LIST_FUNCTION(RemoveFromList, remove_from_list, {
+	response.error_code = list_remove_from(list, request->index);
 })
+
+#undef CALL_LIST_FUNCTION
 
 //
 // file
 //
 
-FORWARD_FUNCTION(OpenFile, open_file, {
+#define CALL_FILE_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_FILE, File, file)
+
+#define CALL_FILE_PROCEDURE(packet_prefix, function_suffix, error_handler, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		File *file; \
+		APIE api_error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, \
+		                                                 request->file_id, \
+		                                                 (Object **)&file); \
+		ErrorCode tfp_error_code; \
+		if (api_error_code != API_E_SUCCESS) { \
+			APIE error_code = api_error_code; \
+			(void)error_code; \
+			error_handler \
+			tfp_error_code = api_get_tfp_error_code(api_error_code); \
+		} else { \
+			ErrorCode error_code; \
+			body \
+			tfp_error_code = error_code; \
+		} \
+		api_send_response_if_expected((Packet *)request, tfp_error_code); \
+	}
+
+CALL_FUNCTION(OpenFile, open_file, {
 	response.error_code = file_open(request->name_string_id, request->flags,
 	                                request->permissions, request->uid,
 	                                request->gid, &response.file_id);
 })
 
-FORWARD_FUNCTION(CreatePipe, create_pipe, {
-	response.error_code = pipe_create_(&response.file_id, request->flags);
+CALL_FUNCTION(CreatePipe, create_pipe, {
+	response.error_code = pipe_create_(request->flags, &response.file_id);
 })
 
-FORWARD_FUNCTION(GetFileInfo, get_file_info, {
-	response.error_code = file_get_info(request->file_id, &response.type,
+CALL_FILE_FUNCTION(GetFileInfo, get_file_info, {
+	response.error_code = file_get_info(file, &response.type,
 	                                    &response.name_string_id, &response.flags,
 	                                    &response.permissions, &response.uid,
 	                                    &response.gid, &response.length,
@@ -266,51 +342,46 @@ FORWARD_FUNCTION(GetFileInfo, get_file_info, {
 	                                    &response.status_change_timestamp);
 })
 
-FORWARD_FUNCTION(ReadFile, read_file, {
-	response.error_code = file_read(request->file_id, response.buffer,
-	                                request->length_to_read,
+CALL_FILE_FUNCTION(ReadFile, read_file, {
+	response.error_code = file_read(file, response.buffer, request->length_to_read,
 	                                &response.length_read);
 })
 
-FORWARD_FUNCTION(ReadFileAsync, read_file_async, {
-	response.error_code = file_read_async(request->file_id,
-	                                      request->length_to_read);
+CALL_FILE_FUNCTION(ReadFileAsync, read_file_async, {
+	response.error_code = file_read_async(file, request->length_to_read);
 })
 
-FORWARD_FUNCTION(AbortAsyncFileRead, abort_async_file_read, {
-	response.error_code = file_abort_async_read(request->file_id);
+CALL_FILE_FUNCTION(AbortAsyncFileRead, abort_async_file_read, {
+	response.error_code = file_abort_async_read(file);
 })
 
-FORWARD_FUNCTION(WriteFile, write_file, {
-	response.error_code = file_write(request->file_id, request->buffer,
+CALL_FILE_FUNCTION(WriteFile, write_file, {
+	response.error_code = file_write(file, request->buffer,
 	                                 request->length_to_write,
 	                                 &response.length_written);
 })
 
-static void api_write_file_unchecked(WriteFileUncheckedRequest *request) {
-	ErrorCode error_code = file_write_unchecked(request->file_id, request->buffer,
-	                                            request->length_to_write);
-
-	api_send_response_if_expected((Packet *)request, error_code);
-}
-
-static void api_write_file_async(WriteFileAsyncRequest *request) {
-	ErrorCode error_code = file_write_async(request->file_id, request->buffer,
-	                                        request->length_to_write);
-
-	api_send_response_if_expected((Packet *)request, error_code);
-}
-
-FORWARD_FUNCTION(SetFilePosition, set_file_position, {
-	response.error_code = file_set_position(request->file_id, request->offset,
-	                                        request->origin, &response.position);
+CALL_FILE_PROCEDURE(WriteFileUnchecked, write_file_unchecked, {}, {
+	error_code = file_write_unchecked(file, request->buffer, request->length_to_write);
 })
 
-FORWARD_FUNCTION(GetFilePosition, get_file_position, {
-	response.error_code = file_get_position(request->file_id, &response.position);
+CALL_FILE_PROCEDURE(WriteFileAsync, write_file_async, {
+	// FIXME: this callback should be delivered after the response of this function
+	api_send_async_file_write_callback(request->file_id, error_code, 0);
+}, {
+	error_code = file_write_async(file, request->buffer, request->length_to_write);
 })
 
-FORWARD_FUNCTION(LookupFileInfo, lookup_file_info, {
+CALL_FILE_FUNCTION(SetFilePosition, set_file_position, {
+	response.error_code = file_set_position(file, request->offset, request->origin,
+	                                        &response.position);
+})
+
+CALL_FILE_FUNCTION(GetFilePosition, get_file_position, {
+	response.error_code = file_get_position(file, &response.position);
+})
+
+CALL_FUNCTION(LookupFileInfo, lookup_file_info, {
 	response.error_code = file_lookup_info(request->name_string_id,
 	                                       request->follow_symlink,
 	                                       &response.type, &response.permissions,
@@ -320,47 +391,59 @@ FORWARD_FUNCTION(LookupFileInfo, lookup_file_info, {
 	                                       &response.status_change_timestamp);
 })
 
-FORWARD_FUNCTION(LookupSymlinkTarget, lookup_symlink_target, {
+CALL_FUNCTION(LookupSymlinkTarget, lookup_symlink_target, {
 	response.error_code = symlink_lookup_target(request->name_string_id,
 	                                            request->canonicalize,
 	                                            &response.target_string_id);
 })
 
+#undef CALL_FILE_FUNCTION
+
 //
 // directory
 //
 
-FORWARD_FUNCTION(OpenDirectory, open_directory, {
+#define CALL_DIRECTORY_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_DIRECTORY, Directory, directory)
+
+CALL_FUNCTION(OpenDirectory, open_directory, {
 	response.error_code = directory_open(request->name_string_id,
 	                                     &response.directory_id);
 })
 
-FORWARD_FUNCTION(GetDirectoryName, get_directory_name, {
-	response.error_code = directory_get_name(request->directory_id,
+CALL_DIRECTORY_FUNCTION(GetDirectoryName, get_directory_name, {
+	response.error_code = directory_get_name(directory,
 	                                         &response.name_string_id);
 })
 
-FORWARD_FUNCTION(GetNextDirectoryEntry, get_next_directory_entry, {
-	response.error_code = directory_get_next_entry(request->directory_id,
+CALL_DIRECTORY_FUNCTION(GetNextDirectoryEntry, get_next_directory_entry, {
+	response.error_code = directory_get_next_entry(directory,
 	                                               &response.name_string_id,
 	                                               &response.type);
 })
 
-FORWARD_FUNCTION(RewindDirectory, rewind_directory, {
-	response.error_code = directory_rewind(request->directory_id);
+CALL_DIRECTORY_FUNCTION(RewindDirectory, rewind_directory, {
+	response.error_code = directory_rewind(directory);
 })
 
-FORWARD_FUNCTION(CreateDirectory, create_directory, {
+CALL_FUNCTION(CreateDirectory, create_directory, {
 	response.error_code = directory_create(request->name_string_id,
 	                                       request->recursive, request->permissions,
 	                                       request->uid, request->gid);
 })
 
+#undef CALL_DIRECTORY_FUNCTION
+
 //
 // process
 //
 
-FORWARD_FUNCTION(SpawnProcess, spawn_process, {
+#define CALL_PROCESS_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_PROCESS, Process, process)
+
+CALL_FUNCTION(SpawnProcess, spawn_process, {
 	response.error_code = process_spawn(request->executable_string_id,
 	                                    request->arguments_list_id,
 	                                    request->environment_list_id,
@@ -372,76 +455,82 @@ FORWARD_FUNCTION(SpawnProcess, spawn_process, {
 	                                    &response.process_id);
 })
 
-FORWARD_FUNCTION(KillProcess, kill_process, {
-	response.error_code = process_kill(request->process_id, request->signal);
+CALL_PROCESS_FUNCTION(KillProcess, kill_process, {
+	response.error_code = process_kill(process, request->signal);
 })
 
-FORWARD_FUNCTION(GetProcessCommand, get_process_command, {
-	response.error_code = process_get_command(request->process_id,
+CALL_PROCESS_FUNCTION(GetProcessCommand, get_process_command, {
+	response.error_code = process_get_command(process,
 	                                          &response.executable_string_id,
 	                                          &response.arguments_list_id,
 	                                          &response.environment_list_id,
 	                                          &response.working_directory_string_id);
 })
 
-FORWARD_FUNCTION(GetProcessIdentity, get_process_identity, {
-	response.error_code = process_get_identity(request->process_id,
+CALL_PROCESS_FUNCTION(GetProcessIdentity, get_process_identity, {
+	response.error_code = process_get_identity(process,
 	                                           &response.uid, &response.gid);
 })
 
-FORWARD_FUNCTION(GetProcessStdio, get_process_stdio, {
-	response.error_code = process_get_stdio(request->process_id,
+CALL_PROCESS_FUNCTION(GetProcessStdio, get_process_stdio, {
+	response.error_code = process_get_stdio(process,
 	                                        &response.stdin_file_id,
 	                                        &response.stdout_file_id,
 	                                        &response.stderr_file_id);
 })
 
-FORWARD_FUNCTION(GetProcessState, get_process_state, {
-	response.error_code = process_get_state(request->process_id,
+CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
+	response.error_code = process_get_state(process,
 	                                        &response.state,
 	                                        &response.pid,
 	                                        &response.exit_code);
 })
 
+#undef CALL_PROCESS_FUNCTION
+
 //
 // program
 //
 
-FORWARD_FUNCTION(DefineProgram, define_program, {
+#define CALL_PROGRAM_FUNCTION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
+	                   OBJECT_TYPE_PROGRAM, Program, program)
+
+CALL_FUNCTION(DefineProgram, define_program, {
 	response.error_code = program_define(request->identifier_string_id,
 	                                     &response.program_id);
 })
 
-FORWARD_FUNCTION(UndefineProgram, undefine_program, {
-	response.error_code = program_undefine(request->program_id);
+CALL_PROGRAM_FUNCTION(UndefineProgram, undefine_program, {
+	response.error_code = program_undefine(program);
 })
 
-FORWARD_FUNCTION(GetProgramIdentifier, get_program_identifier, {
-	response.error_code = program_get_identifier(request->program_id,
+CALL_PROGRAM_FUNCTION(GetProgramIdentifier, get_program_identifier, {
+	response.error_code = program_get_identifier(program,
 	                                             &response.identifier_string_id);
 })
 
-FORWARD_FUNCTION(GetProgramDirectory, get_program_directory, {
-	response.error_code = program_get_directory(request->program_id,
+CALL_PROGRAM_FUNCTION(GetProgramDirectory, get_program_directory, {
+	response.error_code = program_get_directory(program,
 	                                            &response.directory_string_id);
 })
 
-FORWARD_FUNCTION(SetProgramCommand, set_program_command, {
-	response.error_code = program_set_command(request->program_id,
+CALL_PROGRAM_FUNCTION(SetProgramCommand, set_program_command, {
+	response.error_code = program_set_command(program,
 	                                          request->executable_string_id,
 	                                          request->arguments_list_id,
 	                                          request->environment_list_id);
 })
 
-FORWARD_FUNCTION(GetProgramCommand, get_program_command, {
-	response.error_code = program_get_command(request->program_id,
+CALL_PROGRAM_FUNCTION(GetProgramCommand, get_program_command, {
+	response.error_code = program_get_command(program,
 	                                          &response.executable_string_id,
 	                                          &response.arguments_list_id,
 	                                          &response.environment_list_id);
 })
 
-FORWARD_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection, {
-	response.error_code = program_set_stdio_redirection(request->program_id,
+CALL_PROGRAM_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection, {
+	response.error_code = program_set_stdio_redirection(program,
 	                                                    request->stdin_redirection,
 	                                                    request->stdin_file_name_string_id,
 	                                                    request->stdout_redirection,
@@ -450,8 +539,8 @@ FORWARD_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection, {
 	                                                    request->stderr_file_name_string_id);
 })
 
-FORWARD_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
-	response.error_code = program_get_stdio_redirection(request->program_id,
+CALL_PROGRAM_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
+	response.error_code = program_get_stdio_redirection(program,
 	                                                    &response.stdin_redirection,
 	                                                    &response.stdin_file_name_string_id,
 	                                                    &response.stdout_redirection,
@@ -460,23 +549,23 @@ FORWARD_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
 	                                                    &response.stderr_file_name_string_id);
 })
 
-FORWARD_FUNCTION(SetProgramSchedule, set_program_schedule, {
-	response.error_code = program_set_schedule(request->program_id,
-	                                                    request->start_condition,
-	                                                    request->start_timestamp,
-	                                                    request->start_delay,
-	                                                    request->repeat_mode,
-	                                                    request->repeat_interval,
-	                                                    request->repeat_second_mask,
-	                                                    request->repeat_minute_mask,
-	                                                    request->repeat_hour_mask,
-	                                                    request->repeat_day_mask,
-	                                                    request->repeat_month_mask,
-	                                                    request->repeat_weekday_mask);
+CALL_PROGRAM_FUNCTION(SetProgramSchedule, set_program_schedule, {
+	response.error_code = program_set_schedule(program,
+	                                           request->start_condition,
+	                                           request->start_timestamp,
+	                                           request->start_delay,
+	                                           request->repeat_mode,
+	                                           request->repeat_interval,
+	                                           request->repeat_second_mask,
+	                                           request->repeat_minute_mask,
+	                                           request->repeat_hour_mask,
+	                                           request->repeat_day_mask,
+	                                           request->repeat_month_mask,
+	                                           request->repeat_weekday_mask);
 })
 
-FORWARD_FUNCTION(GetProgramSchedule, get_program_schedule, {
-	response.error_code = program_get_schedule(request->program_id,
+CALL_PROGRAM_FUNCTION(GetProgramSchedule, get_program_schedule, {
+	response.error_code = program_get_schedule(program,
 	                                           &response.start_condition,
 	                                           &response.start_timestamp,
 	                                           &response.start_delay,
@@ -489,6 +578,11 @@ FORWARD_FUNCTION(GetProgramSchedule, get_program_schedule, {
 	                                           &response.repeat_month_mask,
 	                                           &response.repeat_weekday_mask);
 })
+
+#undef CALL_PROGRAM_FUNCTION
+
+#undef CALL_TYPE_FUNCTION
+#undef CALL_FUNCTION
 
 //
 // misc
@@ -512,8 +606,6 @@ static void api_get_identity(GetIdentityRequest *request) {
 
 	network_dispatch_response((Packet *)&response);
 }
-
-#undef FORWARD_FUNCTION
 
 //
 // api

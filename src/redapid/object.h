@@ -70,7 +70,7 @@ APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
                    ObjectDestroyFunction destroy);
 void object_destroy(Object *object);
 
-APIE object_release(ObjectID id);
+APIE object_release(Object *object);
 
 void object_add_internal_reference(Object *object);
 void object_remove_internal_reference(Object *object);

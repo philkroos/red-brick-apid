@@ -197,16 +197,10 @@ APIE string_wrap(const char *buffer, uint16_t create_flags, ObjectID *id, String
 }
 
 // public API
-APIE string_truncate(ObjectID id, uint32_t length) {
-	String *string;
-	APIE error_code = string_get(id, &string);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE string_truncate(String *string, uint32_t length) {
 	if (string->base.usage_count > 0) {
-		log_warn("Cannot truncate string object (id: %u) while it is used", id);
+		log_warn("Cannot truncate string object (id: %u) while it is used",
+		         string->base.id);
 
 		return API_E_OBJECT_IN_USE;
 	}
@@ -220,32 +214,21 @@ APIE string_truncate(ObjectID id, uint32_t length) {
 }
 
 // public API
-APIE string_get_length(ObjectID id, uint32_t *length) {
-	String *string;
-	APIE error_code = string_get(id, &string);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE string_get_length(String *string, uint32_t *length) {
 	*length = string->length;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
-	String *string;
-	APIE error_code = string_get(id, &string);
+APIE string_set_chunk(String *string, uint32_t offset, char *buffer) {
 	uint32_t length;
+	APIE error_code;
 	uint32_t i;
 
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	if (string->base.usage_count > 0) {
-		log_warn("Cannot change string object (id: %u) while it is used", id);
+		log_warn("Cannot change string object (id: %u) while it is used",
+		         string->base.id);
 
 		return API_E_OBJECT_IN_USE;
 	}
@@ -291,22 +274,14 @@ APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	}
 
 	log_debug("Setting %u byte(s) at offset %u of string object (id: %u)",
-	          length, offset, id);
+	          length, offset, string->base.id);
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
-	String *string;
-	APIE error_code = string_get(id, &string);
+APIE string_get_chunk(String *string, uint32_t offset, char *buffer) {
 	uint32_t length;
-
-	if (error_code != API_E_SUCCESS) {
-		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
-
-		return error_code;
-	}
 
 	if (offset > INT32_MAX) {
 		log_warn("Offset of %u byte(s) exceeds maximum length of string object", offset);
@@ -318,7 +293,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 		memset(buffer, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH);
 
 		log_warn("Offset of %u byte(s) exceeds string object (id: %u) length of %u byte(s)",
-		         offset, id, string->length);
+		         offset, string->base.id, string->length);
 
 		return API_E_OUT_OF_RANGE;
 	}
@@ -339,7 +314,7 @@ APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer) {
 	memset(buffer + length, 0, STRING_MAX_GET_CHUNK_BUFFER_LENGTH - length);
 
 	log_debug("Getting %u byte(s) at offset %u of string object (id: %u)",
-	          length, offset, id);
+	          length, offset, string->base.id);
 
 	return API_E_SUCCESS;
 }

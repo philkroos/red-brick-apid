@@ -40,24 +40,24 @@ typedef struct {
 APIE program_load(const char *identifier, const char *directory, const char *filename);
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
-APIE program_undefine(ObjectID id);
+APIE program_undefine(Program *program);
 
-APIE program_get_identifier(ObjectID id, ObjectID *identifier_id);
-APIE program_get_directory(ObjectID id, ObjectID *directory_id);
+APIE program_get_identifier(Program *program, ObjectID *identifier_id);
+APIE program_get_directory(Program *program, ObjectID *directory_id);
 
-APIE program_set_command(ObjectID id, ObjectID executable_id,
+APIE program_set_command(Program *program, ObjectID executable_id,
                          ObjectID arguments_id, ObjectID environment_id);
-APIE program_get_command(ObjectID id, ObjectID *executable_id,
+APIE program_get_command(Program *program, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id);
 
-APIE program_set_stdio_redirection(ObjectID id,
+APIE program_set_stdio_redirection(Program *program,
                                    ProgramStdioRedirection stdin_redirection,
                                    ObjectID stdin_file_name_id,
                                    ProgramStdioRedirection stdout_redirection,
                                    ObjectID stdout_file_name_id,
                                    ProgramStdioRedirection stderr_redirection,
                                    ObjectID stderr_file_name_id);
-APIE program_get_stdio_redirection(ObjectID id,
+APIE program_get_stdio_redirection(Program *program,
                                    uint8_t *stdin_redirection,
                                    ObjectID *stdin_file_name_id,
                                    uint8_t *stdout_redirection,
@@ -65,7 +65,7 @@ APIE program_get_stdio_redirection(ObjectID id,
                                    uint8_t *stderr_redirection,
                                    ObjectID *stderr_file_name_id);
 
-APIE program_set_schedule(ObjectID id,
+APIE program_set_schedule(Program *program,
                           ProgramStartCondition start_condition,
                           uint64_t start_timestamp,
                           uint32_t start_delay,
@@ -77,7 +77,7 @@ APIE program_set_schedule(ObjectID id,
                           uint32_t repeat_day_mask,
                           uint16_t repeat_month_mask,
                           uint8_t repeat_weekday_mask); // week starts on monday
-APIE program_get_schedule(ObjectID id,
+APIE program_get_schedule(Program *program,
                           uint8_t *start_condition,
                           uint64_t *start_timestamp,
                           uint32_t *start_delay,

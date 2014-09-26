@@ -52,14 +52,6 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
-typedef struct {
-	Object base;
-
-	ObjectType type;
-	int length;
-	int index;
-} Inventory;
-
 static char _programs_directory[1024]; // <home>/programs
 static ObjectID _next_id = 1; // don't use object ID zero
 static Array _objects[MAX_OBJECT_TYPES];
@@ -75,10 +67,6 @@ static void inventory_destroy(Object *object) {
 	}
 
 	free(inventory);
-}
-
-static APIE inventory_get(ObjectID id, Inventory **inventory) {
-	return inventory_get_typed_object(OBJECT_TYPE_INVENTORY, id, (Object **)inventory);
 }
 
 static void inventory_destroy_object(void *item) {
@@ -489,32 +477,19 @@ error:
 }
 
 // public API
-APIE inventory_get_type(ObjectID id, uint8_t *type) {
-	Inventory *inventory;
-	APIE error_code = inventory_get(id, &inventory);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE inventory_get_type(Inventory *inventory, uint8_t *type) {
 	*type = inventory->type;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
-	Inventory *inventory;
-	APIE error_code = inventory_get(id, &inventory);
+APIE inventory_get_next_entry(Inventory *inventory, uint16_t *object_id) {
 	Object *object;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
 
 	if (inventory->index >= inventory->length) {
 		log_debug("Reached end of %s inventory (id: %u)",
-		          object_get_type_name(inventory->type), id);
+		          object_get_type_name(inventory->type), inventory->base.id);
 
 		return API_E_NO_MORE_DATA;
 	}
@@ -529,14 +504,7 @@ APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 }
 
 // public API
-APIE inventory_rewind(ObjectID id) {
-	Inventory *inventory;
-	APIE error_code = inventory_get(id, &inventory);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE inventory_rewind(Inventory *inventory) {
 	inventory->index = 0;
 
 	return API_E_SUCCESS;

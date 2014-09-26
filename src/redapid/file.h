@@ -139,31 +139,30 @@ mode_t file_get_mode_from_permissions(uint16_t permissions);
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t uid, uint32_t gid, ObjectID *id);
 
-APIE pipe_create_(ObjectID *id, uint16_t flags);
+APIE pipe_create_(uint16_t flags, ObjectID *id);
 
-APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
+APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
                    uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
-APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read,
+APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read);
-APIE file_read_async(ObjectID id, uint64_t length_to_read);
-APIE file_abort_async_read(ObjectID id);
+APIE file_read_async(File *file, uint64_t length_to_read);
+APIE file_abort_async_read(File *file);
 
-APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write,
+APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
                 uint8_t *length_written);
-ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
-ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write);
+ErrorCode file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_write);
+ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write);
 
-APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin,
+APIE file_set_position(File *file, int64_t offset, FileOrigin origin,
                        uint64_t *position);
-APIE file_get_position(ObjectID id, uint64_t *position);
+APIE file_get_position(File *file, uint64_t *position);
 
 IOHandle file_get_read_handle(File *file);
 IOHandle file_get_write_handle(File *file);
 
-APIE file_get(ObjectID id, File **file);
 APIE file_occupy(ObjectID id, File **file);
 void file_vacate(File *file);
 

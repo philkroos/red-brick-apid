@@ -84,15 +84,15 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id, ObjectID *id);
-APIE process_kill(ObjectID id, ProcessSignal signal);
+APIE process_kill(Process *process, ProcessSignal signal);
 
-APIE process_get_command(ObjectID id, ObjectID *executable_id,
+APIE process_get_command(Process *process, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id,
                          ObjectID *working_directory_id);
-APIE process_get_identity(ObjectID id, uint32_t *uid, uint32_t *gid);
-APIE process_get_stdio(ObjectID id, ObjectID *stdin_id, ObjectID *stdout_id,
-                       ObjectID *stderr_id);
-APIE process_get_state(ObjectID id, uint8_t *state, uint32_t *pid,
+APIE process_get_identity(Process *process, uint32_t *uid, uint32_t *gid);
+APIE process_get_stdio(Process *process, ObjectID *stdin_id,
+                       ObjectID *stdout_id, ObjectID *stderr_id);
+APIE process_get_state(Process *process, uint8_t *state, uint32_t *pid,
                        uint8_t *exit_code);
 
 #endif // REDAPID_PROCESS_H

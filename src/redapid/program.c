@@ -103,10 +103,6 @@ static void program_destroy(Object *object) {
 	free(program);
 }
 
-static APIE program_get(ObjectID id, Program **program) {
-	return inventory_get_typed_object(OBJECT_TYPE_PROGRAM, id, (Object **)program);
-}
-
 APIE program_load(const char *identifier, const char *directory, const char *filename) {
 	int phase = 0;
 	APIE error_code;
@@ -366,17 +362,12 @@ cleanup:
 }
 
 // public API
-APIE program_undefine(ObjectID id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+APIE program_undefine(Program *program) {
+	APIE error_code;
 
 	if (!program->config.defined) {
 		log_warn("Cannot undefine already undefined program object (id: %u, identifier: %s)",
-		         id, program->identifier->buffer);
+		         program->base.id, program->identifier->buffer);
 
 		return API_E_INVALID_OPERATION;
 	}
@@ -397,14 +388,7 @@ APIE program_undefine(ObjectID id) {
 }
 
 // public API
-APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE program_get_identifier(Program *program, ObjectID *identifier_id) {
 	object_add_external_reference(&program->identifier->base);
 
 	*identifier_id = program->identifier->base.id;
@@ -413,14 +397,7 @@ APIE program_get_identifier(ObjectID id, ObjectID *identifier_id) {
 }
 
 // public API
-APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE program_get_directory(Program *program, ObjectID *directory_id) {
 	object_add_external_reference(&program->directory->base);
 
 	*directory_id = program->directory->base.id;
@@ -429,19 +406,14 @@ APIE program_get_directory(ObjectID id, ObjectID *directory_id) {
 }
 
 // public API
-APIE program_set_command(ObjectID id, ObjectID executable_id,
+APIE program_set_command(Program *program, ObjectID executable_id,
                          ObjectID arguments_id, ObjectID environment_id) {
 	int phase = 0;
-	Program *program;
-	APIE error_code = program_get(id, &program);
+	APIE error_code;
 	String *executable;
 	List *arguments;
 	List *environment;
 	ProgramConfig backup;
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
 
 	// occupy new executable string object
 	error_code = string_occupy(executable_id, &executable);
@@ -513,15 +485,8 @@ cleanup:
 }
 
 // public API
-APIE program_get_command(ObjectID id, ObjectID *executable_id,
+APIE program_get_command(Program *program, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&program->config.executable->base);
 	object_add_external_reference(&program->config.arguments->base);
 	object_add_external_reference(&program->config.environment->base);
@@ -534,7 +499,7 @@ APIE program_get_command(ObjectID id, ObjectID *executable_id,
 }
 
 // public API
-APIE program_set_stdio_redirection(ObjectID id,
+APIE program_set_stdio_redirection(Program *program,
                                    ProgramStdioRedirection stdin_redirection,
                                    ObjectID stdin_file_name_id,
                                    ProgramStdioRedirection stdout_redirection,
@@ -542,16 +507,11 @@ APIE program_set_stdio_redirection(ObjectID id,
                                    ProgramStdioRedirection stderr_redirection,
                                    ObjectID stderr_file_name_id) {
 	int phase = 0;
-	Program *program;
-	APIE error_code = program_get(id, &program);
+	APIE error_code;
 	String *stdin_file_name;
 	String *stdout_file_name;
 	String *stderr_file_name;
 	ProgramConfig backup;
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
 
 	if (!program_is_valid_stdio_redirection(stdin_redirection) ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT ||
@@ -690,20 +650,13 @@ cleanup:
 }
 
 // public API
-APIE program_get_stdio_redirection(ObjectID id,
+APIE program_get_stdio_redirection(Program *program,
                                    uint8_t *stdin_redirection,
                                    ObjectID *stdin_file_name_id,
                                    uint8_t *stdout_redirection,
                                    ObjectID *stdout_file_name_id,
                                    uint8_t *stderr_redirection,
                                    ObjectID *stderr_file_name_id) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		object_add_external_reference(&program->config.stdin_file_name->base);
 
@@ -736,7 +689,7 @@ APIE program_get_stdio_redirection(ObjectID id,
 }
 
 // public API
-APIE program_set_schedule(ObjectID id,
+APIE program_set_schedule(Program *program,
                           ProgramStartCondition start_condition,
                           uint64_t start_timestamp,
                           uint32_t start_delay,
@@ -748,13 +701,8 @@ APIE program_set_schedule(ObjectID id,
                           uint32_t repeat_day_mask,
                           uint16_t repeat_month_mask,
                           uint8_t repeat_weekday_mask) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
 	ProgramConfig backup;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	if (!program_is_valid_start_condition(start_condition)) {
 		log_warn("Invalid program start condition %d", start_condition);
@@ -797,7 +745,7 @@ APIE program_set_schedule(ObjectID id,
 }
 
 // public API
-APIE program_get_schedule(ObjectID id,
+APIE program_get_schedule(Program *program,
                           uint8_t *start_condition,
                           uint64_t *start_timestamp,
                           uint32_t *start_delay,
@@ -809,13 +757,6 @@ APIE program_get_schedule(ObjectID id,
                           uint32_t *repeat_day_mask,
                           uint16_t *repeat_month_mask,
                           uint8_t *repeat_weekday_mask) {
-	Program *program;
-	APIE error_code = program_get(id, &program);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	*start_condition     = program->config.start_condition;
 	*start_timestamp     = program->config.start_timestamp;
 	*start_delay         = program->config.start_delay;

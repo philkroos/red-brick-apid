@@ -39,11 +39,11 @@ typedef struct {
 APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id);
 APIE string_wrap(const char *buffer, uint16_t create_flags, ObjectID *id, String **object);
 
-APIE string_truncate(ObjectID id, uint32_t length);
-APIE string_get_length(ObjectID id, uint32_t *length);
+APIE string_truncate(String *string, uint32_t length);
+APIE string_get_length(String *string, uint32_t *length);
 
-APIE string_set_chunk(ObjectID id, uint32_t offset, char *buffer);
-APIE string_get_chunk(ObjectID id, uint32_t offset, char *buffer);
+APIE string_set_chunk(String *string, uint32_t offset, char *buffer);
+APIE string_get_chunk(String *string, uint32_t offset, char *buffer);
 
 APIE string_get(ObjectID id, String **string);
 APIE string_occupy(ObjectID id, String **string);

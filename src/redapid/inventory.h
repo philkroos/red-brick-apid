@@ -24,6 +24,14 @@
 
 #include "object.h"
 
+typedef struct {
+	Object base;
+
+	ObjectType type;
+	int length;
+	int index;
+} Inventory;
+
 int inventory_init(void);
 void inventory_exit(void);
 
@@ -43,9 +51,9 @@ APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object
 
 APIE inventory_open(ObjectType type, ObjectID *id);
 
-APIE inventory_get_type(ObjectID id, uint8_t *type);
+APIE inventory_get_type(Inventory *inventory, uint8_t *type);
 
-APIE inventory_get_next_entry(ObjectID id, ObjectID *object_id);
-APIE inventory_rewind(ObjectID id);
+APIE inventory_get_next_entry(Inventory *inventory, ObjectID *object_id);
+APIE inventory_rewind(Inventory *inventory);
 
 #endif // REDAPID_INVENTORY_H

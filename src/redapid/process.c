@@ -92,10 +92,6 @@ static void process_destroy(Object *object) {
 	free(process);
 }
 
-static APIE process_get(ObjectID id, Process **process) {
-	return inventory_get_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)process);
-}
-
 static void process_wait(void *opaque) {
 	Process *process = opaque;
 	int status;
@@ -736,14 +732,9 @@ cleanup:
 }
 
 // public API
-APIE process_kill(ObjectID id, ProcessSignal signal) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
+APIE process_kill(Process *process, ProcessSignal signal) {
 	int rc;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	if (!process->alive) {
 		log_warn("Cannot send signal (number: %d) to an already dead child process (executable: %s)",
@@ -767,16 +758,9 @@ APIE process_kill(ObjectID id, ProcessSignal signal) {
 }
 
 // public API
-APIE process_get_command(ObjectID id, ObjectID *executable_id,
+APIE process_get_command(Process *process, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id,
                          ObjectID *working_directory_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&process->executable->base);
 	object_add_external_reference(&process->arguments->base);
 	object_add_external_reference(&process->environment->base);
@@ -791,14 +775,7 @@ APIE process_get_command(ObjectID id, ObjectID *executable_id,
 }
 
 // public API
-APIE process_get_identity(ObjectID id, uint32_t *uid, uint32_t *gid) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE process_get_identity(Process *process, uint32_t *uid, uint32_t *gid) {
 	*uid = process->uid;
 	*gid = process->gid;
 
@@ -806,15 +783,8 @@ APIE process_get_identity(ObjectID id, uint32_t *uid, uint32_t *gid) {
 }
 
 // public API
-APIE process_get_stdio(ObjectID id, ObjectID *stdin_id, ObjectID *stdout_id,
+APIE process_get_stdio(Process *process, ObjectID *stdin_id, ObjectID *stdout_id,
                        ObjectID *stderr_id) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	object_add_external_reference(&process->stdin->base);
 	object_add_external_reference(&process->stdout->base);
 	object_add_external_reference(&process->stderr->base);
@@ -827,15 +797,8 @@ APIE process_get_stdio(ObjectID id, ObjectID *stdin_id, ObjectID *stdout_id,
 }
 
 // public API
-APIE process_get_state(ObjectID id, uint8_t *state, uint32_t *pid,
+APIE process_get_state(Process *process, uint8_t *state, uint32_t *pid,
                        uint8_t *exit_code) {
-	Process *process;
-	APIE error_code = process_get(id, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
 	*state = process->state;
 	*pid = process->pid;
 	*exit_code = process->exit_code;

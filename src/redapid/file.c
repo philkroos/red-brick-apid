@@ -219,7 +219,7 @@ static void file_send_async_read_callback(File *file, APIE error_code,
 }
 
 static void file_send_async_write_callback(File *file, APIE error_code,
-                                          uint8_t length_written) {
+                                           uint8_t length_written) {
 	// only send a async-file-write callback if there is at least one
 	// external reference to the file object. otherwise there is no one that
 	// could be interested in this callback anyway
@@ -813,7 +813,7 @@ cleanup:
 }
 
 // public API
-APIE pipe_create_(ObjectID *id, uint16_t flags) {
+APIE pipe_create_(uint16_t flags, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -909,19 +909,14 @@ cleanup:
 }
 
 // public API
-APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flags,
+APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
                    uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
-	File *file;
-	APIE error_code = file_get(id, &file);
 	struct stat st;
 	int rc;
+	APIE error_code;
 	FileType current_type;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
 
 	*type = file->type;
 
@@ -977,15 +972,10 @@ APIE file_get_info(ObjectID id, uint8_t *type, ObjectID *name_id, uint16_t *flag
 }
 
 // public API
-APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read,
+APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read) {
-	File *file;
-	APIE error_code = file_get(id, &file);
 	ssize_t rc;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	if (length_to_read > FILE_MAX_READ_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file read buffer",
@@ -1019,14 +1009,8 @@ APIE file_read(ObjectID id, uint8_t *buffer, uint8_t length_to_read,
 }
 
 // public API
-APIE file_read_async(ObjectID id, uint64_t length_to_read) {
-	File *file;
-	APIE error_code = file_get(id, &file);
+APIE file_read_async(File *file, uint64_t length_to_read) {
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
 
 	if (length_to_read > INT64_MAX) {
 		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
@@ -1067,14 +1051,8 @@ APIE file_read_async(ObjectID id, uint64_t length_to_read) {
 }
 
 // public API
-APIE file_abort_async_read(ObjectID id) {
-	File *file;
-	APIE error_code = file_get(id, &file);
+APIE file_abort_async_read(File *file) {
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
 
 	if (file->length_to_read_async == 0) {
 		// nothing to abort
@@ -1092,15 +1070,10 @@ APIE file_abort_async_read(ObjectID id) {
 }
 
 // public API
-APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write,
+APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
                 uint8_t *length_written) {
-	File *file;
-	APIE error_code = file_get(id, &file);
 	ssize_t rc;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	if (length_to_write > FILE_MAX_WRITE_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file write buffer",
@@ -1134,16 +1107,7 @@ APIE file_write(ObjectID id, uint8_t *buffer, uint8_t length_to_write,
 }
 
 // public API
-ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
-	File *file;
-	APIE error_code = file_get(id, &file);
-
-	if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
-		return ERROR_CODE_INVALID_PARAMETER;
-	} else if (error_code != API_E_SUCCESS) {
-		return ERROR_CODE_UNKNOWN_ERROR;
-	}
-
+ErrorCode file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_write) {
 	if (length_to_write > FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file unchecked write buffer",
 		         length_to_write);
@@ -1170,21 +1134,9 @@ ErrorCode file_write_unchecked(ObjectID id, uint8_t *buffer, uint8_t length_to_w
 }
 
 // public API
-ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write) {
-	File *file;
-	APIE error_code = file_get(id, &file);
+ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
 	ssize_t length_written;
-
-	if (error_code != API_E_SUCCESS) {
-		// FIXME: this callback should be delivered after the response of this function
-		file_send_async_write_callback(file, error_code, 0);
-
-		if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
-			return ERROR_CODE_INVALID_PARAMETER;
-		} else {
-			return ERROR_CODE_UNKNOWN_ERROR;
-		}
-	}
+	APIE error_code;
 
 	if (length_to_write > FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file async write buffer",
@@ -1228,16 +1180,11 @@ ErrorCode file_write_async(ObjectID id, uint8_t *buffer, uint8_t length_to_write
 }
 
 // public API
-APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin,
+APIE file_set_position(File *file, int64_t offset, FileOrigin origin,
                        uint64_t *position) {
-	File *file;
-	APIE error_code = file_get(id, &file);
 	int whence;
 	off_t rc;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	switch (origin) {
 	case FILE_ORIGIN_BEGINNING: whence = SEEK_SET; break;
@@ -1275,14 +1222,9 @@ APIE file_set_position(ObjectID id, int64_t offset, FileOrigin origin,
 }
 
 // public API
-APIE file_get_position(ObjectID id, uint64_t *position) {
-	File *file;
-	APIE error_code = file_get(id, &file);
+APIE file_get_position(File *file, uint64_t *position) {
 	off_t rc;
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	APIE error_code;
 
 	rc = file->seek(file, 0, SEEK_CUR);
 
@@ -1314,10 +1256,6 @@ IOHandle file_get_write_handle(File *file) {
 	} else {
 		return file->fd;
 	}
-}
-
-APIE file_get(ObjectID id, File **file) {
-	return inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
 }
 
 APIE file_occupy(ObjectID id, File **file) {

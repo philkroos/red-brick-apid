@@ -137,14 +137,7 @@ void object_destroy(Object *object) {
 }
 
 // public API
-APIE object_release(ObjectID id) {
-	Object *object;
-	APIE error_code = inventory_get_object(id, &object);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
+APIE object_release(Object *object) {
 	if (object->external_reference_count == 0) {
 		log_warn("Cannot remove external %s object (id: %u) reference, external reference count is already zero",
 		         object_get_type_name(object->type), object->id);
