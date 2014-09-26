@@ -56,6 +56,7 @@ typedef struct {
 	Object base;
 
 	ObjectType type;
+	int length;
 	int index;
 } Inventory;
 
@@ -64,7 +65,14 @@ static ObjectID _next_id = 1; // don't use object ID zero
 static Array _objects[MAX_OBJECT_TYPES];
 
 static void inventory_destroy(Object *object) {
+	int i;
 	Inventory *inventory = (Inventory *)object;
+
+	for (i = 0; i < inventory->length; ++i) {
+		object = *(Object **)array_get(&_objects[inventory->type], i);
+
+		object_remove_internal_reference(object);
+	}
 
 	free(inventory);
 }
@@ -164,29 +172,45 @@ int inventory_init(void) {
 }
 
 void inventory_exit(void) {
+	int i;
+	Object *inventory;
+
 	log_debug("Shutting down inventory subsystem");
 
 	// object types have to be destroyed in a specific order. if objects of
 	// type A can use (have a reference to) objects of type B then A has to be
 	// destroyed before B. so A has a chance to properly release its references
 	// to type B objects. otherwise type B object could already be destroyed
-	// when type A objects try to release them.
+	// when type A objects try to release them
 	//
 	// there are the following relationships:
+	// - inventory uses all
 	// - program uses process, list and string
 	// - process uses file, list and string
 	// - directory uses string
 	// - file uses string
 	// - list can contain any object as item, currently only string is used
 	// - string doesn't use other objects
-	// - inventory doesn't use other objects
+	//
+	// because an inventory object can uses other inventory objects it needs
+	// even more special destruction order. due to the way the inventory works
+	// an inventory object at index N can only use other inventory objects at
+	// indicies smaller than N. therefore, the inventory objects have to be
+	// destroyed backwards
+
+	for (i = _objects[OBJECT_TYPE_INVENTORY].count - 1; i >= 0; --i) {
+		inventory = *(Object **)array_get(&_objects[OBJECT_TYPE_INVENTORY], i);
+
+		object_destroy(inventory);
+	}
+
+	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], NULL);
 	array_destroy(&_objects[OBJECT_TYPE_PROGRAM], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_PROCESS], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_DIRECTORY], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_FILE], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_LIST], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_STRING], inventory_destroy_object);
-	array_destroy(&_objects[OBJECT_TYPE_INVENTORY], inventory_destroy_object);
 }
 
 const char *inventory_get_programs_directory(void) {
@@ -318,8 +342,6 @@ APIE inventory_add_object(Object *object) {
 void inventory_remove_object(Object *object) {
 	int i;
 	Object *candidate;
-	Inventory *inventory;
-	int k;
 
 	for (i = 0; i < _objects[object->type].count; ++i) {
 		candidate = *(Object **)array_get(&_objects[object->type], i);
@@ -328,19 +350,9 @@ void inventory_remove_object(Object *object) {
 			continue;
 		}
 
-		// adjust next-entry-index
-		for (k = 0; k < _objects[OBJECT_TYPE_INVENTORY].count; ++k) {
-			inventory = *(Inventory **)array_get(&_objects[OBJECT_TYPE_INVENTORY], k);
-
-			if (inventory->type == object->type && inventory->index > i) {
-				--inventory->index;
-			}
-		}
-
 		log_debug("Removing %s object (id: %u)",
 		          object_get_type_name(object->type), object->id);
 
-		// remove object from array
 		array_remove(&_objects[object->type], i, inventory_destroy_object);
 
 		return;
@@ -417,6 +429,8 @@ APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object
 
 // public API
 APIE inventory_open(ObjectType type, ObjectID *id) {
+	int i;
+	Object *object;
 	Inventory *inventory;
 	APIE error_code;
 
@@ -426,17 +440,26 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 		return API_E_INVALID_PARAMETER;
 	}
 
+	for (i = 0; i < _objects[type].count; ++i) {
+		object = *(Object **)array_get(&_objects[type], i);
+
+		object_add_internal_reference(object);
+	}
+
 	// create inventory object
 	inventory = calloc(1, sizeof(Inventory));
 
 	if (inventory == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
 		log_error("Could not allocate inventory object: %s (%d)",
 		          get_errno_name(ENOMEM), ENOMEM);
 
-		return API_E_NO_FREE_MEMORY;
+		goto error;
 	}
 
 	inventory->type = type;
+	inventory->length = _objects[type].count;
 	inventory->index = 0;
 
 	error_code = object_create(&inventory->base, OBJECT_TYPE_INVENTORY,
@@ -445,7 +468,7 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	if (error_code != API_E_SUCCESS) {
 		free(inventory);
 
-		return error_code;
+		goto error;
 	}
 
 	*id = inventory->base.id;
@@ -454,6 +477,15 @@ APIE inventory_open(ObjectType type, ObjectID *id) {
 	          inventory->base.id, object_get_type_name(inventory->type));
 
 	return API_E_SUCCESS;
+
+error:
+	for (i = 0; i < _objects[type].count; ++i) {
+		object = *(Object **)array_get(&_objects[type], i);
+
+		object_remove_internal_reference(object);
+	}
+
+	return error_code;
 }
 
 // public API
@@ -480,7 +512,7 @@ APIE inventory_get_next_entry(ObjectID id, uint16_t *object_id) {
 		return error_code;
 	}
 
-	if (inventory->index >= _objects[inventory->type].count) {
+	if (inventory->index >= inventory->length) {
 		log_debug("Reached end of %s inventory (id: %u)",
 		          object_get_type_name(inventory->type), id);
 
