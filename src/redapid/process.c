@@ -43,7 +43,7 @@
 
 typedef struct {
 	ProcessState state;
-	uint32_t pid;
+	uint64_t timestamp;
 	uint8_t exit_code;
 	bool fatal;
 } ProcessStateChange;
@@ -111,6 +111,8 @@ static void process_wait(void *opaque) {
 			return;
 		}
 
+		change.timestamp = time(NULL);
+
 		if (WIFEXITED(status)) {
 			change.state = PROCESS_STATE_EXITED;
 			change.exit_code = WEXITSTATUS(status);
@@ -118,7 +120,7 @@ static void process_wait(void *opaque) {
 
 			// the child process has limited capabilities to report errors. the
 			// coreutils env executable that executes other programs reserves
-			// three exit codes to report errors (125, 126, 127). the child
+			// three exit codes to report errors (125, 126 and 127). our child
 			// process uses the same mechanism. check for these three exit codes
 			// and change state to error if found. the downside of this approach
 			// is that these three exit codes can be used by the program to be
@@ -150,10 +152,7 @@ static void process_wait(void *opaque) {
 
 		if (change.fatal) {
 			process->alive = false;
-			process->pid = 0;
 		}
-
-		change.pid = process->pid;
 
 		log_debug("State of child process (executable: %s, pid: %u) changed (state: %u, exit_code: %u)",
 		          process->executable->buffer, process->pid, change.state, change.exit_code);
@@ -179,7 +178,12 @@ static void process_handle_state_change(void *opaque) {
 	}
 
 	process->state = change.state;
+	process->timestamp = change.timestamp;
 	process->exit_code = change.exit_code;
+
+	if (change.fatal) {
+		process->pid = 0;
+	}
 
 	// only send a process-state-changed callback if there is at least one
 	// external reference to the process object. otherwise there is no one that
@@ -187,7 +191,8 @@ static void process_handle_state_change(void *opaque) {
 	// sending process-state-changed callbacks for scheduled program executions
 	if (process->base.external_reference_count > 0) {
 		api_send_process_state_changed_callback(process->base.id, change.state,
-		                                        change.pid, change.exit_code);
+		                                        change.timestamp, process->pid,
+		                                        change.exit_code);
 	}
 
 	if (change.fatal) {
@@ -634,9 +639,10 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->stdout = stdout;
 	process->stderr = stderr;
 	process->state = PROCESS_STATE_RUNNING;
+	process->timestamp = time(NULL);
+	process->pid = pid;
 	process->exit_code = 0; // invalid
 	process->alive = true;
-	process->pid = pid;
 
 	if (pipe_create(&process->state_change_pipe, 0) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -807,9 +813,10 @@ APIE process_get_stdio(Process *process, ObjectID *stdin_id, ObjectID *stdout_id
 }
 
 // public API
-APIE process_get_state(Process *process, uint8_t *state, uint32_t *pid,
-                       uint8_t *exit_code) {
+APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
+                       uint32_t *pid, uint8_t *exit_code) {
 	*state = process->state;
+	*timestamp = process->timestamp;
 	*pid = process->pid;
 	*exit_code = process->exit_code;
 

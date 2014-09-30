@@ -11,11 +11,13 @@
 
 #include "utils.c"
 
-void process_state_changed(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) {
+void process_state_changed(uint16_t process_id, uint8_t state, uint64_t timestamp,
+                           uint32_t pid, uint8_t exit_code, void *user_data) {
 	(void)process_id;
 	(void)user_data;
 
-	printf("process_state_changed state %u, exit_code %u\n", state, exit_code);
+	printf("process_state_changed state %u, timestamp %u, pid %u, exit_code %u\n",
+	       state, (unsigned int)timestamp, pid, exit_code);
 }
 
 int main() {

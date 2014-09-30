@@ -208,16 +208,19 @@ enum process_error_code {
                                                                          uint16_t environment_list_id,
                                                                          uint16_t working_directory_string_id
 + get_process_identity          (uint16_t process_id)                 -> uint8_t error_code,
-                                                                         uint32_t pid,
-                                                                         uint32_t uid
+                                                                         uint32_t uid,
+                                                                         uint32_t gid
 + get_process_stdio             (uint16_t process_id)                 -> uint8_t error_code,
                                                                          uint16_t stdin_file_id,
                                                                          uint16_t stdout_file_id,
                                                                          uint16_t stderr_file_id
-+ get_process_state             (uint16_t process_id)                 -> uint8_t error_code, uint8_t state,
-                                                                         uint32_t pid, uint8_t exit_code
++ get_process_state             (uint16_t process_id)                 -> uint8_t error_code,
+                                                                         uint8_t state,
+                                                                         uint64_t timestamp,
+                                                                         uint32_t pid,
+                                                                         uint8_t exit_code
 
-+ callback: process_state_changed -> uint16_t process_id, uint8_t state, uint32_t pid, uint8_t exit_code
++ callback: process_state_changed -> uint16_t process_id, uint8_t state, uint64_t timestamp, uint32_t pid, uint8_t exit_code
 
 
 /*

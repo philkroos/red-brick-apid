@@ -42,6 +42,7 @@ void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
                                         uint8_t length_written);
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
-                                             uint32_t pid, uint8_t exit_code);
+                                             uint64_t timestamp, uint32_t pid,
+                                             uint8_t exit_code);
 
 #endif // REDAPID_API_H

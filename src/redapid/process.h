@@ -71,9 +71,10 @@ typedef struct {
 	File *stdout;
 	File *stderr;
 	ProcessState state; // asynchronously updated from the state change pipe
+	uint64_t timestamp; // asynchronously updated from the state change pipe
+	pid_t pid; // asynchronously updated from the state change pipe
 	uint8_t exit_code; // asynchronously updated from the state change pipe
 	bool alive; // synchronously updated by the wait thread
-	pid_t pid; // synchronously updated by the wait thread
 	Pipe state_change_pipe;
 	Thread wait_thread;
 } Process;
@@ -94,7 +95,7 @@ APIE process_get_command(Process *process, ObjectID *executable_id,
 APIE process_get_identity(Process *process, uint32_t *uid, uint32_t *gid);
 APIE process_get_stdio(Process *process, ObjectID *stdin_id,
                        ObjectID *stdout_id, ObjectID *stderr_id);
-APIE process_get_state(Process *process, uint8_t *state, uint32_t *pid,
-                       uint8_t *exit_code);
+APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
+                       uint32_t *pid, uint8_t *exit_code);
 
 #endif // REDAPID_PROCESS_H
