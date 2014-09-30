@@ -45,8 +45,19 @@ typedef struct {
 	ProcessState state;
 	uint64_t timestamp;
 	uint8_t exit_code;
-	bool fatal;
 } ProcessStateChange;
+
+static bool process_state_is_alive(ProcessState state) {
+	switch (state) {
+	default:
+	case PROCESS_STATE_UNKNOWN: return true;
+	case PROCESS_STATE_RUNNING: return true;
+	case PROCESS_STATE_ERROR:   return false;
+	case PROCESS_STATE_EXITED:  return false;
+	case PROCESS_STATE_KILLED:  return false;
+	case PROCESS_STATE_STOPPED: return true;
+	}
+}
 
 static void process_destroy(Object *object) {
 	Process *process = (Process *)object;
@@ -58,7 +69,7 @@ static void process_destroy(Object *object) {
 	event_remove_source(process->state_change_pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
 
 	// FIXME: this code here has the same race condition as process_kill
-	if (process->alive) {
+	if (process_state_is_alive(process->state)) {
 		log_warn("Destroying process object (id: %u, executable: %s) while child process (pid: %u) is still alive",
 		         process->base.id, process->executable->buffer, process->pid);
 
@@ -99,7 +110,7 @@ static void process_wait(void *opaque) {
 	int rc;
 	ProcessStateChange change;
 
-	do {
+	for (;;) {
 		do {
 			rc = waitpid(process->pid, &status, WUNTRACED | WCONTINUED);
 		} while (rc < 0 && errno_interrupted());
@@ -108,7 +119,7 @@ static void process_wait(void *opaque) {
 			log_error("Could not wait for child process (executable: %s, pid: %u) state change: %s (%d)",
 			          process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
-			return;
+			break;
 		}
 
 		change.timestamp = time(NULL);
@@ -116,7 +127,6 @@ static void process_wait(void *opaque) {
 		if (WIFEXITED(status)) {
 			change.state = PROCESS_STATE_EXITED;
 			change.exit_code = WEXITSTATUS(status);
-			change.fatal = true;
 
 			// the child process has limited capabilities to report errors. the
 			// coreutils env executable that executes other programs reserves
@@ -135,23 +145,15 @@ static void process_wait(void *opaque) {
 		} else if (WIFSIGNALED(status)) {
 			change.state = PROCESS_STATE_KILLED;
 			change.exit_code = WTERMSIG(status);
-			change.fatal = true;
 		} else if (WIFSTOPPED(status)) {
 			change.state = PROCESS_STATE_STOPPED;
 			change.exit_code = WSTOPSIG(status);
-			change.fatal = false;
 		} else if (WIFCONTINUED(status)) {
 			change.state = PROCESS_STATE_RUNNING;
 			change.exit_code = 0; // invalid
-			change.fatal = false;
 		} else {
 			change.state = PROCESS_STATE_UNKNOWN;
 			change.exit_code = 0; // invalid
-			change.fatal = false;
-		}
-
-		if (change.fatal) {
-			process->alive = false;
 		}
 
 		log_debug("State of child process (executable: %s, pid: %u) changed (state: %u, exit_code: %u)",
@@ -161,9 +163,13 @@ static void process_wait(void *opaque) {
 			log_error("Could not write to state change pipe for child process (executable: %s, pid: %u): %s (%d)",
 			          process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
-			return;
+			break;
 		}
-	} while (process->alive);
+
+		if (!process_state_is_alive(change.state)) {
+			break;
+		}
+	}
 }
 
 static void process_handle_state_change(void *opaque) {
@@ -181,7 +187,7 @@ static void process_handle_state_change(void *opaque) {
 	process->timestamp = change.timestamp;
 	process->exit_code = change.exit_code;
 
-	if (change.fatal) {
+	if (!process_state_is_alive(process->state)) {
 		process->pid = 0;
 	}
 
@@ -195,7 +201,7 @@ static void process_handle_state_change(void *opaque) {
 		                                        change.exit_code);
 	}
 
-	if (change.fatal) {
+	if (!process_state_is_alive(process->state)) {
 		object_remove_internal_reference(&process->base);
 	}
 }
@@ -642,7 +648,6 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->timestamp = time(NULL);
 	process->pid = pid;
 	process->exit_code = 0; // invalid
-	process->alive = true;
 
 	if (pipe_create(&process->state_change_pipe, 0) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -748,11 +753,12 @@ APIE process_kill(Process *process, ProcessSignal signal) {
 	int rc;
 	APIE error_code;
 
-	// FIXME: here is a race condition, because the wait thread directly
-	//        changes the alive and pid variable. there is a related race
-	//        condition between the child process exiting, the wait thread
-	//        waiting for it and this function trying to kill it
-	if (!process->alive) {
+	// FIXME: here is a race condition, because the child process might already
+	//        be dead at this point, but the process state didn't get updated
+	//        yet. this can result in trying to kill a process that's not
+	//        existing anymore. or even worse, the process ID has already been
+	//        reused and an unrelated process gets killed here
+	if (!process_state_is_alive(process->state)) {
 		log_warn("Cannot send signal (number: %d) to an already dead child process (executable: %s)",
 		         signal, process->executable->buffer);
 

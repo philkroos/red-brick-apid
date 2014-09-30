@@ -70,11 +70,10 @@ typedef struct {
 	File *stdin;
 	File *stdout;
 	File *stderr;
-	ProcessState state; // asynchronously updated from the state change pipe
-	uint64_t timestamp; // asynchronously updated from the state change pipe
-	pid_t pid; // asynchronously updated from the state change pipe
-	uint8_t exit_code; // asynchronously updated from the state change pipe
-	bool alive; // synchronously updated by the wait thread
+	ProcessState state;
+	uint64_t timestamp;
+	pid_t pid;
+	uint8_t exit_code;
 	Pipe state_change_pipe;
 	Thread wait_thread;
 } Process;
