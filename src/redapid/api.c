@@ -757,29 +757,6 @@ void api_handle_request(Packet *request) {
 	#undef DISPATCH_FUNCTION
 }
 
-APIE api_get_error_code_from_errno(void) {
-	switch (errno) {
-	case EINVAL:       return API_E_INVALID_PARAMETER;
-	case ENOMEM:       return API_E_NO_FREE_MEMORY;
-	case ENOSPC:       return API_E_NO_FREE_SPACE;
-	case EACCES:       return API_E_ACCESS_DENIED;
-	case EEXIST:       return API_E_ALREADY_EXISTS;
-	case ENOENT:       return API_E_DOES_NOT_EXIST;
-	case EINTR:        return API_E_INTERRUPTED;
-	case EISDIR:       return API_E_IS_DIRECTORY;
-	case ENOTDIR:      return API_E_NOT_A_DIRECTORY;
-	case EWOULDBLOCK:  return API_E_WOULD_BLOCK;
-	case EOVERFLOW:    return API_E_OVERFLOW;
-	case EBADF:        return API_E_BAD_FILE_DESCRIPTOR;
-	case ERANGE:       return API_E_OUT_OF_RANGE;
-	case ENAMETOOLONG: return API_E_NAME_TOO_LONG;
-	case ESPIPE:       return API_E_INVALID_SEEK;
-	case ENOTSUP:      return API_E_NOT_SUPPORTED;
-
-	default:           return API_E_UNKNOWN_ERROR;
-	}
-}
-
 const char *api_get_function_name(int function_id) {
 	switch (function_id) {
 	// object

@@ -66,4 +66,8 @@ typedef enum {
 	API_E_NOT_SUPPORTED            // ENOTSUP
 } APIE;
 
+APIE api_get_error_code_from_errno(void);
+
+const char *api_get_error_code_name(APIE error_code);
+
 #endif // REDAPID_API_ERROR_H

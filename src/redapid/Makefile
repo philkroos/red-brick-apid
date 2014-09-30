@@ -69,6 +69,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/utils.c \
            ../daemonlib/writer.c \
            api.c \
+           api_error.c \
            brickd.c \
            config_options.c \
            directory.c \

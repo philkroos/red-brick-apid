@@ -34,8 +34,6 @@ uint32_t api_get_uid(void);
 
 void api_handle_request(Packet *request);
 
-APIE api_get_error_code_from_errno(void);
-
 const char *api_get_function_name(int function_id);
 
 void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
