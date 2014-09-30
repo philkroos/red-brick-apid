@@ -1010,9 +1010,14 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-		         length_to_read, file_expand_signature(file),
-		         get_errno_name(errno), errno);
+		if (errno_would_block()) {
+			log_debug("Reading %u byte(s) from file object ("FILE_SIGNATURE_FORMAT") would block",
+			          length_to_read, file_expand_signature(file));
+		} else {
+			log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			         length_to_read, file_expand_signature(file),
+			         get_errno_name(errno), errno);
+		}
 
 		return error_code;
 	}
@@ -1108,9 +1113,14 @@ APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-		         length_to_write, file_expand_signature(file),
-		         get_errno_name(errno), errno);
+		if (errno_would_block()) {
+			log_debug("Writing %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") would block",
+			          length_to_write, file_expand_signature(file));
+		} else {
+			log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			         length_to_write, file_expand_signature(file),
+			         get_errno_name(errno), errno);
+		}
 
 		return error_code;
 	}
@@ -1137,9 +1147,14 @@ ErrorCode file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_wr
 	}
 
 	if (file->write(file, buffer, length_to_write) < 0) {
-		log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") unchecked: %s (%d)",
-		         length_to_write, file_expand_signature(file),
-		         get_errno_name(errno), errno);
+		if (errno_would_block()) {
+			log_debug("Writing %u byte(s) unchecked to file object ("FILE_SIGNATURE_FORMAT") would block",
+			          length_to_write, file_expand_signature(file));
+		} else {
+			log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") unchecked: %s (%d)",
+			         length_to_write, file_expand_signature(file),
+			         get_errno_name(errno), errno);
+		}
 
 		return ERROR_CODE_UNKNOWN_ERROR;
 	}
@@ -1177,9 +1192,14 @@ ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write)
 	if (length_written < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
-		         length_to_write, file_expand_signature(file),
-		         get_errno_name(errno), errno);
+		if (errno_would_block()) {
+			log_debug("Writing %u byte(s) asynchronously to file object ("FILE_SIGNATURE_FORMAT") would block",
+			          length_to_write, file_expand_signature(file));
+		} else {
+			log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
+			         length_to_write, file_expand_signature(file),
+			         get_errno_name(errno), errno);
+		}
 
 		// FIXME: this callback should be delivered after the response of this function
 		file_send_async_write_callback(file, error_code, 0);
