@@ -261,7 +261,9 @@ APIE process_fork(pid_t *pid) {
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
-                   ObjectID stdout_id, ObjectID stderr_id, ObjectID *id) {
+                   ObjectID stdout_id, ObjectID stderr_id,
+                   uint16_t object_create_flags,
+                   ObjectID *id, Process **object) {
 	int phase = 0;
 	APIE error_code;
 	String *executable;
@@ -655,17 +657,20 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	phase = 14;
 
 	// create process object
-	error_code = object_create(&process->base,
-	                           OBJECT_TYPE_PROCESS,
-	                           OBJECT_CREATE_FLAG_INTERNAL |
-	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           process_destroy);
+	error_code = object_create(&process->base, OBJECT_TYPE_PROCESS,
+	                           object_create_flags, process_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	*id = process->base.id;
+	if (id != NULL) {
+		*id = process->base.id;
+	}
+
+	if (object != NULL) {
+		*object = process;
+	}
 
 	// start thread to wait for child process state changes
 	thread_create(&process->wait_thread, process_wait, process);

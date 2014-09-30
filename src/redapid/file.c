@@ -604,7 +604,8 @@ mode_t file_get_mode_from_permissions(uint16_t permissions) {
 
 // public API
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
-               uint32_t uid, uint32_t gid, ObjectID *id) {
+               uint32_t uid, uint32_t gid, uint16_t object_create_flags,
+               ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -768,13 +769,19 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->seek = file_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           OBJECT_CREATE_FLAG_EXTERNAL, file_destroy);
+	                           object_create_flags, file_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	*id = file->base.id;
+	if (id != NULL) {
+		*id = file->base.id;
+	}
+
+	if (object != NULL) {
+		*object = file;
+	}
 
 	if ((flags & FILE_FLAG_TEMPORARY) != 0) {
 		log_debug("Created temporary file object ("FILE_SIGNATURE_FORMAT", permissions: %04o, uid: %u, gid: %u, handle: %d)",
@@ -813,7 +820,8 @@ cleanup:
 }
 
 // public API
-APIE pipe_create_(uint16_t flags, ObjectID *id) {
+APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
+                  ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -877,13 +885,19 @@ APIE pipe_create_(uint16_t flags, ObjectID *id) {
 	file->seek = pipe_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           OBJECT_CREATE_FLAG_EXTERNAL, file_destroy);
+	                           object_create_flags, file_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	*id = file->base.id;
+	if (id != NULL) {
+		*id = file->base.id;
+	}
+
+	if (object != NULL) {
+		*object = file;
+	}
 
 	log_debug("Created file object ("FILE_SIGNATURE_FORMAT")",
 	          file_expand_signature(file));

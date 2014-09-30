@@ -73,7 +73,8 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	return API_E_SUCCESS;
 }
 
-static APIE string_create(uint32_t reserve, uint16_t create_flags, String **string) {
+static APIE string_create(uint32_t reserve, uint16_t object_create_flags,
+                          String **string) {
 	int phase = 0;
 	APIE error_code;
 	uint32_t allocated;
@@ -114,7 +115,7 @@ static APIE string_create(uint32_t reserve, uint16_t create_flags, String **stri
 	(*string)->allocated = allocated;
 
 	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING,
-	                           create_flags, string_destroy);
+	                           object_create_flags, string_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -163,7 +164,8 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 	return API_E_SUCCESS;
 }
 
-APIE string_wrap(const char *buffer, uint16_t create_flags, ObjectID *id, String **object) {
+APIE string_wrap(const char *buffer, uint16_t object_create_flags,
+                 ObjectID *id, String **object) {
 	uint32_t length = strlen(buffer);
 	APIE error_code;
 	String *string;
@@ -174,7 +176,7 @@ APIE string_wrap(const char *buffer, uint16_t create_flags, ObjectID *id, String
 		return API_E_OUT_OF_RANGE;
 	}
 
-	error_code = string_create(length, create_flags, &string);
+	error_code = string_create(length, object_create_flags, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

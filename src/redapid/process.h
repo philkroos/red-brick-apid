@@ -83,7 +83,9 @@ APIE process_fork(pid_t *pid);
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
-                   ObjectID stdout_id, ObjectID stderr_id, ObjectID *id);
+                   ObjectID stdout_id, ObjectID stderr_id,
+                   uint16_t object_create_flags,
+                   ObjectID *id, Process **object);
 APIE process_kill(Process *process, ProcessSignal signal);
 
 APIE process_get_command(Process *process, ObjectID *executable_id,

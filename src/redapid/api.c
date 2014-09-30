@@ -339,11 +339,13 @@ CALL_LIST_FUNCTION(RemoveFromList, remove_from_list, {
 CALL_FUNCTION(OpenFile, open_file, {
 	response.error_code = file_open(request->name_string_id, request->flags,
 	                                request->permissions, request->uid,
-	                                request->gid, &response.file_id);
+	                                request->gid, OBJECT_CREATE_FLAG_EXTERNAL,
+	                                &response.file_id, NULL);
 })
 
 CALL_FUNCTION(CreatePipe, create_pipe, {
-	response.error_code = pipe_create_(request->flags, &response.file_id);
+	response.error_code = pipe_create_(request->flags, OBJECT_CREATE_FLAG_EXTERNAL,
+	                                   &response.file_id, NULL);
 })
 
 CALL_FILE_FUNCTION(GetFileInfo, get_file_info, {
@@ -465,7 +467,9 @@ CALL_FUNCTION(SpawnProcess, spawn_process, {
 	                                    request->stdin_file_id,
 	                                    request->stdout_file_id,
 	                                    request->stderr_file_id,
-	                                    &response.process_id);
+	                                    OBJECT_CREATE_FLAG_INTERNAL |
+	                                    OBJECT_CREATE_FLAG_EXTERNAL,
+	                                    &response.process_id, NULL);
 })
 
 CALL_PROCESS_FUNCTION(KillProcess, kill_process, {

@@ -137,9 +137,11 @@ struct _File {
 mode_t file_get_mode_from_permissions(uint16_t permissions);
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
-               uint32_t uid, uint32_t gid, ObjectID *id);
+               uint32_t uid, uint32_t gid, uint16_t object_create_flags,
+               ObjectID *id, File **object);
 
-APIE pipe_create_(uint16_t flags, ObjectID *id);
+APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
+                  ObjectID *id, File **object);
 
 APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
