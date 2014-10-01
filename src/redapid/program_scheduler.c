@@ -115,9 +115,9 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 		                               "Could not spawn process: %s (%d)",
 		                               process_get_error_code_name(program_scheduler->process->exit_code),
 		                               program_scheduler->process->exit_code);
-	}
 
-	if (!process_is_alive(program_scheduler->process)) {
+		program_scheduler_stop(program_scheduler);
+	} else if (!process_is_alive(program_scheduler->process)) {
 		program_scheduler_start(program_scheduler);
 	}
 }
