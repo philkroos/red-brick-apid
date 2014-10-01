@@ -179,14 +179,15 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	phase = 3;
 
 	directory->name = name;
+	directory->name_length = name->length;
 	directory->dp = dp;
 
 	string_copy(directory->buffer, name->buffer, sizeof(directory->buffer));
 
-	if (directory->buffer[directory->name->length - 1] != '/') {
+	if (directory->buffer[directory->name_length - 1] != '/') {
 		string_append(directory->buffer, "/", sizeof(directory->buffer));
 
-		++directory->name->length;
+		++directory->name_length;
 	}
 
 	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY,
@@ -266,7 +267,7 @@ APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *
 			return API_E_OUT_OF_RANGE;
 		}
 
-		directory->buffer[directory->name->length] = '\0';
+		directory->buffer[directory->name_length] = '\0';
 
 		string_append(directory->buffer, dirent->d_name, sizeof(directory->buffer));
 

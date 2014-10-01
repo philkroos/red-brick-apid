@@ -34,6 +34,7 @@ typedef struct {
 	Object base;
 
 	String *name;
+	int name_length; // length of name in buffer
 	DIR *dp;
 	char buffer[DIRECTORY_MAX_NAME_LENGTH + 1 /* for / */ + DIRECTORY_MAX_ENTRY_LENGTH + 1 /* for \0 */];
 } Directory;
