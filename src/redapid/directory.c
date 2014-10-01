@@ -133,6 +133,14 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 
 	phase = 1;
 
+	if (*name->buffer == '\0') {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Directory name cannot be empty");
+
+		goto cleanup;
+	}
+
 	if (*name->buffer != '/') {
 		error_code = API_E_INVALID_PARAMETER;
 
@@ -303,6 +311,12 @@ APIE directory_create(const char *name, bool recursive, uint16_t permissions,
 	pid_t pid;
 	int rc;
 	int status;
+
+	if (*name == '\0') {
+		log_warn("Directory name cannot be empty");
+
+		return API_E_INVALID_PARAMETER;
+	}
 
 	if (*name != '/') {
 		log_warn("Cannot create relative directory '%s'", name);

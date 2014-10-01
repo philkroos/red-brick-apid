@@ -356,6 +356,7 @@ static void file_handle_async_read(void *opaque) {
 	}
 }
 
+// NOTE: assumes that name is absolute (starts with '/')
 static APIE file_open_as(const char *name, int oflags, mode_t mode,
                          uint32_t uid, uint32_t gid, int *fd_) {
 	APIE error_code;
@@ -674,6 +675,14 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	}
 
 	phase = 1;
+
+	if (*name->buffer == '\0') {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("File name cannot be empty");
+
+		goto cleanup;
+	}
 
 	if (*name->buffer != '/') {
 		error_code = API_E_INVALID_PARAMETER;
@@ -1309,6 +1318,12 @@ APIE file_lookup_info(const char *name, bool follow_symlink,
 	int rc;
 	APIE error_code;
 
+	if (*name == '\0') {
+		log_warn("File name cannot be empty");
+
+		return API_E_INVALID_PARAMETER;
+	}
+
 	if (*name != '/') {
 		log_warn("Cannot get information for relative file '%s'", name);
 
@@ -1348,6 +1363,12 @@ APIE symlink_lookup_target(const char *name, bool canonicalize, ObjectID *target
 	char buffer[1024 + 1];
 	ssize_t rc;
 	APIE error_code;
+
+	if (*name == '\0') {
+		log_warn("Symlink name cannot be empty");
+
+		return API_E_INVALID_PARAMETER;
+	}
 
 	if (*name != '/') {
 		log_warn("Cannot get target of relative symlink '%s'", name);

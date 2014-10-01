@@ -313,7 +313,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	if (!program_is_valid_identifier(identifier->buffer)) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_error("Program identifier '%s' is invalid", identifier->buffer);
+		log_error("Invalid program identifier '%s'", identifier->buffer);
 
 		goto cleanup;
 	}
@@ -522,6 +522,14 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 
 	phase = 1;
 
+	if (*executable->buffer == '\0') {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Executable cannot be empty");
+
+		goto cleanup;
+	}
+
 	// occupy new arguments list object
 	error_code = list_occupy(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
@@ -616,7 +624,7 @@ APIE program_set_stdio_redirection(Program *program,
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Invalid program stdin redirection %d", stdin_redirection);
+		log_warn("Invalid stdin redirection %d", stdin_redirection);
 
 		goto cleanup;
 	}
@@ -625,7 +633,7 @@ APIE program_set_stdio_redirection(Program *program,
 	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Invalid program stdout redirection %d", stdout_redirection);
+		log_warn("Invalid stdout redirection %d", stdout_redirection);
 
 		goto cleanup;
 	}
@@ -633,7 +641,7 @@ APIE program_set_stdio_redirection(Program *program,
 	if (!program_is_valid_stdio_redirection(stderr_redirection)) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Invalid program stderr redirection %d", stderr_redirection);
+		log_warn("Invalid stderr redirection %d", stderr_redirection);
 
 		goto cleanup;
 	}
@@ -649,6 +657,25 @@ APIE program_set_stdio_redirection(Program *program,
 
 	phase = 1;
 
+	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		if (*stdin_file_name->buffer == '\0') {
+			error_code = API_E_INVALID_PARAMETER;
+
+			log_warn("Cannot redirect stdin to empty file name");
+
+			goto cleanup;
+		}
+
+		if (*stdin_file_name->buffer != '/') {
+			error_code = API_E_INVALID_PARAMETER;
+
+			log_warn("Cannot redirect stdin to relative file name '%s'",
+			         stdin_file_name->buffer);
+
+			goto cleanup;
+		}
+	}
+
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// occupy new stdout file name string object
 		error_code = string_occupy(stdout_file_name_id, &stdout_file_name);
@@ -660,11 +687,51 @@ APIE program_set_stdio_redirection(Program *program,
 
 	phase = 2;
 
+	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		if (*stdout_file_name->buffer == '\0') {
+			error_code = API_E_INVALID_PARAMETER;
+
+			log_warn("Cannot redirect stdout to empty file name");
+
+			goto cleanup;
+		}
+
+		if (*stdout_file_name->buffer != '/') {
+			error_code = API_E_INVALID_PARAMETER;
+
+			log_warn("Cannot redirect stdout to relative file name '%s'",
+			         stdout_file_name->buffer);
+
+			goto cleanup;
+		}
+	}
+
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// occupy new stderr file name string object
 		error_code = string_occupy(stderr_file_name_id, &stderr_file_name);
 
 		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 3;
+
+	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		if (*stderr_file_name->buffer == '\0') {
+			error_code = API_E_INVALID_PARAMETER;
+
+			log_warn("Cannot redirect stderr to empty file name");
+
+			goto cleanup;
+		}
+
+		if (*stderr_file_name->buffer != '/') {
+			error_code = API_E_INVALID_PARAMETER;
+
+			log_warn("Cannot redirect stderr to relative file name '%s'",
+			         stderr_file_name->buffer);
+
 			goto cleanup;
 		}
 	}
@@ -697,7 +764,7 @@ APIE program_set_stdio_redirection(Program *program,
 		program->config.stderr_file_name = NULL;
 	}
 
-	phase = 3;
+	phase = 4;
 
 	// save modified config
 	error_code = program_config_save(&program->config);
@@ -719,13 +786,14 @@ APIE program_set_stdio_redirection(Program *program,
 		string_vacate(backup.stderr_file_name);
 	}
 
-	phase = 4;
+	phase = 5;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 3:
+	case 4:
 		memcpy(&program->config, &backup, sizeof(program->config));
 
+	case 3:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_vacate(stderr_file_name);
 		}
@@ -744,7 +812,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 4 ? API_E_SUCCESS : error_code;
+	return phase == 5 ? API_E_SUCCESS : error_code;
 }
 
 // public API
