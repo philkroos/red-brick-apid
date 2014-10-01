@@ -235,7 +235,7 @@ CALL_INVENTORY_FUNCTION(GetInventoryType, get_inventory_type, {
 })
 
 CALL_INVENTORY_FUNCTION(GetNextInventoryEntry, get_next_inventory_entry, {
-	response.error_code = inventory_get_next_entry(inventory, &response.object_id);
+	response.error_code = inventory_get_next_entry(inventory, &response.entry_object_id);
 })
 
 CALL_INVENTORY_FUNCTION(RewindInventory, rewind_inventory, {

@@ -484,7 +484,7 @@ APIE inventory_get_type(Inventory *inventory, uint8_t *type) {
 }
 
 // public API
-APIE inventory_get_next_entry(Inventory *inventory, uint16_t *object_id) {
+APIE inventory_get_next_entry(Inventory *inventory, ObjectID *entry_id) {
 	Object *object;
 
 	if (inventory->index >= inventory->length) {
@@ -498,7 +498,7 @@ APIE inventory_get_next_entry(Inventory *inventory, uint16_t *object_id) {
 
 	object_add_external_reference(object);
 
-	*object_id = object->id;
+	*entry_id = object->id;
 
 	return API_E_SUCCESS;
 }

@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-09-30.      *
+ * This file was automatically generated on 2014-10-01.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -787,7 +787,7 @@ int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_c
  * If there is not next object then error code *NoMoreData* is returned. To rewind
  * an inventory object call {@link red_rewind_inventory}.
  */
-int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_object_id);
+int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_entry_object_id);
 
 /**
  * \ingroup BrickRED

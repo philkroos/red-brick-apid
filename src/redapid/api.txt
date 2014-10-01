@@ -21,7 +21,7 @@ enum object_type {
 
 + open_inventory           (uint8_t type)          -> uint8_t error_code, uint16_t inventory_id
 + get_inventory_type       (uint16_t inventory_id) -> uint8_t error_code, uint8_t type
-+ get_next_inventory_entry (uint16_t inventory_id) -> uint8_t error_code, uint16_t object_id // error_code == NO_MORE_DATA means end-of-inventory
++ get_next_inventory_entry (uint16_t inventory_id) -> uint8_t error_code, uint16_t entry_object_id // error_code == NO_MORE_DATA means end-of-inventory
 + rewind_inventory         (uint16_t inventory_id) -> uint8_t error_code
 
 
@@ -99,7 +99,7 @@ enum file_type {
 }
 
 enum pipe_flag { // bitmask
-	PIPE_FLAG_NON_BLOCKING_READ = 0x0001,
+	PIPE_FLAG_NON_BLOCKING_READ  = 0x0001,
 	PIPE_FLAG_NON_BLOCKING_WRITE = 0x0002
 }
 
