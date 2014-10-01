@@ -35,7 +35,7 @@
 #define LOG_CATEGORY LOG_CATEGORY_API
 
 static void program_scheduler_report_error(ProgramScheduler *program_scheduler,
-                                           const char *format, ...) ATTRIBUTE_FMT_PRINTF(2, 3);
+                                           bool log_as_error, const char *format, ...) ATTRIBUTE_FMT_PRINTF(3, 4);
 
 static void program_scheduler_report_spawn(ProgramScheduler *program_scheduler) {
 	program_scheduler->spawn(program_scheduler->opaque);
@@ -43,7 +43,7 @@ static void program_scheduler_report_spawn(ProgramScheduler *program_scheduler) 
 
 // perserves errno
 static void program_scheduler_report_error(ProgramScheduler *program_scheduler,
-                                           const char *format, ...) {
+                                           bool log_as_error, const char *format, ...) {
 	int saved_errno;
 	uint64_t timestamp;
 	va_list arguments;
@@ -58,6 +58,14 @@ static void program_scheduler_report_error(ProgramScheduler *program_scheduler,
 
 	va_end(arguments);
 
+	if (log_as_error) {
+		log_error("Scheduler error for program object (identifier: %s) occurred: %s",
+		          program_scheduler->identifier, buffer);
+	} else {
+		log_debug("Scheduler error for program object (identifier: %s) occurred: %s",
+		          program_scheduler->identifier, buffer);
+	}
+
 	program_scheduler->error(timestamp, buffer, program_scheduler->opaque);
 
 	errno = saved_errno;
@@ -69,12 +77,9 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	}
 
 	if (timer_configure(&program_scheduler->timer, 0, 1000000) < 0) {
-		program_scheduler_report_error(program_scheduler,
+		program_scheduler_report_error(program_scheduler, true,
 		                               "Could not start scheduling timer: %s (%d)",
 		                               get_errno_name(errno), errno);
-
-		log_error("Could not start scheduling timer for program object (identifier: %s): %s (%d)",
-		          program_scheduler->identifier, get_errno_name(errno), errno);
 
 		return;
 	}
@@ -91,12 +96,9 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler) {
 	}
 
 	if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
-		program_scheduler_report_error(program_scheduler,
+		program_scheduler_report_error(program_scheduler, true,
 		                               "Could not stop scheduling timer: %s (%d)",
 		                               get_errno_name(errno), errno);
-
-		log_error("Could not stop scheduling timer for program object (identifier: %s): %s (%d)",
-		          program_scheduler->identifier, get_errno_name(errno), errno);
 
 		return;
 	}
@@ -111,8 +113,8 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 
 	if (program_scheduler->process->state == PROCESS_STATE_ERROR) {
-		program_scheduler_report_error(program_scheduler,
-		                               "Could not spawn process: %s (%d)",
+		program_scheduler_report_error(program_scheduler, false,
+		                               "Error while spawning process: %s (%d)",
 		                               process_get_error_code_name(program_scheduler->process->exit_code),
 		                               program_scheduler->process->exit_code);
 
@@ -143,7 +145,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &stdin);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_report_error(program_scheduler,
+		program_scheduler_report_error(program_scheduler, true,
 		                               "Could not open /dev/null for reading: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
@@ -155,7 +157,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &stdout);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_report_error(program_scheduler,
+		program_scheduler_report_error(program_scheduler, true,
 		                               "Could not open /dev/null for writing: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
@@ -177,7 +179,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                           NULL, &program_scheduler->process);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_report_error(program_scheduler,
+		program_scheduler_report_error(program_scheduler, false,
 		                               "Could not spawn process: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
@@ -225,7 +227,7 @@ static void program_scheduler_tick(void *opaque) {
 			break;
 
 		default:
-			program_scheduler_report_error(program_scheduler,
+			program_scheduler_report_error(program_scheduler, true,
 			                               "Invalid start condition %d",
 			                               program_scheduler->config->start_condition);
 
@@ -268,7 +270,7 @@ static void program_scheduler_tick(void *opaque) {
 			break;
 
 		default:
-			program_scheduler_report_error(program_scheduler,
+			program_scheduler_report_error(program_scheduler, true,
 			                               "Invalid repeat mode %d",
 			                               program_scheduler->config->repeat_mode);
 
@@ -278,7 +280,7 @@ static void program_scheduler_tick(void *opaque) {
 		break;
 
 	default:
-		program_scheduler_report_error(program_scheduler,
+		program_scheduler_report_error(program_scheduler, true,
 		                               "Invalid scheduler state %d",
 		                               program_scheduler->state);
 
