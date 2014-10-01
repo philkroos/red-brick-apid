@@ -34,23 +34,16 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-static void program_scheduler_report_error(ProgramScheduler *program_scheduler,
+static void program_scheduler_stop(ProgramScheduler *program_scheduler);
+
+static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) ATTRIBUTE_FMT_PRINTF(3, 4);
 
-static void program_scheduler_report_spawn(ProgramScheduler *program_scheduler) {
-	program_scheduler->spawn(program_scheduler->opaque);
-}
-
-// perserves errno
-static void program_scheduler_report_error(ProgramScheduler *program_scheduler,
+static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) {
-	int saved_errno;
-	uint64_t timestamp;
+	uint64_t timestamp = time(NULL);
 	va_list arguments;
 	char buffer[1024];
-
-	saved_errno = errno;
-	timestamp = time(NULL);
 
 	va_start(arguments, format);
 
@@ -66,9 +59,11 @@ static void program_scheduler_report_error(ProgramScheduler *program_scheduler,
 		          program_scheduler->identifier, buffer);
 	}
 
-	program_scheduler->error(timestamp, buffer, program_scheduler->opaque);
+	program_scheduler->state = PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED;
 
-	errno = saved_errno;
+	program_scheduler_stop(program_scheduler);
+
+	program_scheduler->error(timestamp, buffer, program_scheduler->opaque);
 }
 
 static void program_scheduler_start(ProgramScheduler *program_scheduler) {
@@ -77,7 +72,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	}
 
 	if (timer_configure(&program_scheduler->timer, 0, 1000000) < 0) {
-		program_scheduler_report_error(program_scheduler, true,
+		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not start scheduling timer: %s (%d)",
 		                               get_errno_name(errno), errno);
 
@@ -91,14 +86,20 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 }
 
 static void program_scheduler_stop(ProgramScheduler *program_scheduler) {
-	if (!program_scheduler->timer_active) {
+	static bool recursive = false;
+
+	if (!program_scheduler->timer_active || recursive) {
 		return;
 	}
 
 	if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
-		program_scheduler_report_error(program_scheduler, true,
+		recursive = true;
+
+		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not stop scheduling timer: %s (%d)",
 		                               get_errno_name(errno), errno);
+
+		recursive = false;
 
 		return;
 	}
@@ -107,18 +108,18 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler) {
 	          program_scheduler->identifier);
 
 	program_scheduler->timer_active = false;
+
+	// FIXME: start 5min interval timer to retry if state == error
 }
 
 static void program_scheduler_handle_process_state_change(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 
 	if (program_scheduler->process->state == PROCESS_STATE_ERROR) {
-		program_scheduler_report_error(program_scheduler, false,
+		program_scheduler_handle_error(program_scheduler, false,
 		                               "Error while spawning process: %s (%d)",
 		                               process_get_error_code_name(program_scheduler->process->exit_code),
 		                               program_scheduler->process->exit_code);
-
-		program_scheduler_stop(program_scheduler);
 	} else if (!process_is_alive(program_scheduler->process)) {
 		program_scheduler_start(program_scheduler);
 	}
@@ -132,6 +133,8 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	if (program_scheduler->process != NULL) {
 		if (program_scheduler->process->state == PROCESS_STATE_RUNNING) {
 			// don't spawn a new process if one is already running
+			program_scheduler_stop(program_scheduler);
+
 			return;
 		}
 
@@ -145,7 +148,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &stdin);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_report_error(program_scheduler, true,
+		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not open /dev/null for reading: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
@@ -157,7 +160,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &stdout);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_report_error(program_scheduler, true,
+		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not open /dev/null for writing: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
@@ -179,7 +182,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                           NULL, &program_scheduler->process);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_report_error(program_scheduler, false,
+		program_scheduler_handle_error(program_scheduler, false,
 		                               "Could not spawn process: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
@@ -192,7 +195,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	object_remove_internal_reference(&stdin->base);
 	object_remove_internal_reference(&stdout->base);
 
-	program_scheduler_report_spawn(program_scheduler);
+	program_scheduler->spawn(program_scheduler->opaque);
 
 	program_scheduler->reboot = false;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION;
@@ -209,7 +212,9 @@ static void program_scheduler_tick(void *opaque) {
 	case PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION:
 		switch (program_scheduler->config->start_condition) {
 		case PROGRAM_START_CONDITION_NEVER:
-			goto stop;
+			program_scheduler_stop(program_scheduler);
+
+			break;
 
 		case PROGRAM_START_CONDITION_NOW:
 			start = true;
@@ -227,11 +232,11 @@ static void program_scheduler_tick(void *opaque) {
 			break;
 
 		default:
-			program_scheduler_report_error(program_scheduler, true,
+			program_scheduler_handle_error(program_scheduler, true,
 			                               "Invalid start condition %d",
 			                               program_scheduler->config->start_condition);
 
-			goto stop;
+			break;
 		}
 
 		if (start) {
@@ -255,7 +260,9 @@ static void program_scheduler_tick(void *opaque) {
 	case PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION:
 		switch (program_scheduler->config->repeat_mode) {
 		case PROGRAM_REPEAT_MODE_NEVER:
-			goto stop;
+			program_scheduler_stop(program_scheduler);
+
+			break;
 
 		case PROGRAM_REPEAT_MODE_INTERVAL:
 			if (program_scheduler->last_spawn_timestamp + program_scheduler->config->repeat_interval <= (uint64_t)time(NULL)) {
@@ -270,27 +277,22 @@ static void program_scheduler_tick(void *opaque) {
 			break;
 
 		default:
-			program_scheduler_report_error(program_scheduler, true,
+			program_scheduler_handle_error(program_scheduler, true,
 			                               "Invalid repeat mode %d",
 			                               program_scheduler->config->repeat_mode);
 
-			goto stop;
+			break;
 		}
 
 		break;
 
 	default:
-		program_scheduler_report_error(program_scheduler, true,
+		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid scheduler state %d",
 		                               program_scheduler->state);
 
-		goto stop;
+		break;
 	}
-
-	return;
-
-stop:
-	program_scheduler_stop(program_scheduler);
 }
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
