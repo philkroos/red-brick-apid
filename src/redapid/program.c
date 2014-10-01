@@ -570,6 +570,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 
 	phase = 4;
 
+	program_scheduler_update(&program->scheduler);
+
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
@@ -787,6 +789,8 @@ APIE program_set_stdio_redirection(Program *program,
 	}
 
 	phase = 5;
+
+	program_scheduler_update(&program->scheduler);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
