@@ -137,9 +137,9 @@ static void process_wait(void *opaque) {
 			// executed as normal exit codes with a different meaning, leading
 			// to a misinterpretation here. but the coreutils env executable has
 			// the same problem, so we will live with this
-			if (change.exit_code == PROCESS_ERROR_CODE_INTERNAL_ERROR ||
-			    change.exit_code == PROCESS_ERROR_CODE_CANNOT_EXECUTE ||
-			    change.exit_code == PROCESS_ERROR_CODE_DOES_NOT_EXIST) {
+			if (change.exit_code == PROCESS_E_INTERNAL_ERROR ||
+			    change.exit_code == PROCESS_E_CANNOT_EXECUTE ||
+			    change.exit_code == PROCESS_E_DOES_NOT_EXIST) {
 				change.state = PROCESS_STATE_ERROR;
 			}
 		} else if (WIFSIGNALED(status)) {
@@ -261,7 +261,7 @@ APIE process_fork(pid_t *pid) {
 			log_error("Could not unblock signals: %s (%d)",
 			          get_errno_name(errno), errno);
 
-			_exit(PROCESS_ERROR_CODE_INTERNAL_ERROR);
+			_exit(PROCESS_E_INTERNAL_ERROR);
 		}
 
 		return API_E_SUCCESS;
@@ -585,9 +585,9 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 		execvpe(executable->buffer, (char **)arguments_array.bytes, (char **)environment_array.bytes);
 
 		if (errno == ENOENT) {
-			_exit(PROCESS_ERROR_CODE_DOES_NOT_EXIST);
+			_exit(PROCESS_E_DOES_NOT_EXIST);
 		} else {
-			_exit(PROCESS_ERROR_CODE_CANNOT_EXECUTE);
+			_exit(PROCESS_E_CANNOT_EXECUTE);
 		}
 
 	child_error:
@@ -601,7 +601,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 		close(status_pipe[1]);
 
-		_exit(PROCESS_ERROR_CODE_INTERNAL_ERROR);
+		_exit(PROCESS_E_INTERNAL_ERROR);
 	}
 
 	phase = 11;

@@ -155,8 +155,8 @@ APIE file_abort_async_read(File *file);
 
 APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
                 uint8_t *length_written);
-ErrorCode file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_write);
-ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write);
+PacketE file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_write);
+PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write);
 
 APIE file_set_position(File *file, int64_t offset, FileOrigin origin,
                        uint64_t *position);

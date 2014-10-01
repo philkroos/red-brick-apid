@@ -136,8 +136,8 @@ void api_prepare_callback(Packet *callback, uint8_t length, uint8_t function_id)
 	packet_header_set_response_expected(&callback->header, true);
 }
 
-static void api_send_response_if_expected(Packet *request, ErrorCode error_code) {
-	ErrorCodeResponse response;
+static void api_send_response_if_expected(Packet *request, PacketE error_code) {
+	EmptyResponse response;
 
 	if (!packet_header_get_response_expected(&request->header)) {
 		return;
@@ -150,13 +150,13 @@ static void api_send_response_if_expected(Packet *request, ErrorCode error_code)
 	network_dispatch_response((Packet *)&response);
 }
 
-static ErrorCode api_get_tfp_error_code(APIE error_code) {
+static PacketE api_get_packet_error_code(APIE error_code) {
 	if (error_code == API_E_INVALID_PARAMETER || error_code == API_E_UNKNOWN_OBJECT_ID) {
-		return ERROR_CODE_INVALID_PARAMETER;
+		return PACKET_E_INVALID_PARAMETER;
 	} else if (error_code != API_E_SUCCESS) {
-		return ERROR_CODE_UNKNOWN_ERROR;
+		return PACKET_E_UNKNOWN_ERROR;
 	} else {
-		return ERROR_CODE_OK;
+		return PACKET_E_SUCCESS;
 	}
 }
 
@@ -322,18 +322,18 @@ CALL_LIST_FUNCTION(RemoveFromList, remove_from_list, {
 		APIE api_error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, \
 		                                                 request->file_id, \
 		                                                 (Object **)&file); \
-		ErrorCode tfp_error_code; \
+		PacketE packet_error_code; \
 		if (api_error_code != API_E_SUCCESS) { \
 			APIE error_code = api_error_code; \
 			(void)error_code; \
 			error_handler \
-			tfp_error_code = api_get_tfp_error_code(api_error_code); \
+			packet_error_code = api_get_packet_error_code(api_error_code); \
 		} else { \
-			ErrorCode error_code; \
+			PacketE error_code; \
 			body \
-			tfp_error_code = error_code; \
+			packet_error_code = error_code; \
 		} \
-		api_send_response_if_expected((Packet *)request, tfp_error_code); \
+		api_send_response_if_expected((Packet *)request, packet_error_code); \
 	}
 
 CALL_FUNCTION(OpenFile, open_file, {
@@ -676,7 +676,7 @@ void api_handle_request(Packet *request) {
 			if (request->header.length != sizeof(packet_prefix##Request)) { \
 				log_warn("Request has length mismatch (actual: %u != expected: %u)", \
 				         request->header.length, (uint32_t)sizeof(packet_prefix##Request)); \
-				api_send_response_if_expected(request, ERROR_CODE_INVALID_PARAMETER); \
+				api_send_response_if_expected(request, PACKET_E_INVALID_PARAMETER); \
 			} else { \
 				api_##function_suffix((packet_prefix##Request *)request); \
 			} \
@@ -754,7 +754,7 @@ void api_handle_request(Packet *request) {
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
 
-		api_send_response_if_expected(request, ERROR_CODE_FUNCTION_NOT_SUPPORTED);
+		api_send_response_if_expected(request, PACKET_E_FUNCTION_NOT_SUPPORTED);
 
 		break;
 	}

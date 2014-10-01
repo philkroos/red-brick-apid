@@ -1131,19 +1131,19 @@ APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
 }
 
 // public API
-ErrorCode file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_write) {
+PacketE file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_write) {
 	if (length_to_write > FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH) {
 		log_warn("Length of %u byte(s) exceeds maximum length of file unchecked write buffer",
 		         length_to_write);
 
-		return ERROR_CODE_INVALID_PARAMETER;
+		return PACKET_E_INVALID_PARAMETER;
 	}
 
 	if (file->length_to_read_async > 0) {
 		log_warn("Cannot write %u byte(s) unchecked while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         length_to_write, file->length_to_read_async, file_expand_signature(file));
 
-		return ERROR_CODE_UNKNOWN_ERROR;
+		return PACKET_E_UNKNOWN_ERROR;
 	}
 
 	if (file->write(file, buffer, length_to_write) < 0) {
@@ -1156,14 +1156,14 @@ ErrorCode file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_wr
 			         get_errno_name(errno), errno);
 		}
 
-		return ERROR_CODE_UNKNOWN_ERROR;
+		return PACKET_E_UNKNOWN_ERROR;
 	}
 
-	return ERROR_CODE_OK;
+	return PACKET_E_SUCCESS;
 }
 
 // public API
-ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
+PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
 	ssize_t length_written;
 	APIE error_code;
 
@@ -1174,7 +1174,7 @@ ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write)
 		// FIXME: this callback should be delivered after the response of this function
 		file_send_async_write_callback(file, API_E_INVALID_PARAMETER, 0);
 
-		return ERROR_CODE_INVALID_PARAMETER;
+		return PACKET_E_INVALID_PARAMETER;
 	}
 
 	if (file->length_to_read_async > 0) {
@@ -1184,7 +1184,7 @@ ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write)
 		// FIXME: this callback should be delivered after the response of this function
 		file_send_async_write_callback(file, API_E_INVALID_OPERATION, 0);
 
-		return ERROR_CODE_UNKNOWN_ERROR;
+		return PACKET_E_UNKNOWN_ERROR;
 	}
 
 	length_written = file->write(file, buffer, length_to_write);
@@ -1204,13 +1204,13 @@ ErrorCode file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write)
 		// FIXME: this callback should be delivered after the response of this function
 		file_send_async_write_callback(file, error_code, 0);
 
-		return ERROR_CODE_UNKNOWN_ERROR;
+		return PACKET_E_UNKNOWN_ERROR;
 	}
 
 	// FIXME: this callback should be delivered after the response of this function
 	file_send_async_write_callback(file, API_E_SUCCESS, length_written);
 
-	return ERROR_CODE_OK;
+	return PACKET_E_SUCCESS;
 }
 
 // public API
