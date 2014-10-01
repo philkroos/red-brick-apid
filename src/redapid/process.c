@@ -637,8 +637,6 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	child_error:
 		// notify parent in all cases
 		if (robust_write(status_pipe[1], &error_code, sizeof(error_code)) < 0) {
-			error_code = api_get_error_code_from_errno();
-
 			log_error("Could not write to status pipe for child process (executable: %s, pid: %u): %s (%d)",
 			          executable->buffer, getpid(), get_errno_name(errno), errno);
 		}
