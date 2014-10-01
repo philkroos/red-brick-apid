@@ -81,7 +81,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t object_id;
+	uint16_t entry_object_id;
 } ATTRIBUTE_PACKED GetNextInventoryEntryResponse;
 
 typedef struct {
