@@ -80,6 +80,14 @@ static APIE string_create(uint32_t reserve, uint16_t object_create_flags,
 	uint32_t allocated;
 	char *buffer;
 
+	if (reserve > INT32_MAX) {
+		log_warn("Cannot reserve %u bytes, exceeds maximum length of string object", reserve);
+
+		return API_E_OUT_OF_RANGE;
+	}
+
+	++reserve; // one extra byte for the NULL-terminator
+
 	// allocate buffer
 	allocated = GROW_ALLOCATION(reserve);
 	buffer = malloc(allocated);
