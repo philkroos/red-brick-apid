@@ -703,6 +703,39 @@ typedef struct {
 	uint8_t repeat_weekday_mask;
 } ATTRIBUTE_PACKED GetProgramScheduleResponse;
 
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetLastSpawnedProgramProcessRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t process_id;
+} ATTRIBUTE_PACKED GetLastSpawnedProgramProcessResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED GetLastProgramSchedulerErrorRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint64_t timestamp;
+	uint16_t message_string_id;
+} ATTRIBUTE_PACKED GetLastProgramSchedulerErrorResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED ProgramProcessSpawnedCallback;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED ProgramSchedulerErrorOccurredCallback;
+
 //
 // misc
 //

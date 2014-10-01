@@ -276,6 +276,16 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 53
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 54
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_FUNCTION_GET_IDENTITY 255
 
 /**
@@ -304,6 +314,20 @@ typedef Device RED;
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint32_t pid, uint8_t exit_code, void *user_data) \endcode
  */
 #define RED_CALLBACK_PROCESS_STATE_CHANGED 42
+
+/**
+ * \ingroup BrickRED
+ *
+ * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
+ */
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 55
+
+/**
+ * \ingroup BrickRED
+ *
+ * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
+ */
+#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 56
 
 
 /**
@@ -1326,6 +1350,20 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
  * FIXME: week starts on monday
  */
 int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint64_t *ret_timestamp, uint16_t *ret_message_string_id);
 
 /**
  * \ingroup BrickRED

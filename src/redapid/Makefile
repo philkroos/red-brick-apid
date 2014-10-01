@@ -49,9 +49,9 @@ endif
 endif
 
 SOURCES := ../daemonlib/array.c \
-           ../daemonlib/daemon.c \
            ../daemonlib/config.c \
            ../daemonlib/conf_file.c \
+           ../daemonlib/daemon.c \
            ../daemonlib/event.c \
            ../daemonlib/event_linux.c \
            ../daemonlib/io.c \
@@ -66,6 +66,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/socket.c \
            ../daemonlib/socket_posix.c \
            ../daemonlib/threads_posix.c \
+           ../daemonlib/timer_linux.c \
            ../daemonlib/utils.c \
            ../daemonlib/writer.c \
            api.c \
@@ -82,6 +83,7 @@ SOURCES := ../daemonlib/array.c \
            process.c \
            program.c \
            program_config.c \
+           program_scheduler.c \
            string.c
 
 OBJECTS := ${SOURCES:.c=.o}

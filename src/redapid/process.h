@@ -58,6 +58,8 @@ typedef enum {
 	PROCESS_E_DOES_NOT_EXIST = 127  // EXIT_ENOENT: could not find executable to exec
 } ProcessE;
 
+typedef void (*ProcessStateChangeFunction)(void *opaque);
+
 typedef struct {
 	Object base;
 
@@ -70,6 +72,8 @@ typedef struct {
 	File *stdin;
 	File *stdout;
 	File *stderr;
+	ProcessStateChangeFunction state_change;
+	void *opaque;
 	ProcessState state;
 	uint64_t timestamp;
 	pid_t pid;
@@ -80,11 +84,14 @@ typedef struct {
 
 APIE process_fork(pid_t *pid);
 
+const char *process_get_error_code_name(ProcessE error_code);
+
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id,
                    uint16_t object_create_flags,
+                   ProcessStateChangeFunction state_change, void *opaque,
                    ObjectID *id, Process **object);
 APIE process_kill(Process *process, ProcessSignal signal);
 
@@ -96,5 +103,10 @@ APIE process_get_stdio(Process *process, ObjectID *stdin_id,
                        ObjectID *stdout_id, ObjectID *stderr_id);
 APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
                        uint32_t *pid, uint8_t *exit_code);
+
+bool process_is_alive(Process *process);
+
+APIE process_occupy(ObjectID id, Process **process);
+void process_vacate(Process *process);
 
 #endif // REDAPID_PROCESS_H

@@ -191,6 +191,10 @@ static void process_handle_state_change(void *opaque) {
 		process->pid = 0;
 	}
 
+	if (process->state_change != NULL) {
+		process->state_change(process->opaque);
+	}
+
 	// only send a process-state-changed callback if there is at least one
 	// external reference to the process object. otherwise there is no one that
 	// could be interested in this callback anyway. also this logic avoids
@@ -268,12 +272,27 @@ APIE process_fork(pid_t *pid) {
 	}
 }
 
+const char *process_get_error_code_name(ProcessE error_code) {
+	#define ERROR_CODE_NAME(code) case code: return #code
+
+	switch (error_code) {
+	ERROR_CODE_NAME(PROCESS_E_INTERNAL_ERROR);
+	ERROR_CODE_NAME(PROCESS_E_CANNOT_EXECUTE);
+	ERROR_CODE_NAME(PROCESS_E_DOES_NOT_EXIST);
+
+	default: return "<unknown>";
+	}
+
+	#undef ERROR_CODE_NAME
+}
+
 // public API
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id,
                    uint16_t object_create_flags,
+                   ProcessStateChangeFunction state_change, void *opaque,
                    ObjectID *id, Process **object) {
 	int phase = 0;
 	APIE error_code;
@@ -644,6 +663,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->stdin = stdin;
 	process->stdout = stdout;
 	process->stderr = stderr;
+	process->state_change = state_change;
+	process->opaque = opaque;
 	process->state = PROCESS_STATE_RUNNING;
 	process->timestamp = time(NULL);
 	process->pid = pid;
@@ -827,4 +848,16 @@ APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
 	*exit_code = process->exit_code;
 
 	return API_E_SUCCESS;
+}
+
+bool process_is_alive(Process *process) {
+	return process_state_is_alive(process->state);
+}
+
+APIE process_occupy(ObjectID id, Process **process) {
+	return inventory_occupy_typed_object(OBJECT_TYPE_PROCESS, id, (Object **)process);
+}
+
+void process_vacate(Process *process) {
+	object_vacate(&process->base);
 }

@@ -301,11 +301,11 @@ enum program_repeat_mode {
                                                                      uint32_t repeat_day_mask,
                                                                      uint16_t repeat_month_mask,
                                                                      uint8_t repeat_weekday_mask
-? get_last_program_process         (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
-? get_last_program_scheduler_error (uint16_t program_id)          -> uint8_t error_code, uint64_t timestamp, uint16_t message_string_id
++ get_last_program_spawned_process (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
++ get_last_program_scheduler_error (uint16_t program_id)          -> uint8_t error_code, uint64_t timestamp, uint16_t message_string_id
 
-? callback: program_process_spawned          -> uint16_t program_id
-? callback: program_scheduler_error_occurred -> uint16_t program_id
++ callback: program_process_spawned          -> uint16_t program_id
++ callback: program_scheduler_error_occurred -> uint16_t program_id
 
 
 /*

@@ -93,10 +93,56 @@ static bool program_is_valid_repeat_mode(ProgramRepeatMode mode) {
 	}
 }
 
+static void program_report_process_spawn(void *opaque) {
+	Program *program = opaque;
+
+	// only send a program-process-spawned callback if there is at least one
+	// external reference to the program object. otherwise there is no one that
+	// could be interested in this callback anyway
+	if (program->base.external_reference_count > 0) {
+		api_send_program_process_spawned_callback(program->base.id);
+	}
+}
+
+static void program_report_scheduler_error(uint64_t timestamp, const char *message,
+                                           void *opaque) {
+	Program *program = opaque;
+
+	if (program->error_message != NULL) {
+		string_vacate(program->error_message);
+	}
+
+	if (string_wrap(message,
+	                OBJECT_CREATE_FLAG_INTERNAL |
+	                OBJECT_CREATE_FLAG_OCCUPIED,
+	                NULL, &program->error_message) == API_E_SUCCESS) {
+		program->error_timestamp = timestamp;
+		program->error_internal = false;
+	} else {
+		program->error_timestamp = 0;
+		program->error_message = NULL;
+		program->error_internal = true;
+	}
+
+	// only send a program-scheduler-error-occurred callback if there is at
+	// least one external reference to the program object. otherwise there is
+	// no one that could be interested in this callback anyway
+	if (program->base.external_reference_count > 0) {
+		api_send_program_scheduler_error_occurred_callback(program->base.id);
+	}
+}
+
 static void program_destroy(Object *object) {
 	Program *program = (Program *)object;
 
+	if (program->error_message != NULL) {
+		string_vacate(program->error_message);
+	}
+
+	program_scheduler_destroy(&program->scheduler);
+
 	program_config_destroy(&program->config);
+
 	string_vacate(program->directory);
 	string_vacate(program->identifier);
 
@@ -137,6 +183,8 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 
 	// check if program is defined
 	if (!program_config.defined) {
+		log_debug("Ignoring undefined program configuration '%s'", filename);
+
 		program_config_destroy(&program_config);
 
 		return API_E_SUCCESS;
@@ -183,7 +231,25 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 	// create program object
 	program->identifier = identifier_object;
 	program->directory = directory_object;
+	program->error_timestamp = 0;
+	program->error_message = NULL;
+	program->error_internal = false;
+
 	memcpy(&program->config, &program_config, sizeof(program->config));
+
+	error_code = program_scheduler_create(&program->scheduler,
+	                                      program->identifier->buffer,
+	                                      program->directory->buffer,
+	                                      &program->config, true,
+	                                      program_report_process_spawn,
+	                                      program_report_scheduler_error,
+	                                      program);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 5;
 
 	error_code = object_create(&program->base,
 	                           OBJECT_TYPE_PROGRAM,
@@ -197,10 +263,15 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 	log_debug("Loaded program object (id: %u, identifier: %s)",
 	          program->base.id, identifier);
 
-	phase = 5;
+	program_scheduler_update(&program->scheduler);
+
+	phase = 6;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 5:
+		program_scheduler_destroy(&program->scheduler);
+
 	case 4:
 		free(program);
 
@@ -217,7 +288,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 5 ? API_E_SUCCESS : error_code;
+	return phase == 6 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -305,6 +376,9 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	// create program object
 	program->identifier = identifier;
 	program->directory = directory;
+	program->error_timestamp = 0;
+	program->error_message = NULL;
+	program->error_internal = false;
 
 	error_code = program_config_create(&program->config, buffer);
 
@@ -319,6 +393,20 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
+
+	error_code = program_scheduler_create(&program->scheduler,
+	                                      program->identifier->buffer,
+	                                      program->directory->buffer,
+	                                      &program->config, false,
+	                                      program_report_process_spawn,
+	                                      program_report_scheduler_error,
+	                                      program);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 6;
 
 	error_code = object_create(&program->base,
 	                           OBJECT_TYPE_PROGRAM,
@@ -335,10 +423,15 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	log_debug("Defined program object (id: %u, identifier: %s)",
 	          program->base.id, identifier->buffer);
 
-	phase = 6;
+	program_scheduler_update(&program->scheduler);
+
+	phase = 7;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 6:
+		program_scheduler_destroy(&program->scheduler);
+
 	case 5:
 		program_config_destroy(&program->config);
 
@@ -358,7 +451,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 6 ? API_E_SUCCESS : error_code;
+	return phase == 7 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -381,6 +474,11 @@ APIE program_undefine(Program *program) {
 
 		return error_code;
 	}
+
+	program_scheduler_shutdown(&program->scheduler);
+
+	log_debug("Undefined program object (id: %u, identifier: %s)",
+	          program->base.id, program->identifier->buffer);
 
 	object_remove_internal_reference(&program->base);
 
@@ -741,6 +839,8 @@ APIE program_set_schedule(Program *program,
 		return error_code;
 	}
 
+	program_scheduler_update(&program->scheduler);
+
 	return API_E_SUCCESS;
 }
 
@@ -768,6 +868,44 @@ APIE program_get_schedule(Program *program,
 	*repeat_day_mask     = program->config.repeat_day_mask;
 	*repeat_month_mask   = program->config.repeat_month_mask;
 	*repeat_weekday_mask = program->config.repeat_weekday_mask;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_get_last_spawned_process(Program *program, ObjectID *process_id) {
+	if (program->scheduler.process == NULL) {
+		log_warn("No process was spawned for program object (id: %u, identifier: %s) yet",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_INVALID_OPERATION;
+	}
+
+	object_add_external_reference(&program->scheduler.process->base);
+
+	*process_id = program->scheduler.process->base.id;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
+                                      ObjectID *message_id) {
+	if (program->error_internal) {
+		return API_E_INTERNAL_ERROR;
+	}
+
+	if (program->error_message == NULL) {
+		log_warn("No schduler error occured for program object (id: %u, identifier: %s) yet",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_INVALID_OPERATION;
+	}
+
+	object_add_external_reference(&program->error_message->base);
+
+	*timestamp = program->error_timestamp;
+	*message_id = program->error_message->base.id;
 
 	return API_E_SUCCESS;
 }

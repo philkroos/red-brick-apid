@@ -27,6 +27,7 @@
 #include "list.h"
 #include "object.h"
 #include "program_config.h"
+#include "program_scheduler.h"
 #include "string.h"
 
 typedef struct {
@@ -35,6 +36,10 @@ typedef struct {
 	String *identifier;
 	String *directory; // <home>/programs/<identifier>
 	ProgramConfig config;
+	ProgramScheduler scheduler;
+	uint64_t error_timestamp;
+	String *error_message; // == NULL until the first error occurred
+	bool error_internal; // == true if error message wrapping failed
 } Program;
 
 APIE program_load(const char *identifier, const char *directory, const char *filename);
@@ -89,5 +94,9 @@ APIE program_get_schedule(Program *program,
                           uint32_t *repeat_day_mask,
                           uint16_t *repeat_month_mask,
                           uint8_t *repeat_weekday_mask); // week starts on monday
+
+APIE program_get_last_spawned_process(Program *program, ObjectID *process_id);
+APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
+                                      ObjectID *message_id);
 
 #endif // REDAPID_PROGRAM_H

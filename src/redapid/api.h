@@ -45,4 +45,7 @@ void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
                                              uint64_t timestamp, uint32_t pid,
                                              uint8_t exit_code);
 
+void api_send_program_process_spawned_callback(ObjectID process_id);
+void api_send_program_scheduler_error_occurred_callback(ObjectID process_id);
+
 #endif // REDAPID_API_H

@@ -101,13 +101,19 @@ typedef enum {
 	FUNCTION_SET_PROGRAM_STDIO_REDIRECTION,
 	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION,
 	FUNCTION_SET_PROGRAM_SCHEDULE,
-	FUNCTION_GET_PROGRAM_SCHEDULE
+	FUNCTION_GET_PROGRAM_SCHEDULE,
+	FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS,
+	FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR,
+	CALLBACK_PROGRAM_PROCESS_SPAWNED,
+	CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED
 } APIFunctionID;
 
 static uint32_t _uid = 0; // always little endian
 static AsyncFileReadCallback _async_file_read_callback;
 static AsyncFileWriteCallback _async_file_write_callback;
 static ProcessStateChangedCallback _process_state_changed_callback;
+static ProgramProcessSpawnedCallback _program_process_spawned_callback;
+static ProgramSchedulerErrorOccurredCallback _program_scheduler_error_occurred_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
 	// memset'ing the whole response to zero first ensures that all members
@@ -469,6 +475,7 @@ CALL_FUNCTION(SpawnProcess, spawn_process, {
 	                                    request->stderr_file_id,
 	                                    OBJECT_CREATE_FLAG_INTERNAL |
 	                                    OBJECT_CREATE_FLAG_EXTERNAL,
+	                                    NULL, NULL,
 	                                    &response.process_id, NULL);
 })
 
@@ -597,6 +604,17 @@ CALL_PROGRAM_FUNCTION(GetProgramSchedule, get_program_schedule, {
 	                                           &response.repeat_weekday_mask);
 })
 
+CALL_PROGRAM_FUNCTION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {
+	response.error_code = program_get_last_spawned_process(program,
+	                                                       &response.process_id);
+})
+
+CALL_PROGRAM_FUNCTION(GetLastProgramSchedulerError, get_last_program_scheduler_error, {
+	response.error_code = program_get_last_scheduler_error(program,
+	                                                       &response.timestamp,
+	                                                       &response.message_string_id);
+})
+
 #undef CALL_PROGRAM_FUNCTION
 
 #undef CALL_FUNCTION_WITH_STRING
@@ -659,6 +677,14 @@ int api_init(void) {
 	                     sizeof(_process_state_changed_callback),
 	                     CALLBACK_PROCESS_STATE_CHANGED);
 
+	api_prepare_callback((Packet *)&_program_process_spawned_callback,
+	                     sizeof(_program_process_spawned_callback),
+	                     CALLBACK_PROGRAM_PROCESS_SPAWNED);
+
+	api_prepare_callback((Packet *)&_program_scheduler_error_occurred_callback,
+	                     sizeof(_program_scheduler_error_occurred_callback),
+	                     CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED);
+
 	return 0;
 }
 
@@ -684,72 +710,74 @@ void api_handle_request(Packet *request) {
 
 	switch (request->header.function_id) {
 	// object
-	DISPATCH_FUNCTION(RELEASE_OBJECT,                ReleaseObject,              release_object)
+	DISPATCH_FUNCTION(RELEASE_OBJECT,                   ReleaseObject,                release_object)
 
 	// inventory
-	DISPATCH_FUNCTION(OPEN_INVENTORY,                OpenInventory,              open_inventory)
-	DISPATCH_FUNCTION(GET_INVENTORY_TYPE,            GetInventoryType,           get_inventory_type)
-	DISPATCH_FUNCTION(GET_NEXT_INVENTORY_ENTRY,      GetNextInventoryEntry,      get_next_inventory_entry)
-	DISPATCH_FUNCTION(REWIND_INVENTORY,              RewindInventory,            rewind_inventory)
+	DISPATCH_FUNCTION(OPEN_INVENTORY,                   OpenInventory,                open_inventory)
+	DISPATCH_FUNCTION(GET_INVENTORY_TYPE,               GetInventoryType,             get_inventory_type)
+	DISPATCH_FUNCTION(GET_NEXT_INVENTORY_ENTRY,         GetNextInventoryEntry,        get_next_inventory_entry)
+	DISPATCH_FUNCTION(REWIND_INVENTORY,                 RewindInventory,              rewind_inventory)
 
 	// string
-	DISPATCH_FUNCTION(ALLOCATE_STRING,               AllocateString,             allocate_string)
-	DISPATCH_FUNCTION(TRUNCATE_STRING,               TruncateString,             truncate_string)
-	DISPATCH_FUNCTION(GET_STRING_LENGTH,             GetStringLength,            get_string_length)
-	DISPATCH_FUNCTION(SET_STRING_CHUNK,              SetStringChunk,             set_string_chunk)
-	DISPATCH_FUNCTION(GET_STRING_CHUNK,              GetStringChunk,             get_string_chunk)
+	DISPATCH_FUNCTION(ALLOCATE_STRING,                  AllocateString,               allocate_string)
+	DISPATCH_FUNCTION(TRUNCATE_STRING,                  TruncateString,               truncate_string)
+	DISPATCH_FUNCTION(GET_STRING_LENGTH,                GetStringLength,              get_string_length)
+	DISPATCH_FUNCTION(SET_STRING_CHUNK,                 SetStringChunk,               set_string_chunk)
+	DISPATCH_FUNCTION(GET_STRING_CHUNK,                 GetStringChunk,               get_string_chunk)
 
 	// list
-	DISPATCH_FUNCTION(ALLOCATE_LIST,                 AllocateList,               allocate_list)
-	DISPATCH_FUNCTION(GET_LIST_LENGTH,               GetListLength,              get_list_length)
-	DISPATCH_FUNCTION(GET_LIST_ITEM,                 GetListItem,                get_list_item)
-	DISPATCH_FUNCTION(APPEND_TO_LIST,                AppendToList,               append_to_list)
-	DISPATCH_FUNCTION(REMOVE_FROM_LIST,              RemoveFromList,             remove_from_list)
+	DISPATCH_FUNCTION(ALLOCATE_LIST,                    AllocateList,                 allocate_list)
+	DISPATCH_FUNCTION(GET_LIST_LENGTH,                  GetListLength,                get_list_length)
+	DISPATCH_FUNCTION(GET_LIST_ITEM,                    GetListItem,                  get_list_item)
+	DISPATCH_FUNCTION(APPEND_TO_LIST,                   AppendToList,                 append_to_list)
+	DISPATCH_FUNCTION(REMOVE_FROM_LIST,                 RemoveFromList,               remove_from_list)
 
 	// file
-	DISPATCH_FUNCTION(OPEN_FILE,                     OpenFile,                   open_file)
-	DISPATCH_FUNCTION(CREATE_PIPE,                   CreatePipe,                 create_pipe)
-	DISPATCH_FUNCTION(GET_FILE_INFO,                 GetFileInfo,                get_file_info)
-	DISPATCH_FUNCTION(READ_FILE,                     ReadFile,                   read_file)
-	DISPATCH_FUNCTION(READ_FILE_ASYNC,               ReadFileAsync,              read_file_async)
-	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,         AbortAsyncFileRead,         abort_async_file_read)
-	DISPATCH_FUNCTION(WRITE_FILE,                    WriteFile,                  write_file)
-	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,          WriteFileUnchecked,         write_file_unchecked)
-	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,              WriteFileAsync,             write_file_async)
-	DISPATCH_FUNCTION(SET_FILE_POSITION,             SetFilePosition,            set_file_position)
-	DISPATCH_FUNCTION(GET_FILE_POSITION,             GetFilePosition,            get_file_position)
-	DISPATCH_FUNCTION(LOOKUP_FILE_INFO,              LookupFileInfo,             lookup_file_info)
-	DISPATCH_FUNCTION(LOOKUP_SYMLINK_TARGET,         LookupSymlinkTarget,        lookup_symlink_target)
+	DISPATCH_FUNCTION(OPEN_FILE,                        OpenFile,                     open_file)
+	DISPATCH_FUNCTION(CREATE_PIPE,                      CreatePipe,                   create_pipe)
+	DISPATCH_FUNCTION(GET_FILE_INFO,                    GetFileInfo,                  get_file_info)
+	DISPATCH_FUNCTION(READ_FILE,                        ReadFile,                     read_file)
+	DISPATCH_FUNCTION(READ_FILE_ASYNC,                  ReadFileAsync,                read_file_async)
+	DISPATCH_FUNCTION(ABORT_ASYNC_FILE_READ,            AbortAsyncFileRead,           abort_async_file_read)
+	DISPATCH_FUNCTION(WRITE_FILE,                       WriteFile,                    write_file)
+	DISPATCH_FUNCTION(WRITE_FILE_UNCHECKED,             WriteFileUnchecked,           write_file_unchecked)
+	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,                 WriteFileAsync,               write_file_async)
+	DISPATCH_FUNCTION(SET_FILE_POSITION,                SetFilePosition,              set_file_position)
+	DISPATCH_FUNCTION(GET_FILE_POSITION,                GetFilePosition,              get_file_position)
+	DISPATCH_FUNCTION(LOOKUP_FILE_INFO,                 LookupFileInfo,               lookup_file_info)
+	DISPATCH_FUNCTION(LOOKUP_SYMLINK_TARGET,            LookupSymlinkTarget,          lookup_symlink_target)
 
 	// directory
-	DISPATCH_FUNCTION(OPEN_DIRECTORY,                OpenDirectory,              open_directory)
-	DISPATCH_FUNCTION(GET_DIRECTORY_NAME,            GetDirectoryName,           get_directory_name)
-	DISPATCH_FUNCTION(GET_NEXT_DIRECTORY_ENTRY,      GetNextDirectoryEntry,      get_next_directory_entry)
-	DISPATCH_FUNCTION(REWIND_DIRECTORY,              RewindDirectory,            rewind_directory)
-	DISPATCH_FUNCTION(CREATE_DIRECTORY,              CreateDirectory,            create_directory)
+	DISPATCH_FUNCTION(OPEN_DIRECTORY,                   OpenDirectory,                open_directory)
+	DISPATCH_FUNCTION(GET_DIRECTORY_NAME,               GetDirectoryName,             get_directory_name)
+	DISPATCH_FUNCTION(GET_NEXT_DIRECTORY_ENTRY,         GetNextDirectoryEntry,        get_next_directory_entry)
+	DISPATCH_FUNCTION(REWIND_DIRECTORY,                 RewindDirectory,              rewind_directory)
+	DISPATCH_FUNCTION(CREATE_DIRECTORY,                 CreateDirectory,              create_directory)
 
 	// process
-	DISPATCH_FUNCTION(SPAWN_PROCESS,                 SpawnProcess,               spawn_process)
-	DISPATCH_FUNCTION(KILL_PROCESS,                  KillProcess,                kill_process)
-	DISPATCH_FUNCTION(GET_PROCESS_COMMAND,           GetProcessCommand,          get_process_command)
-	DISPATCH_FUNCTION(GET_PROCESS_IDENTITY,          GetProcessIdentity,         get_process_identity)
-	DISPATCH_FUNCTION(GET_PROCESS_STDIO,             GetProcessStdio,            get_process_stdio)
-	DISPATCH_FUNCTION(GET_PROCESS_STATE,             GetProcessState,            get_process_state)
+	DISPATCH_FUNCTION(SPAWN_PROCESS,                    SpawnProcess,                 spawn_process)
+	DISPATCH_FUNCTION(KILL_PROCESS,                     KillProcess,                  kill_process)
+	DISPATCH_FUNCTION(GET_PROCESS_COMMAND,              GetProcessCommand,            get_process_command)
+	DISPATCH_FUNCTION(GET_PROCESS_IDENTITY,             GetProcessIdentity,           get_process_identity)
+	DISPATCH_FUNCTION(GET_PROCESS_STDIO,                GetProcessStdio,              get_process_stdio)
+	DISPATCH_FUNCTION(GET_PROCESS_STATE,                GetProcessState,              get_process_state)
 
 	// program
-	DISPATCH_FUNCTION(DEFINE_PROGRAM,                DefineProgram,              define_program)
-	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,              UndefineProgram,            undefine_program)
-	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,        GetProgramIdentifier,       get_program_identifier)
-	DISPATCH_FUNCTION(GET_PROGRAM_DIRECTORY,         GetProgramDirectory,        get_program_directory)
-	DISPATCH_FUNCTION(SET_PROGRAM_COMMAND,           SetProgramCommand,          set_program_command)
-	DISPATCH_FUNCTION(GET_PROGRAM_COMMAND,           GetProgramCommand,          get_program_command)
-	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_REDIRECTION, SetProgramStdioRedirection, set_program_stdio_redirection)
-	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_REDIRECTION, GetProgramStdioRedirection, get_program_stdio_redirection)
-	DISPATCH_FUNCTION(SET_PROGRAM_SCHEDULE,          SetProgramSchedule,         set_program_schedule)
-	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULE,          GetProgramSchedule,         get_program_schedule)
+	DISPATCH_FUNCTION(DEFINE_PROGRAM,                   DefineProgram,                define_program)
+	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,                 UndefineProgram,              undefine_program)
+	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,           GetProgramIdentifier,         get_program_identifier)
+	DISPATCH_FUNCTION(GET_PROGRAM_DIRECTORY,            GetProgramDirectory,          get_program_directory)
+	DISPATCH_FUNCTION(SET_PROGRAM_COMMAND,              SetProgramCommand,            set_program_command)
+	DISPATCH_FUNCTION(GET_PROGRAM_COMMAND,              GetProgramCommand,            get_program_command)
+	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_REDIRECTION,    SetProgramStdioRedirection,   set_program_stdio_redirection)
+	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_REDIRECTION,    GetProgramStdioRedirection,   get_program_stdio_redirection)
+	DISPATCH_FUNCTION(SET_PROGRAM_SCHEDULE,             SetProgramSchedule,           set_program_schedule)
+	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULE,             GetProgramSchedule,           get_program_schedule)
+	DISPATCH_FUNCTION(GET_LAST_SPAWNED_PROGRAM_PROCESS, GetLastSpawnedProgramProcess, get_last_spawned_program_process)
+	DISPATCH_FUNCTION(GET_LAST_PROGRAM_SCHEDULER_ERROR, GetLastProgramSchedulerError, get_last_program_scheduler_error)
 
 	// misc
-	DISPATCH_FUNCTION(GET_IDENTITY,                  GetIdentity,                get_identity)
+	DISPATCH_FUNCTION(GET_IDENTITY,                     GetIdentity,                  get_identity)
 
 	default:
 		log_warn("Unknown function ID %u", request->header.function_id);
@@ -765,77 +793,81 @@ void api_handle_request(Packet *request) {
 const char *api_get_function_name(int function_id) {
 	switch (function_id) {
 	// object
-	case FUNCTION_RELEASE_OBJECT:                return "release-object";
+	case FUNCTION_RELEASE_OBJECT:                   return "release-object";
 
 	// inventory
-	case FUNCTION_OPEN_INVENTORY:                return "open-inventory";
-	case FUNCTION_GET_INVENTORY_TYPE:            return "get-inventory-type";
-	case FUNCTION_GET_NEXT_INVENTORY_ENTRY:      return "get-next-inventory-entry";
-	case FUNCTION_REWIND_INVENTORY:              return "rewind-inventory";
+	case FUNCTION_OPEN_INVENTORY:                   return "open-inventory";
+	case FUNCTION_GET_INVENTORY_TYPE:               return "get-inventory-type";
+	case FUNCTION_GET_NEXT_INVENTORY_ENTRY:         return "get-next-inventory-entry";
+	case FUNCTION_REWIND_INVENTORY:                 return "rewind-inventory";
 
 	// string
-	case FUNCTION_ALLOCATE_STRING:               return "allocate-string";
-	case FUNCTION_TRUNCATE_STRING:               return "truncate-string";
-	case FUNCTION_GET_STRING_LENGTH:             return "get-string-length";
-	case FUNCTION_SET_STRING_CHUNK:              return "set-string-chunk";
-	case FUNCTION_GET_STRING_CHUNK:              return "get-string-chunk";
+	case FUNCTION_ALLOCATE_STRING:                  return "allocate-string";
+	case FUNCTION_TRUNCATE_STRING:                  return "truncate-string";
+	case FUNCTION_GET_STRING_LENGTH:                return "get-string-length";
+	case FUNCTION_SET_STRING_CHUNK:                 return "set-string-chunk";
+	case FUNCTION_GET_STRING_CHUNK:                 return "get-string-chunk";
 
 	// list
-	case FUNCTION_ALLOCATE_LIST:                 return "allocate-list";
-	case FUNCTION_GET_LIST_LENGTH:               return "get-list-length";
-	case FUNCTION_GET_LIST_ITEM:                 return "get-list-item";
-	case FUNCTION_APPEND_TO_LIST:                return "append-to-list";
-	case FUNCTION_REMOVE_FROM_LIST:              return "remove-from-list";
+	case FUNCTION_ALLOCATE_LIST:                    return "allocate-list";
+	case FUNCTION_GET_LIST_LENGTH:                  return "get-list-length";
+	case FUNCTION_GET_LIST_ITEM:                    return "get-list-item";
+	case FUNCTION_APPEND_TO_LIST:                   return "append-to-list";
+	case FUNCTION_REMOVE_FROM_LIST:                 return "remove-from-list";
 
 	// file
-	case FUNCTION_OPEN_FILE:                     return "open-file";
-	case FUNCTION_CREATE_PIPE:                   return "create-pipe";
-	case FUNCTION_GET_FILE_INFO:                 return "get-file-info";
-	case FUNCTION_READ_FILE:                     return "read-file";
-	case FUNCTION_READ_FILE_ASYNC:               return "read-file-async";
-	case FUNCTION_ABORT_ASYNC_FILE_READ:         return "abort-async-file-read";
-	case FUNCTION_WRITE_FILE:                    return "write-file";
-	case FUNCTION_WRITE_FILE_UNCHECKED:          return "write-file-unchecked";
-	case FUNCTION_WRITE_FILE_ASYNC:              return "write-file-async";
-	case FUNCTION_SET_FILE_POSITION:             return "set-file-position";
-	case FUNCTION_GET_FILE_POSITION:             return "get-file-position";
-	case CALLBACK_ASYNC_FILE_READ:               return "async-file-read";
-	case CALLBACK_ASYNC_FILE_WRITE:              return "async-file-write";
-	case FUNCTION_LOOKUP_FILE_INFO:              return "lookup-file-info";
-	case FUNCTION_LOOKUP_SYMLINK_TARGET:         return "lookup-symlink-target";
+	case FUNCTION_OPEN_FILE:                        return "open-file";
+	case FUNCTION_CREATE_PIPE:                      return "create-pipe";
+	case FUNCTION_GET_FILE_INFO:                    return "get-file-info";
+	case FUNCTION_READ_FILE:                        return "read-file";
+	case FUNCTION_READ_FILE_ASYNC:                  return "read-file-async";
+	case FUNCTION_ABORT_ASYNC_FILE_READ:            return "abort-async-file-read";
+	case FUNCTION_WRITE_FILE:                       return "write-file";
+	case FUNCTION_WRITE_FILE_UNCHECKED:             return "write-file-unchecked";
+	case FUNCTION_WRITE_FILE_ASYNC:                 return "write-file-async";
+	case FUNCTION_SET_FILE_POSITION:                return "set-file-position";
+	case FUNCTION_GET_FILE_POSITION:                return "get-file-position";
+	case CALLBACK_ASYNC_FILE_READ:                  return "async-file-read";
+	case CALLBACK_ASYNC_FILE_WRITE:                 return "async-file-write";
+	case FUNCTION_LOOKUP_FILE_INFO:                 return "lookup-file-info";
+	case FUNCTION_LOOKUP_SYMLINK_TARGET:            return "lookup-symlink-target";
 
 	// directory
-	case FUNCTION_OPEN_DIRECTORY:                return "open-directory";
-	case FUNCTION_GET_DIRECTORY_NAME:            return "get-directory-name";
-	case FUNCTION_GET_NEXT_DIRECTORY_ENTRY:      return "get-next-directory-entry";
-	case FUNCTION_REWIND_DIRECTORY:              return "rewind-directory";
-	case FUNCTION_CREATE_DIRECTORY:              return "create-directory";
+	case FUNCTION_OPEN_DIRECTORY:                   return "open-directory";
+	case FUNCTION_GET_DIRECTORY_NAME:               return "get-directory-name";
+	case FUNCTION_GET_NEXT_DIRECTORY_ENTRY:         return "get-next-directory-entry";
+	case FUNCTION_REWIND_DIRECTORY:                 return "rewind-directory";
+	case FUNCTION_CREATE_DIRECTORY:                 return "create-directory";
 
 	// process
-	case FUNCTION_SPAWN_PROCESS:                 return "spawn-process";
-	case FUNCTION_KILL_PROCESS:                  return "kill-process";
-	case FUNCTION_GET_PROCESS_COMMAND:           return "get-process-command";
-	case FUNCTION_GET_PROCESS_IDENTITY:          return "get-process-identity";
-	case FUNCTION_GET_PROCESS_STDIO:             return "get-process-stdio";
-	case FUNCTION_GET_PROCESS_STATE:             return "get-process-state";
-	case CALLBACK_PROCESS_STATE_CHANGED:         return "process-state-changed";
+	case FUNCTION_SPAWN_PROCESS:                    return "spawn-process";
+	case FUNCTION_KILL_PROCESS:                     return "kill-process";
+	case FUNCTION_GET_PROCESS_COMMAND:              return "get-process-command";
+	case FUNCTION_GET_PROCESS_IDENTITY:             return "get-process-identity";
+	case FUNCTION_GET_PROCESS_STDIO:                return "get-process-stdio";
+	case FUNCTION_GET_PROCESS_STATE:                return "get-process-state";
+	case CALLBACK_PROCESS_STATE_CHANGED:            return "process-state-changed";
 
 	// program
-	case FUNCTION_DEFINE_PROGRAM:                return "define-program";
-	case FUNCTION_UNDEFINE_PROGRAM:              return "undefine-program";
-	case FUNCTION_GET_PROGRAM_IDENTIFIER:        return "get-program-identifier";
-	case FUNCTION_GET_PROGRAM_DIRECTORY:         return "get-program-directory";
-	case FUNCTION_SET_PROGRAM_COMMAND:           return "set-program-command";
-	case FUNCTION_GET_PROGRAM_COMMAND:           return "get-program-command";
-	case FUNCTION_SET_PROGRAM_STDIO_REDIRECTION: return "set-program-stdio-redirection";
-	case FUNCTION_GET_PROGRAM_STDIO_REDIRECTION: return "get-program-stdio-redirection";
-	case FUNCTION_SET_PROGRAM_SCHEDULE:          return "set-program-schedule";
-	case FUNCTION_GET_PROGRAM_SCHEDULE:          return "get-program-schedule";
+	case FUNCTION_DEFINE_PROGRAM:                   return "define-program";
+	case FUNCTION_UNDEFINE_PROGRAM:                 return "undefine-program";
+	case FUNCTION_GET_PROGRAM_IDENTIFIER:           return "get-program-identifier";
+	case FUNCTION_GET_PROGRAM_DIRECTORY:            return "get-program-directory";
+	case FUNCTION_SET_PROGRAM_COMMAND:              return "set-program-command";
+	case FUNCTION_GET_PROGRAM_COMMAND:              return "get-program-command";
+	case FUNCTION_SET_PROGRAM_STDIO_REDIRECTION:    return "set-program-stdio-redirection";
+	case FUNCTION_GET_PROGRAM_STDIO_REDIRECTION:    return "get-program-stdio-redirection";
+	case FUNCTION_SET_PROGRAM_SCHEDULE:             return "set-program-schedule";
+	case FUNCTION_GET_PROGRAM_SCHEDULE:             return "get-program-schedule";
+	case FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS: return "get-last-spawned-program-process";
+	case FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR: return "get-last-program-scheduler-error";
+	case CALLBACK_PROGRAM_PROCESS_SPAWNED:          return "program-process-spawned";
+	case CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED: return "program-scheduler-error-occurred";
 
 	// misc
-	case FUNCTION_GET_IDENTITY:                  return "get-identity";
+	case FUNCTION_GET_IDENTITY:                     return "get-identity";
 
-	default:                                     return "<unknown>";
+	default:                                        return "<unknown>";
 	}
 }
 
@@ -871,4 +903,16 @@ void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
 	_process_state_changed_callback.exit_code = exit_code;
 
 	network_dispatch_response((Packet *)&_process_state_changed_callback);
+}
+
+void api_send_program_process_spawned_callback(ObjectID program_id) {
+	_program_process_spawned_callback.program_id = program_id;
+
+	network_dispatch_response((Packet *)&_program_process_spawned_callback);
+}
+
+void api_send_program_scheduler_error_occurred_callback(ObjectID program_id) {
+	_program_scheduler_error_occurred_callback.program_id = program_id;
+
+	network_dispatch_response((Packet *)&_program_scheduler_error_occurred_callback);
 }
