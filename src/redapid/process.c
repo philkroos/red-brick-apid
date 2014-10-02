@@ -712,8 +712,11 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	phase = 14;
 
 	// create process object
-	error_code = object_create(&process->base, OBJECT_TYPE_PROCESS,
-	                           object_create_flags, process_destroy);
+	error_code = object_create(&process->base,
+	                           OBJECT_TYPE_PROCESS,
+	                           object_create_flags |
+	                           OBJECT_CREATE_FLAG_INTERNAL,
+	                           process_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
