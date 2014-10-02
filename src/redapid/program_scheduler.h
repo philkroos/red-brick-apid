@@ -47,6 +47,7 @@ typedef struct {
 	ProgramSchedulerErrorFunction error;
 	void *opaque;
 	String *working_directory; // <home>/programs/<identifier>/bin
+	char *log_directory; // <home>/programs/<identifier>/log
 	String *dev_null_file_name; // /dev/null
 	ProgramSchedulerState state;
 	uint64_t delayed_start_timestamp;

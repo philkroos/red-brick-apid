@@ -263,7 +263,7 @@ int inventory_load_programs(void) {
 
 		if (robust_snprintf(filename, sizeof(filename), "%s/program.conf",
 		                    directory) < 0) {
-			log_error("Could not format program config name: %s (%d)",
+			log_error("Could not format program config file name: %s (%d)",
 			          get_errno_name(errno), errno);
 
 			goto cleanup;

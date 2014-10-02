@@ -297,6 +297,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	APIE error_code;
 	String *identifier;
 	char buffer[1024];
+	char config_filename[1024];
 	String *directory;
 	Program *program;
 
@@ -340,11 +341,12 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	phase = 2;
 
-	// create config filename
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/program.conf", directory->buffer) < 0) {
+	// format config filename
+	if (robust_snprintf(config_filename, sizeof(config_filename),
+	                    "%s/program.conf", directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create program config name: %s (%d)",
+		log_error("Could not format program config file name: %s (%d)",
 		          get_errno_name(errno), errno);
 
 		goto cleanup;
@@ -380,7 +382,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	program->error_message = NULL;
 	program->error_internal = false;
 
-	error_code = program_config_create(&program->config, buffer);
+	error_code = program_config_create(&program->config, config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
