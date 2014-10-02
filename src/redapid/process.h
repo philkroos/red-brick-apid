@@ -72,6 +72,7 @@ typedef struct {
 	File *stdin;
 	File *stdout;
 	File *stderr;
+	bool auto_destroy; // FIXME: find a better name for this
 	ProcessStateChangeFunction state_change;
 	void *opaque;
 	ProcessState state;
@@ -90,7 +91,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id,
-                   uint16_t object_create_flags,
+                   uint16_t object_create_flags, bool auto_destroy,
                    ProcessStateChangeFunction state_change, void *opaque,
                    ObjectID *id, Process **object);
 APIE process_kill(Process *process, ProcessSignal signal);

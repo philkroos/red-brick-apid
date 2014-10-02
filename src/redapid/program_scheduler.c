@@ -131,8 +131,8 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	File *stdout;
 
 	if (program_scheduler->process != NULL) {
-		if (program_scheduler->process->state == PROCESS_STATE_RUNNING) {
-			// don't spawn a new process if one is already running
+		if (process_is_alive(program_scheduler->process)) {
+			// don't spawn a new process if one is already alive
 			program_scheduler_stop(program_scheduler);
 
 			return;
@@ -175,7 +175,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                           program_scheduler->working_directory->base.id,
 	                           1000, 1000,
 	                           stdin->base.id, stdout->base.id, stdout->base.id,
-	                           OBJECT_CREATE_FLAG_INTERNAL,
+	                           OBJECT_CREATE_FLAG_INTERNAL, false,
 	                           program_scheduler_handle_process_state_change,
 	                           program_scheduler,
 	                           NULL, &program_scheduler->process);

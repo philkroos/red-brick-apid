@@ -475,7 +475,7 @@ CALL_FUNCTION(SpawnProcess, spawn_process, {
 	                                    request->stderr_file_id,
 	                                    OBJECT_CREATE_FLAG_INTERNAL |
 	                                    OBJECT_CREATE_FLAG_EXTERNAL,
-	                                    NULL, NULL,
+	                                    true, NULL, NULL,
 	                                    &response.process_id, NULL);
 })
 

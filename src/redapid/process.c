@@ -69,7 +69,7 @@ static void process_destroy(Object *object) {
 	event_remove_source(process->state_change_pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
 
 	// FIXME: this code here has the same race condition as process_kill
-	if (process_state_is_alive(process->state)) {
+	if (process_is_alive(process)) {
 		log_warn("Destroying process object (id: %u, executable: %s) while child process (pid: %u) is still alive",
 		         process->base.id, process->executable->buffer, process->pid);
 
@@ -187,7 +187,7 @@ static void process_handle_state_change(void *opaque) {
 	process->timestamp = change.timestamp;
 	process->exit_code = change.exit_code;
 
-	if (!process_state_is_alive(process->state)) {
+	if (!process_is_alive(process)) {
 		process->pid = 0;
 	}
 
@@ -205,7 +205,9 @@ static void process_handle_state_change(void *opaque) {
 		                                        change.exit_code);
 	}
 
-	if (!process_state_is_alive(process->state)) {
+	if (process->auto_destroy && !process_is_alive(process)) {
+		process->auto_destroy = false; // only auto-destroy once
+
 		object_remove_internal_reference(&process->base);
 	}
 }
@@ -291,7 +293,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id,
-                   uint16_t object_create_flags,
+                   uint16_t object_create_flags, bool auto_destroy,
                    ProcessStateChangeFunction state_change, void *opaque,
                    ObjectID *id, Process **object) {
 	int phase = 0;
@@ -686,6 +688,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->stdin = stdin;
 	process->stdout = stdout;
 	process->stderr = stderr;
+	process->auto_destroy = auto_destroy;
 	process->state_change = state_change;
 	process->opaque = opaque;
 	process->state = PROCESS_STATE_RUNNING;
@@ -805,7 +808,7 @@ APIE process_kill(Process *process, ProcessSignal signal) {
 	//        yet. this can result in trying to kill a process that's not
 	//        existing anymore. or even worse, the process ID has already been
 	//        reused and an unrelated process gets killed here
-	if (!process_state_is_alive(process->state)) {
+	if (!process_is_alive(process)) {
 		log_warn("Cannot send signal (number: %d) to an already dead child process (executable: %s)",
 		         signal, process->executable->buffer);
 
