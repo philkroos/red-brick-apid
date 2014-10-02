@@ -212,6 +212,7 @@ int inventory_load_programs(void) {
 	const char *identifier;
 	char directory[1024];
 	char filename[1024];
+	APIE error_code;
 
 	log_debug("Loading program configurations from '%s'", _programs_directory);
 
@@ -269,7 +270,15 @@ int inventory_load_programs(void) {
 			goto cleanup;
 		}
 
-		program_load(identifier, directory, filename); // ignore load errors
+		log_debug("Loading program from '%s'", directory);
+
+		error_code = program_load(identifier, directory, filename);
+
+		if (error_code != API_E_SUCCESS) {
+			// load errors are non-fatal
+			log_debug("Could not load program from '%s': %s (%d)",
+			          directory, api_get_error_code_name(error_code), error_code);
+		}
 	}
 
 	success = true;
