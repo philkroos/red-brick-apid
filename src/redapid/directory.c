@@ -50,14 +50,14 @@ static void directory_destroy(Object *object) {
 }
 
 // NOTE: assumes that name is absolute (starts with '/')
-static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
+static APIE directory_create_helper(char *name, uint16_t flags, mode_t mode) {
 	char *p;
 	struct stat st;
 	APIE error_code;
 
 	if (mkdir(name, mode) < 0) {
 		if (errno == ENOENT) {
-			if (!recursive) {
+			if ((flags & DIRECTORY_FLAG_RECURSIVE) == 0) {
 				log_warn("Cannot create directory '%s' non-recursively", name);
 
 				return API_E_INVALID_OPERATION;
@@ -70,7 +70,7 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 
 				// FIXME: if the directory name has really many parts
 				//        then this could trigger a stack overflow
-				error_code = directory_create_helper(name, recursive, mode);
+				error_code = directory_create_helper(name, flags, mode);
 
 				*p = '/';
 
@@ -108,9 +108,11 @@ static APIE directory_create_helper(char *name, bool recursive, mode_t mode) {
 			return API_E_NOT_A_DIRECTORY;
 		}
 
-		log_warn("Could not create already existing directory '%s'", name);
+		if ((flags & DIRECTORY_FLAG_EXCLUSIVE) != 0) {
+			log_warn("Could not create already existing directory '%s'", name);
 
-		return API_E_ALREADY_EXISTS;
+			return API_E_ALREADY_EXISTS;
+		}
 	}
 
 	return API_E_SUCCESS;
@@ -303,7 +305,7 @@ APIE directory_rewind(Directory *directory) {
 }
 
 // public API
-APIE directory_create(const char *name, bool recursive, uint16_t permissions,
+APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,
                       uint32_t uid, uint32_t gid) {
 	mode_t mode;
 	char *tmp;
@@ -320,6 +322,12 @@ APIE directory_create(const char *name, bool recursive, uint16_t permissions,
 
 	if (*name != '/') {
 		log_warn("Cannot create relative directory '%s'", name);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	if ((flags & ~DIRECTORY_FLAG_ALL) != 0) {
+		log_warn("Invalid directory flags 0x%04X", flags);
 
 		return API_E_INVALID_PARAMETER;
 	}
@@ -343,7 +351,7 @@ APIE directory_create(const char *name, bool recursive, uint16_t permissions,
 	}
 
 	if (geteuid() == uid && getegid() == gid) {
-		error_code = directory_create_helper(tmp, recursive, mode);
+		error_code = directory_create_helper(tmp, flags, mode);
 	} else {
 		error_code = process_fork(&pid);
 
@@ -373,7 +381,7 @@ APIE directory_create(const char *name, bool recursive, uint16_t permissions,
 			}
 
 			// create directory
-			error_code = directory_create_helper(tmp, recursive, mode);
+			error_code = directory_create_helper(tmp, flags, mode);
 
 		child_cleanup:
 			// report error code as exit status

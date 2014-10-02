@@ -659,7 +659,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	phase = 3;
 
 	// create working directory as default user (UID 1000, GID 1000)
-	error_code = directory_create(working_directory->buffer, true, 0755, 1000, 1000);
+	error_code = directory_create(working_directory->buffer,
+	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -678,7 +679,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	phase = 4;
 
 	// create log directory as default user (UID 1000, GID 1000)
-	error_code = directory_create(log_directory, true, 0755, 1000, 1000);
+	error_code = directory_create(log_directory, DIRECTORY_FLAG_RECURSIVE,
+	                              0755, 1000, 1000);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

@@ -153,12 +153,17 @@ enum pipe_flag { // bitmask
  * directory
  */
 
+enum directory_flag { // bitmask
+	DIRECTORY_FLAG_RECURSIVE = 0x0001,
+	DIRECTORY_FLAG_EXCLUSIVE = 0x0002
+};
+
 + open_directory           (uint16_t name_string_id) -> uint8_t error_code, uint16_t directory_id
 + get_directory_name       (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id
 + get_next_directory_entry (uint16_t directory_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory
 + rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
-+ create_directory (uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t uid, uint32_t gid) -> uint8_t error_code
++ create_directory (uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid) -> uint8_t error_code
 
 
 /*

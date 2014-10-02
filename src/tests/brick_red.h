@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-01.      *
+ * This file was automatically generated on 2014-10-02.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -539,6 +539,16 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_FILE_ORIGIN_END 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_FLAG_RECURSIVE 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_FLAG_EXCLUSIVE 2
 
 /**
  * \ingroup BrickRED
@@ -1192,7 +1202,7 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
  *
  * FIXME: name has to be absolute
  */
-int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code);
+int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED

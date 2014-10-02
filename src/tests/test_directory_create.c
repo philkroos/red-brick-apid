@@ -35,7 +35,7 @@ int main() {
 		return -1;
 	}
 
-	rc = red_create_directory(&red, sid, true, 0755, 1000, 1000, &ec);
+	rc = red_create_directory(&red, sid, RED_DIRECTORY_FLAG_RECURSIVE | RED_DIRECTORY_FLAG_EXCLUSIVE, 0755, 1000, 1000, &ec);
 	if (rc < 0) {
 		printf("red_create_directory -> rc %d\n", rc);
 		goto cleanup;

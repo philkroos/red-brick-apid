@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-01.      *
+ * This file was automatically generated on 2014-10-02.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -439,7 +439,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	bool recursive;
+	uint16_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
@@ -1794,7 +1794,7 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
 	return ret;
 }
 
-int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code) {
+int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	CreateDirectory_ request;
 	CreateDirectoryResponse_ response;
@@ -1807,7 +1807,7 @@ int red_create_directory(RED *red, uint16_t name_string_id, bool recursive, uint
 	}
 
 	request.name_string_id = leconvert_uint16_to(name_string_id);
-	request.recursive = recursive;
+	request.flags = leconvert_uint16_to(flags);
 	request.permissions = leconvert_uint16_to(permissions);
 	request.uid = leconvert_uint32_to(uid);
 	request.gid = leconvert_uint32_to(gid);

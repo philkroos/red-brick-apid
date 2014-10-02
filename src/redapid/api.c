@@ -449,7 +449,7 @@ CALL_DIRECTORY_FUNCTION(RewindDirectory, rewind_directory, {
 })
 
 CALL_FUNCTION_WITH_STRING(CreateDirectory, create_directory, name, {
-	response.error_code = directory_create(name->buffer, request->recursive,
+	response.error_code = directory_create(name->buffer, request->flags,
 	                                       request->permissions,
 	                                       request->uid, request->gid);
 })

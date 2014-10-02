@@ -449,7 +449,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	tfpbool recursive;
+	uint16_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;

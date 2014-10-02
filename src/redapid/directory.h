@@ -30,6 +30,14 @@
 #define DIRECTORY_MAX_NAME_LENGTH 1024
 #define DIRECTORY_MAX_ENTRY_LENGTH 1024
 
+typedef enum { // bitmask
+	DIRECTORY_FLAG_RECURSIVE = 0x0001,
+	DIRECTORY_FLAG_EXCLUSIVE = 0x0002
+} DirectoryFlag;
+
+#define DIRECTORY_FLAG_ALL (DIRECTORY_FLAG_RECURSIVE | \
+                            DIRECTORY_FLAG_EXCLUSIVE)
+
 typedef struct {
 	Object base;
 
@@ -46,7 +54,7 @@ APIE directory_get_name(Directory *directory, ObjectID *name_id);
 APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *type);
 APIE directory_rewind(Directory *directory);
 
-APIE directory_create(const char *name, bool recursive, uint16_t permissions,
+APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,
                       uint32_t uid, uint32_t gid);
 
 #endif // REDAPID_DIRECTORY_H
