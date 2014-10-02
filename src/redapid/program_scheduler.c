@@ -748,6 +748,8 @@ cleanup:
 }
 
 void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
+	program_scheduler_shutdown(program_scheduler);
+
 	timer_destroy(&program_scheduler->timer);
 
 	string_unlock(program_scheduler->dev_null_file_name);
@@ -768,9 +770,17 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 }
 
 void program_scheduler_shutdown(ProgramScheduler *program_scheduler) {
+	if (program_scheduler->shutdown) {
+		return;
+	}
+
 	program_scheduler->shutdown = true;
 
-	program_scheduler_stop(program_scheduler);
+	if (program_scheduler->process != NULL) {
+		object_remove_internal_reference(&program_scheduler->process->base);
 
-	// FIXME: kill running process
+		program_scheduler->process = NULL;
+	}
+
+	program_scheduler_stop(program_scheduler);
 }
