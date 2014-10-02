@@ -138,7 +138,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 			return;
 		}
 
-		process_vacate(program_scheduler->process);
+		object_remove_internal_reference(&program_scheduler->process->base);
 
 		program_scheduler->process = NULL;
 	}
@@ -175,8 +175,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                           program_scheduler->working_directory->base.id,
 	                           1000, 1000,
 	                           stdin->base.id, stdout->base.id, stdout->base.id,
-	                           OBJECT_CREATE_FLAG_INTERNAL |
-	                           OBJECT_CREATE_FLAG_OCCUPIED,
+	                           OBJECT_CREATE_FLAG_INTERNAL,
 	                           program_scheduler_handle_process_state_change,
 	                           program_scheduler,
 	                           NULL, &program_scheduler->process);
@@ -347,7 +346,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	// wrap working directory string
 	error_code = string_wrap(buffer,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &working_directory);
 
 	if (error_code != API_E_SUCCESS) {
@@ -359,7 +358,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	// wrap /dev/null string
 	error_code = string_wrap("/dev/null",
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &dev_null_file_name);
 
 	if (error_code != API_E_SUCCESS) {
@@ -395,10 +394,10 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 4:
-		string_vacate(dev_null_file_name);
+		string_unlock(dev_null_file_name);
 
 	case 3:
-		string_vacate(working_directory);
+		string_unlock(working_directory);
 
 	case 2:
 		free(program_scheduler->directory);
@@ -416,8 +415,8 @@ cleanup:
 void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 	timer_destroy(&program_scheduler->timer);
 
-	string_vacate(program_scheduler->dev_null_file_name);
-	string_vacate(program_scheduler->working_directory);
+	string_unlock(program_scheduler->dev_null_file_name);
+	string_unlock(program_scheduler->working_directory);
 
 	free(program_scheduler->directory);
 	free(program_scheduler->identifier);

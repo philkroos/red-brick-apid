@@ -163,7 +163,7 @@ static APIE program_config_get_string(ProgramConfig *program_config,
 
 	error_code = string_wrap(string,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, value);
 
 	if (error_code != API_E_SUCCESS) {
@@ -439,7 +439,7 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 	// create list object
 	error_code = list_create(length,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, value);
 
 	if (error_code != API_E_SUCCESS) {
@@ -481,7 +481,7 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 
 error:
-	list_vacate(*value);
+	list_unlock(*value);
 
 	return error_code;
 }
@@ -496,7 +496,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	// create executable string object
 	error_code = string_wrap("",
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &executable);
 
 	if (error_code != API_E_SUCCESS) {
@@ -508,7 +508,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	// create arguments list object
 	error_code = list_create(0,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &arguments);
 
 	if (error_code != API_E_SUCCESS) {
@@ -520,7 +520,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	// create environment list object
 	error_code = list_create(0,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &environment);
 
 	if (error_code != API_E_SUCCESS) {
@@ -568,13 +568,13 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
-		list_vacate(environment);
+		list_unlock(environment);
 
 	case 2:
-		list_vacate(arguments);
+		list_unlock(arguments);
 
 	case 1:
-		string_vacate(executable);
+		string_unlock(executable);
 
 	default:
 		break;
@@ -585,20 +585,20 @@ cleanup:
 
 void program_config_destroy(ProgramConfig *program_config) {
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program_config->stderr_file_name);
+		string_unlock(program_config->stderr_file_name);
 	}
 
 	if (program_config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program_config->stdout_file_name);
+		string_unlock(program_config->stdout_file_name);
 	}
 
 	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program_config->stdin_file_name);
+		string_unlock(program_config->stdin_file_name);
 	}
 
-	list_vacate(program_config->environment);
-	list_vacate(program_config->arguments);
-	string_vacate(program_config->executable);
+	list_unlock(program_config->environment);
+	list_unlock(program_config->arguments);
+	string_unlock(program_config->executable);
 	free(program_config->filename);
 }
 
@@ -903,21 +903,21 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// vacate old objects
-	string_vacate(program_config->executable);
-	list_vacate(program_config->arguments);
-	list_vacate(program_config->environment);
+	// unlock old objects
+	string_unlock(program_config->executable);
+	list_unlock(program_config->arguments);
+	list_unlock(program_config->environment);
 
 	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program_config->stdin_file_name);
+		string_unlock(program_config->stdin_file_name);
 	}
 
 	if (program_config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program_config->stdout_file_name);
+		string_unlock(program_config->stdout_file_name);
 	}
 
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(program_config->stderr_file_name);
+		string_unlock(program_config->stderr_file_name);
 	}
 
 	// set new objects
@@ -950,27 +950,27 @@ cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 7:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_vacate(stderr_file_name);
+			string_unlock(stderr_file_name);
 		}
 
 	case 6:
 		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_vacate(stdout_file_name);
+			string_unlock(stdout_file_name);
 		}
 
 	case 5:
 		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_vacate(stdin_file_name);
+			string_unlock(stdin_file_name);
 		}
 
 	case 4:
-		list_vacate(environment);
+		list_unlock(environment);
 
 	case 3:
-		list_vacate(arguments);
+		list_unlock(arguments);
 
 	case 2:
-		string_vacate(executable);
+		string_unlock(executable);
 
 	case 1:
 		conf_file_destroy(&conf_file);

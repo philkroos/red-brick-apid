@@ -106,7 +106,4 @@ APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
 
 bool process_is_alive(Process *process);
 
-APIE process_occupy(ObjectID id, Process **process);
-void process_vacate(Process *process);
-
 #endif // REDAPID_PROCESS_H

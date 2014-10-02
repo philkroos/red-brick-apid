@@ -203,7 +203,7 @@ static void file_destroy(Object *object) {
 		close(file->fd);
 	}
 
-	string_vacate(file->name);
+	string_unlock(file->name);
 
 	free(file);
 }
@@ -667,8 +667,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		mode |= file_get_mode_from_permissions(permissions);
 	}
 
-	// occupy name string object
-	error_code = string_occupy(name_id, &name);
+	// lock name string object
+	error_code = string_lock(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -819,7 +819,7 @@ cleanup:
 		close(fd);
 
 	case 1:
-		string_vacate(name);
+		string_unlock(name);
 
 	default:
 		break;
@@ -848,7 +848,8 @@ APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
 	// create name string object
 	error_code = string_wrap("<unnamed>",
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED, NULL, &name);
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -922,7 +923,7 @@ cleanup:
 		free(file);
 
 	case 1:
-		string_vacate(name);
+		string_unlock(name);
 
 	default:
 		break;
@@ -1301,12 +1302,12 @@ IOHandle file_get_write_handle(File *file) {
 	}
 }
 
-APIE file_occupy(ObjectID id, File **file) {
-	return inventory_occupy_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
+APIE file_lock(ObjectID id, File **file) {
+	return inventory_lock_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
 }
 
-void file_vacate(File *file) {
-	object_vacate(&file->base);
+void file_unlock(File *file) {
+	object_unlock(&file->base);
 }
 
 // public API

@@ -109,12 +109,12 @@ static void program_report_scheduler_error(uint64_t timestamp, const char *messa
 	Program *program = opaque;
 
 	if (program->error_message != NULL) {
-		string_vacate(program->error_message);
+		string_unlock(program->error_message);
 	}
 
 	if (string_wrap(message,
 	                OBJECT_CREATE_FLAG_INTERNAL |
-	                OBJECT_CREATE_FLAG_OCCUPIED,
+	                OBJECT_CREATE_FLAG_LOCKED,
 	                NULL, &program->error_message) == API_E_SUCCESS) {
 		program->error_timestamp = timestamp;
 		program->error_internal = false;
@@ -136,15 +136,15 @@ static void program_destroy(Object *object) {
 	Program *program = (Program *)object;
 
 	if (program->error_message != NULL) {
-		string_vacate(program->error_message);
+		string_unlock(program->error_message);
 	}
 
 	program_scheduler_destroy(&program->scheduler);
 
 	program_config_destroy(&program->config);
 
-	string_vacate(program->directory);
-	string_vacate(program->identifier);
+	string_unlock(program->directory);
+	string_unlock(program->identifier);
 
 	free(program);
 }
@@ -193,7 +193,7 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 	// wrap identifier string
 	error_code = string_wrap(identifier,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &identifier_object);
 
 	if (error_code != API_E_SUCCESS) {
@@ -205,7 +205,7 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 	// wrap directory string
 	error_code = string_wrap(directory,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &directory_object);
 
 	if (error_code != API_E_SUCCESS) {
@@ -276,10 +276,10 @@ cleanup:
 		free(program);
 
 	case 3:
-		string_vacate(directory_object);
+		string_unlock(directory_object);
 
 	case 2:
-		string_vacate(identifier_object);
+		string_unlock(identifier_object);
 
 	case 1:
 		program_config_destroy(&program_config);
@@ -300,8 +300,8 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	String *directory;
 	Program *program;
 
-	// occupy identifier string object
-	error_code = string_occupy(identifier_id, &identifier);
+	// lock identifier string object
+	error_code = string_lock(identifier_id, &identifier);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -331,7 +331,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	error_code = string_wrap(buffer,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_OCCUPIED,
+	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &directory);
 
 	if (error_code != API_E_SUCCESS) {
@@ -442,10 +442,10 @@ cleanup:
 		rmdir(directory->buffer); // FIXME: do a recursive remove here
 
 	case 2:
-		string_vacate(directory);
+		string_unlock(directory);
 
 	case 1:
-		string_vacate(identifier);
+		string_unlock(identifier);
 
 	default:
 		break;
@@ -513,8 +513,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	List *environment;
 	ProgramConfig backup;
 
-	// occupy new executable string object
-	error_code = string_occupy(executable_id, &executable);
+	// lock new executable string object
+	error_code = string_lock(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -530,8 +530,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 		goto cleanup;
 	}
 
-	// occupy new arguments list object
-	error_code = list_occupy(arguments_id, OBJECT_TYPE_STRING, &arguments);
+	// lock new arguments list object
+	error_code = list_lock(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -539,8 +539,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 
 	phase = 2;
 
-	// occupy new environment list object
-	error_code = list_occupy(environment_id, OBJECT_TYPE_STRING, &environment);
+	// lock new environment list object
+	error_code = list_lock(environment_id, OBJECT_TYPE_STRING, &environment);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -563,10 +563,10 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 		goto cleanup;
 	}
 
-	// vacate old objects
-	string_vacate(backup.executable);
-	list_vacate(backup.arguments);
-	list_vacate(backup.environment);
+	// unlock old objects
+	string_unlock(backup.executable);
+	list_unlock(backup.arguments);
+	list_unlock(backup.environment);
 
 	phase = 4;
 
@@ -577,13 +577,13 @@ cleanup:
 	case 3:
 		memcpy(&program->config, &backup, sizeof(program->config));
 
-		list_vacate(environment);
+		list_unlock(environment);
 
 	case 2:
-		list_vacate(arguments);
+		list_unlock(arguments);
 
 	case 1:
-		string_vacate(executable);
+		string_unlock(executable);
 
 	default:
 		break;
@@ -649,8 +649,8 @@ APIE program_set_stdio_redirection(Program *program,
 	}
 
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// occupy new stdin file name string object
-		error_code = string_occupy(stdin_file_name_id, &stdin_file_name);
+		// lock new stdin file name string object
+		error_code = string_lock(stdin_file_name_id, &stdin_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -679,8 +679,8 @@ APIE program_set_stdio_redirection(Program *program,
 	}
 
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// occupy new stdout file name string object
-		error_code = string_occupy(stdout_file_name_id, &stdout_file_name);
+		// lock new stdout file name string object
+		error_code = string_lock(stdout_file_name_id, &stdout_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -709,8 +709,8 @@ APIE program_set_stdio_redirection(Program *program,
 	}
 
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// occupy new stderr file name string object
-		error_code = string_occupy(stderr_file_name_id, &stderr_file_name);
+		// lock new stderr file name string object
+		error_code = string_lock(stderr_file_name_id, &stderr_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -775,17 +775,17 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
-	// vacate old objects
+	// unlock old objects
 	if (backup.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(backup.stdin_file_name);
+		string_unlock(backup.stdin_file_name);
 	}
 
 	if (backup.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(backup.stdout_file_name);
+		string_unlock(backup.stdout_file_name);
 	}
 
 	if (backup.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_vacate(backup.stderr_file_name);
+		string_unlock(backup.stderr_file_name);
 	}
 
 	phase = 5;
@@ -799,17 +799,17 @@ cleanup:
 
 	case 3:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_vacate(stderr_file_name);
+			string_unlock(stderr_file_name);
 		}
 
 	case 2:
 		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_vacate(stdout_file_name);
+			string_unlock(stdout_file_name);
 		}
 
 	case 1:
 		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_vacate(stdin_file_name);
+			string_unlock(stdin_file_name);
 		}
 
 	default:

@@ -43,7 +43,7 @@ APIE list_remove_from(List *list, uint16_t index);
 
 APIE list_ensure_item_type(List *list, ObjectType type);
 
-APIE list_occupy(ObjectID id, ObjectType item_type, List **list);
-void list_vacate(List *list);
+APIE list_lock(ObjectID id, ObjectType item_type, List **list);
+void list_unlock(List *list);
 
 #endif // REDAPID_LIST_H

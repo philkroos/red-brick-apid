@@ -44,7 +44,7 @@ static void directory_destroy(Object *object) {
 
 	closedir(directory->dp);
 
-	string_vacate(directory->name);
+	string_unlock(directory->name);
 
 	free(directory);
 }
@@ -124,8 +124,8 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	DIR *dp;
 	Directory *directory;
 
-	// occupy name string object
-	error_code = string_occupy(name_id, &name);
+	// lock name string object
+	error_code = string_lock(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -221,7 +221,7 @@ cleanup:
 		closedir(dp);
 
 	case 1:
-		string_vacate(name);
+		string_unlock(name);
 
 	default:
 		break;

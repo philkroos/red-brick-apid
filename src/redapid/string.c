@@ -208,11 +208,11 @@ APIE string_wrap(const char *buffer, uint16_t object_create_flags,
 
 // public API
 APIE string_truncate(String *string, uint32_t length) {
-	if (string->base.usage_count > 0) {
-		log_warn("Cannot truncate string object (id: %u) while it is used",
+	if (string->base.lock_count > 0) {
+		log_warn("Cannot truncate locked string object (id: %u)",
 		         string->base.id);
 
-		return API_E_OBJECT_IN_USE;
+		return API_E_OBJECT_IS_LOCKED;
 	}
 
 	if (length < string->length) {
@@ -236,11 +236,11 @@ APIE string_set_chunk(String *string, uint32_t offset, char *buffer) {
 	APIE error_code;
 	uint32_t i;
 
-	if (string->base.usage_count > 0) {
-		log_warn("Cannot change string object (id: %u) while it is used",
+	if (string->base.lock_count > 0) {
+		log_warn("Cannot change locked string object (id: %u)",
 		         string->base.id);
 
-		return API_E_OBJECT_IN_USE;
+		return API_E_OBJECT_IS_LOCKED;
 	}
 
 	if (offset > INT32_MAX) {
@@ -329,10 +329,10 @@ APIE string_get_chunk(String *string, uint32_t offset, char *buffer) {
 	return API_E_SUCCESS;
 }
 
-APIE string_occupy(ObjectID id, String **string) {
-	return inventory_occupy_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+APIE string_lock(ObjectID id, String **string) {
+	return inventory_lock_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
-void string_vacate(String *string) {
-	object_vacate(&string->base);
+void string_unlock(String *string) {
+	object_unlock(&string->base);
 }

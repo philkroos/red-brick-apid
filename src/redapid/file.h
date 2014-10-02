@@ -165,8 +165,8 @@ APIE file_get_position(File *file, uint64_t *position);
 IOHandle file_get_read_handle(File *file);
 IOHandle file_get_write_handle(File *file);
 
-APIE file_occupy(ObjectID id, File **file);
-void file_vacate(File *file);
+APIE file_lock(ObjectID id, File **file);
+void file_unlock(File *file);
 
 APIE file_lookup_info(const char *name, bool follow_symlink,
                       uint8_t *type, uint16_t *permissions, uint32_t *uid,

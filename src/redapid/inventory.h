@@ -46,8 +46,8 @@ void inventory_remove_object(Object *object);
 APIE inventory_get_object(ObjectID id, Object **object);
 APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object);
 
-APIE inventory_occupy_object(ObjectID id, Object **object);
-APIE inventory_occupy_typed_object(ObjectType type, ObjectID id, Object **object);
+APIE inventory_lock_object(ObjectID id, Object **object);
+APIE inventory_lock_typed_object(ObjectType type, ObjectID id, Object **object);
 
 APIE inventory_open(ObjectType type, ObjectID *id);
 

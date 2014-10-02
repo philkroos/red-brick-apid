@@ -19,6 +19,25 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/*
+ * the RED Brick API is object oriented. the Object type is the base for all
+ * objects. it has an internal and external reference count and a lock count.
+ * if the sum of the reference counts drops to zero the object is destroyed.
+ *
+ * the reference count is split into two to protect against users that release
+ * more references than they actually own. this would allow a user to destroy
+ * an object while it is still in use by other objects resulting in a crash.
+ * with the two reference counts a user cannot release internal references.
+ *
+ * a lock count greater zero indicates that the object is locked. typically
+ * the lock count is increased and decreased along with the internal reference
+ * count. for some object types locked means write protected. currently the
+ * String and List objects interpret locked as write protected. for example,
+ * the open function of the File object will take an internal reference to the
+ * name String object and lock it. this stops the user from modifying the name
+ * String object behind the back of the File object.
+ */
+
 #include <errno.h>
 
 #include <daemonlib/log.h>
@@ -96,7 +115,7 @@ APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
 	object->destroy = destroy;
 	object->internal_reference_count = 0;
 	object->external_reference_count = 0;
-	object->usage_count = 0;
+	object->lock_count = 0;
 
 	if ((create_flags & OBJECT_CREATE_FLAG_INTERNAL) != 0) {
 		++object->internal_reference_count;
@@ -106,14 +125,14 @@ APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
 		++object->external_reference_count;
 	}
 
-	if ((create_flags & OBJECT_CREATE_FLAG_OCCUPIED) != 0) {
+	if ((create_flags & OBJECT_CREATE_FLAG_LOCKED) != 0) {
 		if ((create_flags & OBJECT_CREATE_FLAG_INTERNAL) == 0) {
 			log_error("Invalid object create flags 0x%04X", create_flags);
 
 			return API_E_INTERNAL_ERROR;
 		}
 
-		++object->usage_count;
+		++object->lock_count;
 	}
 
 	return inventory_add_object(object);
@@ -126,9 +145,9 @@ void object_destroy(Object *object) {
 		         object->internal_reference_count, object->external_reference_count);
 	}
 
-	if (object->usage_count > 0) {
-		log_warn("Destroying %s object (id: %u) while it is still in use (usage-count: %d)",
-		         object_get_type_name(object->type), object->id, object->usage_count);
+	if (object->lock_count > 0) {
+		log_warn("Destroying %s object (id: %u) while it is still locked (lock-count: %d)",
+		         object_get_type_name(object->type), object->id, object->lock_count);
 	}
 
 	if (object->destroy != NULL) {
@@ -166,27 +185,27 @@ void object_remove_external_reference(Object *object) {
 	object_remove_reference(object, &object->external_reference_count, "external");
 }
 
-void object_occupy(Object *object) {
-	log_debug("Occupying %s object (id: %u, usage-count: %d +1)",
-	          object_get_type_name(object->type), object->id, object->usage_count);
+void object_lock(Object *object) {
+	log_debug("Locking %s object (id: %u, lock-count: %d +1)",
+	          object_get_type_name(object->type), object->id, object->lock_count);
 
-	++object->usage_count;
+	++object->lock_count;
 
 	object_add_internal_reference(object);
 }
 
-void object_vacate(Object *object) {
-	if (object->usage_count == 0) {
-		log_error("Cannot vacate already unused %s object (id: %u)",
+void object_unlock(Object *object) {
+	if (object->lock_count == 0) {
+		log_error("Cannot unlock already unlock %s object (id: %u)",
 		          object_get_type_name(object->type), object->id);
 
 		return;
 	}
 
-	log_debug("Vacating %s object (id: %u, usage-count: %d -1)",
-	          object_get_type_name(object->type), object->id, object->usage_count);
+	log_debug("Unlocking %s object (id: %u, lock-count: %d -1)",
+	          object_get_type_name(object->type), object->id, object->lock_count);
 
-	--object->usage_count;
+	--object->lock_count;
 
 	object_remove_internal_reference(object);
 }

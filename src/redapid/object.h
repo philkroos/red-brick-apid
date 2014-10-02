@@ -45,7 +45,7 @@ typedef enum {
 typedef enum { // bitmask
 	OBJECT_CREATE_FLAG_INTERNAL = 0x0001,
 	OBJECT_CREATE_FLAG_EXTERNAL = 0x0002,
-	OBJECT_CREATE_FLAG_OCCUPIED = 0x0004, // can only be used in combination with OBJECT_CREATE_FLAG_INTERNAL
+	OBJECT_CREATE_FLAG_LOCKED   = 0x0004, // can only be used in combination with OBJECT_CREATE_FLAG_INTERNAL
 } ObjectCreateFlag;
 
 #define MAX_OBJECT_TYPES 7
@@ -60,7 +60,7 @@ struct _Object {
 	ObjectDestroyFunction destroy;
 	int internal_reference_count;
 	int external_reference_count;
-	int usage_count;
+	int lock_count;
 };
 
 const char *object_get_type_name(ObjectType type);
@@ -78,7 +78,7 @@ void object_remove_internal_reference(Object *object);
 void object_add_external_reference(Object *object);
 void object_remove_external_reference(Object *object);
 
-void object_occupy(Object *object);
-void object_vacate(Object *object);
+void object_lock(Object *object);
+void object_unlock(Object *object);
 
 #endif // REDAPID_OBJECT_H

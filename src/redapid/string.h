@@ -46,7 +46,7 @@ APIE string_get_length(String *string, uint32_t *length);
 APIE string_set_chunk(String *string, uint32_t offset, char *buffer);
 APIE string_get_chunk(String *string, uint32_t offset, char *buffer);
 
-APIE string_occupy(ObjectID id, String **string);
-void string_vacate(String *string);
+APIE string_lock(ObjectID id, String **string);
+void string_unlock(String *string);
 
 #endif // REDAPID_STRING_H
