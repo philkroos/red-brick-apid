@@ -60,7 +60,7 @@ static APIE directory_create_helper(char *name, uint16_t flags, mode_t mode) {
 			if ((flags & DIRECTORY_FLAG_RECURSIVE) == 0) {
 				log_warn("Cannot create directory '%s' non-recursively", name);
 
-				return API_E_INVALID_OPERATION;
+				return API_E_NOT_SUPPORTED;
 			}
 
 			p = strrchr(name, '/');
