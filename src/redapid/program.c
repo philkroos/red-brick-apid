@@ -976,7 +976,7 @@ APIE program_get_last_spawned_process(Program *program, ObjectID *process_id) {
 		log_warn("No process was spawned for program object (id: %u, identifier: %s) yet",
 		         program->base.id, program->identifier->buffer);
 
-		return API_E_INVALID_OPERATION;
+		return API_E_DOES_NOT_EXIST;
 	}
 
 	object_add_external_reference(&program->scheduler.process->base);
@@ -997,7 +997,7 @@ APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
 		log_warn("No scheduler error occurred for program object (id: %u, identifier: %s) yet",
 		         program->base.id, program->identifier->buffer);
 
-		return API_E_INVALID_OPERATION;
+		return API_E_DOES_NOT_EXIST;
 	}
 
 	object_add_external_reference(&program->error_message->base);
