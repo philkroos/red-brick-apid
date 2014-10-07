@@ -146,32 +146,6 @@ cleanup:
 	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
-// public API
-APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
-	uint32_t length = strnlen(buffer, STRING_MAX_ALLOCATE_BUFFER_LENGTH);
-	String *string;
-	APIE error_code;
-
-	if (reserve < length) {
-		reserve = length;
-	}
-
-	error_code = string_create(reserve, OBJECT_CREATE_FLAG_EXTERNAL, &string);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	memcpy(string->buffer, buffer, length);
-
-	string->length = length;
-	string->buffer[string->length] = '\0';
-
-	*id = string->base.id;
-
-	return API_E_SUCCESS;
-}
-
 APIE string_wrap(const char *buffer, uint16_t object_create_flags,
                  ObjectID *id, String **object) {
 	uint32_t length = strlen(buffer);
@@ -204,6 +178,32 @@ APIE string_wrap(const char *buffer, uint16_t object_create_flags,
 	}
 
 	return error_code;
+}
+
+// public API
+APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
+	uint32_t length = strnlen(buffer, STRING_MAX_ALLOCATE_BUFFER_LENGTH);
+	String *string;
+	APIE error_code;
+
+	if (reserve < length) {
+		reserve = length;
+	}
+
+	error_code = string_create(reserve, OBJECT_CREATE_FLAG_EXTERNAL, &string);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	memcpy(string->buffer, buffer, length);
+
+	string->length = length;
+	string->buffer[string->length] = '\0';
+
+	*id = string->base.id;
+
+	return API_E_SUCCESS;
 }
 
 // public API

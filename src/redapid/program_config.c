@@ -437,10 +437,10 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 	}
 
 	// create list object
-	error_code = list_create(length,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, value);
+	error_code = list_allocate(length,
+	                           OBJECT_CREATE_FLAG_INTERNAL |
+	                           OBJECT_CREATE_FLAG_LOCKED,
+	                           NULL, value);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -506,10 +506,10 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	phase = 1;
 
 	// create arguments list object
-	error_code = list_create(0,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &arguments);
+	error_code = list_allocate(0,
+	                           OBJECT_CREATE_FLAG_INTERNAL |
+	                           OBJECT_CREATE_FLAG_LOCKED,
+	                           NULL, &arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -518,10 +518,10 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	phase = 2;
 
 	// create environment list object
-	error_code = list_create(0,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &environment);
+	error_code = list_allocate(0,
+	                           OBJECT_CREATE_FLAG_INTERNAL |
+	                           OBJECT_CREATE_FLAG_LOCKED,
+	                           NULL, &environment);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

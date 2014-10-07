@@ -289,7 +289,8 @@ CALL_STRING_FUNCTION(GetStringChunk, get_string_chunk, {
 
 CALL_FUNCTION(AllocateList, allocate_list, {
 	response.error_code = list_allocate(request->length_to_reserve,
-	                                    &response.list_id);
+	                                    OBJECT_CREATE_FLAG_EXTERNAL,
+	                                    &response.list_id, NULL);
 })
 
 CALL_LIST_FUNCTION(GetListLength, get_list_length, {
