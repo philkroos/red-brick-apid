@@ -135,6 +135,12 @@ APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
 		++object->lock_count;
 	}
 
+	if (object->internal_reference_count == 0 && object->external_reference_count == 0) {
+		log_error("Invalid object create flags 0x%04X", create_flags);
+
+		return API_E_INTERNAL_ERROR;
+	}
+
 	return inventory_add_object(object);
 }
 
