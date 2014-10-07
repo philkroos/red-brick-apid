@@ -1039,7 +1039,11 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 
 // public API
 APIE file_read_async(File *file, uint64_t length_to_read) {
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+	if (length_to_read < 1) {
+		log_warn("Cannot read less than 1 byte asynchronously");
+
+		return API_E_OUT_OF_RANGE;
+	}
 
 	if (length_to_read > INT64_MAX) {
 		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
@@ -1053,13 +1057,6 @@ APIE file_read_async(File *file, uint64_t length_to_read) {
 		         file->length_to_read_async, file_expand_signature(file));
 
 		return API_E_INVALID_OPERATION;
-	}
-
-	if (length_to_read == 0) {
-		// FIXME: this callback should be delivered after the response of this function
-		file_send_async_read_callback(file, API_E_SUCCESS, buffer, 0);
-
-		return API_E_SUCCESS;
 	}
 
 	file->length_to_read_async = length_to_read;
