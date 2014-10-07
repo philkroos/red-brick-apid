@@ -466,6 +466,16 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+} ATTRIBUTE_PACKED GetProcessesRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t processes_list_id;
+} ATTRIBUTE_PACKED GetProcessesResponse;
+
+typedef struct {
+	PacketHeader header;
 	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
@@ -559,6 +569,16 @@ typedef struct {
 //
 // program
 //
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED GetDefinedProgramsRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t programs_list_id;
+} ATTRIBUTE_PACKED GetDefinedProgramsResponse;
 
 typedef struct {
 	PacketHeader header;

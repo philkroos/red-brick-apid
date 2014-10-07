@@ -48,6 +48,7 @@
 #include "inventory.h"
 
 #include "api.h"
+#include "process.h"
 #include "program.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
@@ -515,6 +516,71 @@ APIE inventory_get_next_entry(Inventory *inventory, ObjectID *entry_id) {
 // public API
 APIE inventory_rewind(Inventory *inventory) {
 	inventory->index = 0;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE inventory_get_processes(ObjectID *processes_id) {
+	List *processes;
+	APIE error_code;
+	int i;
+	Process *process;
+
+	error_code = list_allocate(_objects[OBJECT_TYPE_PROCESS].count,
+	                           OBJECT_CREATE_FLAG_EXTERNAL, NULL, &processes);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	for (i = 0; i < _objects[OBJECT_TYPE_PROCESS].count; ++i) {
+		process = *(Process **)array_get(&_objects[OBJECT_TYPE_PROCESS], i);
+		error_code = list_append_to(processes, process->base.id);
+
+		if (error_code != API_E_SUCCESS) {
+			object_remove_external_reference(&processes->base);
+
+			return error_code;
+		}
+	}
+
+	*processes_id = processes->base.id;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE inventory_get_defined_programs(ObjectID *programs_id) {
+	List *programs;
+	APIE error_code;
+	int i;
+	Program *program;
+
+	error_code = list_allocate(_objects[OBJECT_TYPE_PROCESS].count,
+	                           OBJECT_CREATE_FLAG_EXTERNAL, NULL, &programs);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	for (i = 0; i < _objects[OBJECT_TYPE_PROGRAM].count; ++i) {
+		program = *(Program **)array_get(&_objects[OBJECT_TYPE_PROGRAM], i);
+
+		if (!program->config.defined) {
+			continue;
+		}
+
+		error_code = list_append_to(programs, program->base.id);
+
+		if (error_code != API_E_SUCCESS) {
+			object_remove_external_reference(&programs->base);
+
+			return error_code;
+		}
+	}
+
+	*programs_id = programs->base.id;
 
 	return API_E_SUCCESS;
 }

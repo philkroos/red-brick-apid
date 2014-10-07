@@ -452,6 +452,16 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+} ATTRIBUTE_PACKED GetProcesses_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t processes_list_id;
+} ATTRIBUTE_PACKED GetProcessesResponse_;
+
+typedef struct {
+	PacketHeader header;
 	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
@@ -541,6 +551,16 @@ typedef struct {
 	uint32_t pid;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED ProcessStateChangedCallback_;
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED GetDefinedPrograms_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t programs_list_id;
+} ATTRIBUTE_PACKED GetDefinedProgramsResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -902,6 +922,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_REWIND_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_CREATE_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROCESSES] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SPAWN_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_KILL_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -909,6 +930,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDIO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STATE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_PROCESS_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
+	device_p->response_expected[RED_FUNCTION_GET_DEFINED_PROGRAMS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_DEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_UNDEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_IDENTIFIER] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -1874,6 +1896,32 @@ int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint
 	return ret;
 }
 
+int red_get_processes(RED *red, uint8_t *ret_error_code, uint16_t *ret_processes_list_id) {
+	DevicePrivate *device_p = red->p;
+	GetProcesses_ request;
+	GetProcessesResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROCESSES, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_processes_list_id = leconvert_uint16_from(response.processes_list_id);
+
+
+
+	return ret;
+}
+
 int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t uid, uint32_t gid, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id) {
 	DevicePrivate *device_p = red->p;
 	SpawnProcess_ request;
@@ -2047,6 +2095,32 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
 	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 	*ret_pid = leconvert_uint32_from(response.pid);
 	*ret_exit_code = response.exit_code;
+
+
+
+	return ret;
+}
+
+int red_get_defined_programs(RED *red, uint8_t *ret_error_code, uint16_t *ret_programs_list_id) {
+	DevicePrivate *device_p = red->p;
+	GetDefinedPrograms_ request;
+	GetDefinedProgramsResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_DEFINED_PROGRAMS, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_programs_list_id = leconvert_uint16_from(response.programs_list_id);
 
 
 

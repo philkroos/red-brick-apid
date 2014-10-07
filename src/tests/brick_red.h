@@ -196,112 +196,122 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 36
+#define RED_FUNCTION_GET_PROCESSES 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 37
+#define RED_FUNCTION_SPAWN_PROCESS 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 38
+#define RED_FUNCTION_KILL_PROCESS 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_IDENTITY 39
+#define RED_FUNCTION_GET_PROCESS_COMMAND 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIO 40
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 41
+#define RED_FUNCTION_GET_PROCESS_STDIO 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 43
+#define RED_FUNCTION_GET_PROCESS_STATE 42
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 44
+#define RED_FUNCTION_GET_DEFINED_PROGRAMS 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 45
+#define RED_FUNCTION_DEFINE_PROGRAM 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 46
+#define RED_FUNCTION_UNDEFINE_PROGRAM 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 47
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 48
+#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 49
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 50
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 50
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 51
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 52
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 52
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 53
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 53
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 54
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 54
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 55
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 55
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 56
+#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 56
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 57
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 57
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 58
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 58
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 59
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 60
 
 /**
  * \ingroup BrickRED
@@ -333,21 +343,21 @@ typedef Device RED;
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint32_t pid, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 42
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 43
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 59
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 61
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 60
+#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 62
 
 
 /**
@@ -1230,6 +1240,13 @@ int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint
  *
  * 
  */
+int red_get_processes(RED *red, uint8_t *ret_error_code, uint16_t *ret_processes_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
 int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t uid, uint32_t gid, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
 
 /**
@@ -1311,6 +1328,13 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * DoesNotExist = 127
  */
 int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint64_t *ret_timestamp, uint32_t *ret_pid, uint8_t *ret_exit_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_defined_programs(RED *red, uint8_t *ret_error_code, uint16_t *ret_programs_list_id);
 
 /**
  * \ingroup BrickRED

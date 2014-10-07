@@ -238,7 +238,7 @@ enum process_e {
 	PROCESS_E_DOES_NOT_EXIST = 127  // EXIT_ENOENT: could not find executable to exec
 }
 
-? get_processes                 ()                                    -> uint8_t error_code, uint16_t processes_list_id
++ get_processes                 ()                                    -> uint8_t error_code, uint16_t processes_list_id
 + spawn_process                 (uint16_t executable_string_id,
                                  uint16_t arguments_list_id,
                                  uint16_t environment_list_id,
@@ -295,7 +295,7 @@ enum program_repeat_mode {
 	PROGRAM_REPEAT_MODE_SELECTION
 }
 
-? get_defined_programs            ()                              -> uint8_t error_code, uint16_t programs_list_id
++ get_defined_programs            ()                              -> uint8_t error_code, uint16_t programs_list_id
 ? get_undefined_programs          ()                              -> uint8_t error_code, uint16_t identifiers_list_id
 + define_program                  (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 + undefine_program                (uint16_t program_id)           -> uint8_t error_code

@@ -56,4 +56,7 @@ APIE inventory_get_type(Inventory *inventory, uint8_t *type);
 APIE inventory_get_next_entry(Inventory *inventory, ObjectID *entry_id);
 APIE inventory_rewind(Inventory *inventory);
 
+APIE inventory_get_processes(ObjectID *processes_id);
+APIE inventory_get_defined_programs(ObjectID *programs_id);
+
 #endif // REDAPID_INVENTORY_H

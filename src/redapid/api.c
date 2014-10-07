@@ -84,6 +84,7 @@ typedef enum {
 	FUNCTION_REWIND_DIRECTORY,
 	FUNCTION_CREATE_DIRECTORY,
 
+	FUNCTION_GET_PROCESSES,
 	FUNCTION_SPAWN_PROCESS,
 	FUNCTION_KILL_PROCESS,
 	FUNCTION_GET_PROCESS_COMMAND,
@@ -92,6 +93,7 @@ typedef enum {
 	FUNCTION_GET_PROCESS_STATE,
 	CALLBACK_PROCESS_STATE_CHANGED,
 
+	FUNCTION_GET_DEFINED_PROGRAMS,
 	FUNCTION_DEFINE_PROGRAM,
 	FUNCTION_UNDEFINE_PROGRAM,
 	FUNCTION_GET_PROGRAM_IDENTIFIER,
@@ -467,6 +469,10 @@ CALL_FUNCTION_WITH_STRING(CreateDirectory, create_directory, name, {
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_PROCESS, Process, process)
 
+CALL_FUNCTION(GetProcesses, get_processes, {
+	response.error_code = inventory_get_processes(&response.processes_list_id);
+})
+
 CALL_FUNCTION(SpawnProcess, spawn_process, {
 	response.error_code = process_spawn(request->executable_string_id,
 	                                    request->arguments_list_id,
@@ -523,6 +529,10 @@ CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
 #define CALL_PROGRAM_FUNCTION(packet_prefix, function_suffix, body) \
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_PROGRAM, Program, program)
+
+CALL_FUNCTION(GetDefinedPrograms, get_defined_programs, {
+	response.error_code = inventory_get_defined_programs(&response.programs_list_id);
+})
 
 CALL_FUNCTION(DefineProgram, define_program, {
 	response.error_code = program_define(request->identifier_string_id,
@@ -780,6 +790,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(CREATE_DIRECTORY,                 CreateDirectory,              create_directory)
 
 	// process
+	DISPATCH_FUNCTION(GET_PROCESSES,                    GetProcesses,                 get_processes)
 	DISPATCH_FUNCTION(SPAWN_PROCESS,                    SpawnProcess,                 spawn_process)
 	DISPATCH_FUNCTION(KILL_PROCESS,                     KillProcess,                  kill_process)
 	DISPATCH_FUNCTION(GET_PROCESS_COMMAND,              GetProcessCommand,            get_process_command)
@@ -788,6 +799,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROCESS_STATE,                GetProcessState,              get_process_state)
 
 	// program
+	DISPATCH_FUNCTION(GET_DEFINED_PROGRAMS,             GetDefinedPrograms,           get_defined_programs)
 	DISPATCH_FUNCTION(DEFINE_PROGRAM,                   DefineProgram,                define_program)
 	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,                 UndefineProgram,              undefine_program)
 	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,           GetProgramIdentifier,         get_program_identifier)
@@ -869,6 +881,7 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_CREATE_DIRECTORY:                 return "create-directory";
 
 	// process
+	case FUNCTION_GET_PROCESSES:                    return "get-processes";
 	case FUNCTION_SPAWN_PROCESS:                    return "spawn-process";
 	case FUNCTION_KILL_PROCESS:                     return "kill-process";
 	case FUNCTION_GET_PROCESS_COMMAND:              return "get-process-command";
@@ -878,6 +891,7 @@ const char *api_get_function_name(int function_id) {
 	case CALLBACK_PROCESS_STATE_CHANGED:            return "process-state-changed";
 
 	// program
+	case FUNCTION_GET_DEFINED_PROGRAMS:             return "defined-programs";
 	case FUNCTION_DEFINE_PROGRAM:                   return "define-program";
 	case FUNCTION_UNDEFINE_PROGRAM:                 return "undefine-program";
 	case FUNCTION_GET_PROGRAM_IDENTIFIER:           return "get-program-identifier";
