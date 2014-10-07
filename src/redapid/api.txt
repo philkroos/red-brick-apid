@@ -1,12 +1,41 @@
 /*
- * object
+ * error
  */
 
-+ release_object (uint16_t object_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
+enum api_e {
+	API_E_SUCCESS = 0,
+	API_E_UNKNOWN_ERROR,
+	API_E_INVALID_OPERATION,
+	API_E_OPERATION_ABORTED,
+	API_E_INTERNAL_ERROR,
+	API_E_UNKNOWN_OBJECT_ID,
+	API_E_NO_FREE_OBJECT_ID,
+	API_E_OBJECT_IS_LOCKED,
+	API_E_NO_MORE_DATA,
+	API_E_WRONG_LIST_ITEM_TYPE,
+	API_E_MALFORMED_PROGRAM_CONFIG,
+
+	API_E_INVALID_PARAMETER = 128, // EINVAL
+	API_E_NO_FREE_MEMORY,          // ENOMEM
+	API_E_NO_FREE_SPACE,           // ENOSPC
+	API_E_ACCESS_DENIED,           // EACCES
+	API_E_ALREADY_EXISTS,          // EEXIST
+	API_E_DOES_NOT_EXIST,          // ENOENT
+	API_E_INTERRUPTED,             // EINTR
+	API_E_IS_DIRECTORY,            // EISDIR
+	API_E_NOT_A_DIRECTORY,         // ENOTDIR
+	API_E_WOULD_BLOCK,             // EWOULDBLOCK
+	API_E_OVERFLOW,                // EOVERFLOW
+	API_E_BAD_FILE_DESCRIPTOR,     // EBADF
+	API_E_OUT_OF_RANGE,            // ERANGE
+	API_E_NAME_TOO_LONG,           // ENAMETOOLONG
+	API_E_INVALID_SEEK,            // ESPIPE
+	API_E_NOT_SUPPORTED            // ENOTSUP
+};
 
 
 /*
- * inventory
+ * object
  */
 
 enum object_type {
@@ -18,6 +47,16 @@ enum object_type {
 	OBJECT_TYPE_PROCESS,
 	OBJECT_TYPE_PROGRAM
 }
+
++ release_object                (uint16_t object_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
+? emergency_release_all_objects ()                   -> uint8_t error_code // decreases all object reference counts to zero
+
+
+/*
+ * inventory
+ */
+
+// FIXME: remove this and use more specific functions: get_processes/get_defined_programs/get_undefined_programs/...
 
 + open_inventory           (uint8_t type)          -> uint8_t error_code, uint16_t inventory_id
 + get_inventory_type       (uint16_t inventory_id) -> uint8_t error_code, uint8_t type
@@ -143,7 +182,7 @@ enum pipe_flag { // bitmask
                                                                                        uint64_t status_change_timestamp
 ? lookup_canonical_file_name (uint16_t name_string_id)                              -> uint8_t error_code, uint16_t canonical_name_string_id
 ? calculate_file_sha1_digest (uint16_t name_string_id)                              -> uint8_t error_code, uint8_t digest[20]
-? remove_file                (uint16_t name_string_id, bool recursive)              -> uint8_t error_code
+? remove_file                (uint16_t name_string_id)                              -> uint8_t error_code
 ? rename_file                (uint16_t source_string_id, uint16_t target_string_id) -> uint8_t error_code
 ? create_symlink             (uint16_t target_string_id, uint16_t name_string_id)   -> uint8_t error_code
 + lookup_symlink_target      (uint16_t name_string_id, bool canonicalize)           -> uint8_t error_code, uint16_t target_string_id
@@ -164,6 +203,8 @@ enum directory_flag { // bitmask
 + rewind_directory         (uint16_t directory_id)   -> uint8_t error_code
 
 + create_directory (uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid) -> uint8_t error_code
+? remove_directory (uint16_t name_string_id, uint16_t flags)                                                   -> uint8_t error_code
+? rename_directory (uint16_t source_string_id, uint16_t target_string_id)                                      -> uint8_t error_code
 
 
 /*
@@ -191,12 +232,13 @@ enum process_state {
 	PROCESS_STATE_STOPPED // stopped by signal
 }
 
-enum process_error_code {
-	PROCESS_ERROR_CODE_INTERNAL_ERROR = 125, // EXIT_CANCELED: internal error prior to exec attempt
-	PROCESS_ERROR_CODE_CANNOT_EXECUTE = 126, // EXIT_CANNOT_INVOKE: executable located, but not usable
-	PROCESS_ERROR_CODE_DOES_NOT_EXIST = 127  // EXIT_ENOENT: could not find executable to exec
+enum process_e {
+	PROCESS_E_INTERNAL_ERROR = 125, // EXIT_CANCELED: internal error prior to exec attempt
+	PROCESS_E_CANNOT_EXECUTE = 126, // EXIT_CANNOT_INVOKE: executable located, but not usable
+	PROCESS_E_DOES_NOT_EXIST = 127  // EXIT_ENOENT: could not find executable to exec
 }
 
+? get_processes                 ()                                    -> uint8_t error_code, uint16_t processes_list_id
 + spawn_process                 (uint16_t executable_string_id,
                                  uint16_t arguments_list_id,
                                  uint16_t environment_list_id,
@@ -253,9 +295,11 @@ enum program_repeat_mode {
 	PROGRAM_REPEAT_MODE_SELECTION
 }
 
+? get_defined_programs            ()                              -> uint8_t error_code, uint16_t programs_list_id
+? get_undefined_programs          ()                              -> uint8_t error_code, uint16_t identifiers_list_id
 + define_program                  (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
-? recover_program                 (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 + undefine_program                (uint16_t program_id)           -> uint8_t error_code
+? recover_program                 (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 ? purge_program                   (uint16_t identifier_string_id) -> uint8_t error_code
 + get_program_identifier          (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
 + get_program_directory           (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
@@ -306,7 +350,7 @@ enum program_repeat_mode {
                                                                      uint32_t repeat_day_mask,
                                                                      uint16_t repeat_month_mask,
                                                                      uint8_t repeat_weekday_mask
-+ get_last_program_spawned_process (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
++ get_last_spawned_program_process (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
 + get_last_program_scheduler_error (uint16_t program_id)          -> uint8_t error_code, uint64_t timestamp, uint16_t message_string_id
 + get_custom_program_option_names  (uint16_t program_id)          -> uint8_t error_code, uint16_t names_list_id
 + set_custom_program_option_value  (uint16_t program_id,
@@ -322,37 +366,15 @@ enum program_repeat_mode {
 
 
 /*
- * config
+ * options
  */
-
-enum config_option {
-	CONFIG_OPTION_GREEN_LED_TRIGGER = 0,   // number -> config_value_led_trigger
-	CONFIG_OPTION_RED_LED_TRIGGER,         // number -> config_value_led_trigger
-	CONFIG_OPTION_SPI_STACK_TRANSFER_DELAY // number -> microseconds [50..inf]
-}
-
-enum config_value_led_trigger {
-	CONFIG_VALUE_LED_TRIGGER_CPU = 0,
-	CONFIG_VALUE_LED_TRIGGER_GPIO,
-	CONFIG_VALUE_LED_TRIGGER_HEARTBEAT,
-	CONFIG_VALUE_LED_TRIGGER_MMC,
-	CONFIG_VALUE_LED_TRIGGER_OFF,
-	CONFIG_VALUE_LED_TRIGGER_ON
-}
-
-? set_config_number(uint32_t option, int64_t value)            -> uint8_t error_code
-? set_config_boolean(uint32_t option, bool value)              -> uint8_t error_code
-? set_config_string(uint32_t option, uint16_t value_string_id) -> uint8_t error_code
-? get_config_number(uint32_t option)                           -> uint8_t error_code, int64_t value
-? get_config_boolean(uint32_t option)                          -> uint8_t error_code, bool value
-? get_config_string(uint32_t option)                           -> uint8_t error_code, uint16_t value_string_id
-
 
 enum option_group {
 	OPTION_GROUP_BRICKD = 0,
-	OPTION_GROUP_REDAPID = 0,
+	OPTION_GROUP_REDAPID
 }
 
+? get_option_names (uint8_t group)                                                    -> uint8_t error_code, uint16_t names_list_id
 ? set_option_value (uint8_t group, uint16_t name_string_id, uint16_t value_string_id) -> uint8_t error_code
 ? get_option_value (uint8_t group, uint16_t name_string_id)                           -> uint8_t error_code, uint16_t value_string_id
 ? remove_option    (uint8_t group, uint16_t name_string_id)                           -> uint8_t error_code
