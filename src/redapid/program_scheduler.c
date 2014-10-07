@@ -203,10 +203,12 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 }
 
 static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
+                                           struct timeval timestamp,
                                            const char *suffix) {
-	time_t timestamp;
 	struct tm localized_timestamp;
 	char iso8601[64] = "unknown";
+	char iso8601usec[16] = "";
+	char iso8601tz[16] = "";
 	char buffer[1024];
 	struct stat st;
 	APIE error_code;
@@ -215,18 +217,20 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 	File *file;
 
 	// format ISO 8601 date and time
-	timestamp = time(NULL);
-
-	if (localtime_r(&timestamp, &localized_timestamp) != NULL) {
-		// use ISO 8601 format YYYYMMDDThhmmss±hhmm instead of the common
-		// YYYY-MM-DDThh:mm:ss±hhmm because the colons in there can create
-		// problems on Windows which does not allow colons in filenames
-		strftime(iso8601, sizeof(iso8601), "%Y%m%dT%H%M%S%z", &localized_timestamp);
+	if (localtime_r(&timestamp.tv_sec, &localized_timestamp) != NULL) {
+		// use ISO 8601 format YYYYMMDDThhmmss.uuuuuu±hhmm instead of the common
+		// YYYY-MM-DDThh:mm:ss.uuuuuu±hhmm because the colons in there can
+		// create problems on Windows which does not allow colons in filenames.
+		// include microseconds to reduce the chance for file name collisions
+		strftime(iso8601, sizeof(iso8601), "%Y%m%dT%H%M%S", &localized_timestamp);
+		snprintf(iso8601usec, sizeof(iso8601usec), ".%06d", (int)timestamp.tv_usec);
+		strftime(iso8601tz, sizeof(iso8601tz), "%z", &localized_timestamp);
 	}
 
 	// create log file
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s_%s.log",
-	                    program_scheduler->log_directory, iso8601, suffix) < 0) {
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s%s%s-%s.log",
+	                    program_scheduler->log_directory,
+	                    iso8601, iso8601usec, iso8601tz, suffix) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not format %s log file name: %s (%d)",
 		                               suffix, get_errno_name(errno), errno);
@@ -272,9 +276,9 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 			}
 		}
 
-		if (robust_snprintf(buffer, sizeof(buffer), "%s/%s_%s_%u.log",
-		                    program_scheduler->log_directory, iso8601, suffix,
-		                    ++counter) < 0) {
+		if (robust_snprintf(buffer, sizeof(buffer), "%s/%s%s%s-%s-%u.log",
+		                    program_scheduler->log_directory, iso8601,
+		                    iso8601usec, iso8601tz, suffix, ++counter) < 0) {
 			program_scheduler_handle_error(program_scheduler, true,
 			                               "Could not format %s log file name: %s (%d)",
 			                               suffix, get_errno_name(errno), errno);
@@ -290,7 +294,8 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 	return NULL;
 }
 
-static File *program_scheduler_prepare_stdout(ProgramScheduler *program_scheduler) {
+static File *program_scheduler_prepare_stdout(ProgramScheduler *program_scheduler,
+                                              struct timeval timestamp) {
 	File *file;
 	APIE error_code;
 
@@ -348,7 +353,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 		return NULL;
 
 	case PROGRAM_STDIO_REDIRECTION_LOG:
-		return program_scheduler_prepare_log(program_scheduler, "stdout");
+		return program_scheduler_prepare_log(program_scheduler, timestamp, "stdout");
 
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
@@ -359,7 +364,8 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 	}
 }
 
-static File *program_scheduler_prepare_stderr(ProgramScheduler *program_scheduler, File *stdout) {
+static File *program_scheduler_prepare_stderr(ProgramScheduler *program_scheduler,
+                                              struct timeval timestamp, File *stdout) {
 	File *file;
 	APIE error_code;
 
@@ -416,7 +422,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 		return stdout;
 
 	case PROGRAM_STDIO_REDIRECTION_LOG:
-		return program_scheduler_prepare_log(program_scheduler, "stderr");
+		return program_scheduler_prepare_log(program_scheduler, timestamp, "stderr");
 
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
@@ -432,6 +438,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	File *stdin;
 	File *stdout;
 	File *stderr;
+	struct timeval timestamp;
 
 	if (program_scheduler->process != NULL) {
 		if (process_is_alive(program_scheduler->process)) {
@@ -452,7 +459,12 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 		return;
 	}
 
-	stdout = program_scheduler_prepare_stdout(program_scheduler);
+	if (gettimeofday(&timestamp, NULL) < 0) {
+		timestamp.tv_sec = time(NULL);
+		timestamp.tv_usec = 0;
+	}
+
+	stdout = program_scheduler_prepare_stdout(program_scheduler, timestamp);
 
 	if (stdout == NULL) {
 		object_remove_internal_reference(&stdin->base);
@@ -460,7 +472,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 		return;
 	}
 
-	stderr = program_scheduler_prepare_stderr(program_scheduler, stdout);
+	stderr = program_scheduler_prepare_stderr(program_scheduler, timestamp, stdout);
 
 	if (stderr == NULL) {
 		object_remove_internal_reference(&stdin->base);
