@@ -59,6 +59,19 @@ static bool process_state_is_alive(ProcessState state) {
 	}
 }
 
+static const char *process_get_state_name(ProcessState state) {
+	switch (state) {
+	case PROCESS_STATE_UNKNOWN: return "unknown";
+	case PROCESS_STATE_RUNNING: return "running";
+	case PROCESS_STATE_ERROR:   return "error";
+	case PROCESS_STATE_EXITED:  return "exited";
+	case PROCESS_STATE_KILLED:  return "killed";
+	case PROCESS_STATE_STOPPED: return "stopped";
+
+	default:                    return "<unknown>";
+	}
+}
+
 static void process_destroy(Object *object) {
 	Process *process = (Process *)object;
 	int rc;
@@ -156,8 +169,9 @@ static void process_wait(void *opaque) {
 			change.exit_code = 0; // invalid
 		}
 
-		log_debug("State of child process (executable: %s, pid: %u) changed (state: %u, exit_code: %u)",
-		          process->executable->buffer, process->pid, change.state, change.exit_code);
+		log_debug("State of child process (executable: %s, pid: %u) changed (state: %s, exit_code: %u)",
+		          process->executable->buffer, process->pid,
+		          process_get_state_name(change.state), change.exit_code);
 
 		if (pipe_write(&process->state_change_pipe, &change, sizeof(change)) < 0) {
 			log_error("Could not write to state change pipe for child process (executable: %s, pid: %u): %s (%d)",

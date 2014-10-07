@@ -50,6 +50,7 @@ static const char *program_config_get_stdio_redirection_name(int redirection) {
 	case PROGRAM_STDIO_REDIRECTION_FILE:     return "file";
 	case PROGRAM_STDIO_REDIRECTION_STDOUT:   return "stdout";
 	case PROGRAM_STDIO_REDIRECTION_LOG:      return "log";
+
 	default:                                 return "<unknown>";
 	}
 }
@@ -79,6 +80,7 @@ static const char *program_config_get_start_condition_name(int condition) {
 	case PROGRAM_START_CONDITION_NOW:       return "now";
 	case PROGRAM_START_CONDITION_REBOOT:    return "reboot";
 	case PROGRAM_START_CONDITION_TIMESTAMP: return "timestamp";
+
 	default:                                return "<unknown>";
 	}
 }
@@ -105,6 +107,7 @@ static const char *program_config_get_repeat_mode_name(int mode) {
 	case PROGRAM_REPEAT_MODE_NEVER:     return "never";
 	case PROGRAM_REPEAT_MODE_INTERVAL:  return "interval";
 	case PROGRAM_REPEAT_MODE_SELECTION: return "selection";
+
 	default:                            return "<unknown>";
 	}
 }
