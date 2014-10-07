@@ -25,6 +25,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <daemonlib/array.h>
+
 #include "list.h"
 #include "string.h"
 
@@ -50,6 +52,11 @@ typedef enum {
 } ProgramRepeatMode;
 
 typedef struct {
+	String *name;
+	String *value;
+} ProgramCustomOption;
+
+typedef struct {
 	char *filename; // <home>/programs/<identifier>/program.conf
 
 	bool defined;
@@ -73,6 +80,7 @@ typedef struct {
 	uint32_t repeat_day_mask;
 	uint16_t repeat_month_mask;
 	uint8_t repeat_weekday_mask; // week starts on monday
+	Array *custom_options;
 } ProgramConfig;
 
 APIE program_config_create(ProgramConfig *program_config, const char *filename);

@@ -93,6 +93,27 @@ static bool program_is_valid_repeat_mode(ProgramRepeatMode mode) {
 	}
 }
 
+static ProgramCustomOption *program_find_custom_option(Program *program,
+                                                       String *name, int *index) {
+	int i;
+	ProgramCustomOption *custom_option;
+
+	for (i = 0; i < program->config.custom_options->count; ++i) {
+		custom_option = array_get(program->config.custom_options, i);
+
+		if (custom_option->name->base.id == name->base.id ||
+		    strcasecmp(custom_option->name->buffer, name->buffer) == 0) {
+			if (index != NULL) {
+				*index = i;
+			}
+
+			return custom_option;
+		}
+	}
+
+	return NULL;
+}
+
 static void program_report_process_spawn(void *opaque) {
 	Program *program = opaque;
 
@@ -973,7 +994,7 @@ APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
 	}
 
 	if (program->error_message == NULL) {
-		log_warn("No schduler error occured for program object (id: %u, identifier: %s) yet",
+		log_warn("No scheduler error occurred for program object (id: %u, identifier: %s) yet",
 		         program->base.id, program->identifier->buffer);
 
 		return API_E_INVALID_OPERATION;
@@ -983,6 +1004,197 @@ APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
 
 	*timestamp = program->error_timestamp;
 	*message_id = program->error_message->base.id;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_get_custom_option_names(Program *program, ObjectID *names_id) {
+	List *names;
+	APIE error_code;
+	int i;
+	ProgramCustomOption *custom_option;
+
+	error_code = list_allocate(program->config.custom_options->count,
+	                           OBJECT_CREATE_FLAG_EXTERNAL, NULL, &names);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	for (i = 0; i < program->config.custom_options->count; ++i) {
+		custom_option = array_get(program->config.custom_options, i);
+		error_code = list_append_to(names, custom_option->name->base.id);
+
+		if (error_code != API_E_SUCCESS) {
+			object_remove_external_reference(&names->base);
+
+			return error_code;
+		}
+	}
+
+	*names_id = names->base.id;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_set_custom_option_value(Program *program, ObjectID name_id,
+                                     ObjectID value_id) {
+	String *name;
+	APIE error_code;
+	String *value;
+	ProgramCustomOption *custom_option;
+	String *backup;
+
+	error_code = string_get(name_id, &name);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	error_code = string_lock(value_id, &value);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	custom_option = program_find_custom_option(program, name, NULL);
+
+	if (custom_option == NULL) {
+		error_code = string_lock(name_id, &name);
+
+		if (error_code != API_E_SUCCESS) {
+			string_unlock(value);
+
+			return error_code;
+		}
+
+		custom_option = array_append(program->config.custom_options);
+
+		if (custom_option == NULL) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not append to custom options array of program object (id: %u, identifier: %s): %s (%d)",
+			          program->base.id, program->identifier->buffer,
+			          get_errno_name(errno), errno);
+
+			string_unlock(name);
+			string_unlock(value);
+
+			return error_code;
+		}
+
+		custom_option->name = name;
+		custom_option->value = value;
+
+		error_code = program_config_save(&program->config);
+
+		if (error_code != API_E_SUCCESS) {
+			array_remove(program->config.custom_options,
+			             program->config.custom_options->count - 1, NULL);
+
+			string_unlock(name);
+			string_unlock(value);
+
+			return error_code;
+		}
+	} else {
+		backup = custom_option->value;
+		custom_option->value = value;
+
+		error_code = program_config_save(&program->config);
+
+		if (error_code != API_E_SUCCESS) {
+			custom_option->value = backup;
+
+			string_unlock(value);
+
+			return error_code;
+		}
+
+		string_unlock(backup);
+	}
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_get_custom_option_value(Program *program, ObjectID name_id,
+                                     ObjectID *value_id) {
+	String *name;
+	APIE error_code;
+	ProgramCustomOption *custom_option;
+
+	error_code = string_get(name_id, &name);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	custom_option = program_find_custom_option(program, name, NULL);
+
+	if (custom_option == NULL) {
+		log_warn("Program object (id: %u, identifier: %s) has no custom option named '%s'",
+		         program->base.id, program->identifier->buffer, name->buffer);
+
+		return API_E_DOES_NOT_EXIST;
+	}
+
+	object_add_external_reference(&custom_option->value->base);
+
+	*value_id = custom_option->value->base.id;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_remove_custom_option(Program *program, ObjectID name_id) {
+	String *name;
+	APIE error_code;
+	int index;
+	ProgramCustomOption *custom_option;
+	ProgramCustomOption backup;
+
+	error_code = string_get(name_id, &name);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	custom_option = program_find_custom_option(program, name, &index);
+
+	if (custom_option == NULL) {
+		log_warn("Program object (id: %u, identifier: %s) has no custom option named '%s'",
+		         program->base.id, program->identifier->buffer, name->buffer);
+
+		return API_E_DOES_NOT_EXIST;
+	}
+
+	memcpy(&backup, custom_option, sizeof(backup));
+	array_remove(program->config.custom_options, index, NULL);
+
+	error_code = program_config_save(&program->config);
+
+	if (error_code != API_E_SUCCESS) {
+		custom_option = array_append(program->config.custom_options);
+
+		if (custom_option == NULL) {
+			log_error("Could not append to custom options array of program object (id: %u, identifier: %s): %s (%d)",
+			          program->base.id, program->identifier->buffer,
+			          get_errno_name(errno), errno);
+
+			return error_code; // return error code from program_config_save
+		}
+
+		custom_option->name = backup.name;
+		custom_option->value = backup.value;
+
+		return error_code;
+	}
+
+	string_unlock(backup.name);
+	string_unlock(backup.value);
 
 	return API_E_SUCCESS;
 }

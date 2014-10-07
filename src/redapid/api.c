@@ -104,6 +104,10 @@ typedef enum {
 	FUNCTION_GET_PROGRAM_SCHEDULE,
 	FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS,
 	FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR,
+	FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES,
+	FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE,
+	FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE,
+	FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION,
 	CALLBACK_PROGRAM_PROCESS_SPAWNED,
 	CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED
 } APIFunctionID;
@@ -614,6 +618,28 @@ CALL_PROGRAM_FUNCTION(GetLastProgramSchedulerError, get_last_program_scheduler_e
 	                                                       &response.message_string_id);
 })
 
+CALL_PROGRAM_FUNCTION(GetCustomProgramOptionNames, get_custom_program_option_names, {
+	response.error_code = program_get_custom_option_names(program,
+	                                                      &response.names_list_id);
+})
+
+CALL_PROGRAM_FUNCTION(SetCustomProgramOptionValue, set_custom_program_option_value, {
+	response.error_code = program_set_custom_option_value(program,
+	                                                      request->name_string_id,
+	                                                      request->value_string_id);
+})
+
+CALL_PROGRAM_FUNCTION(GetCustomProgramOptionValue, get_custom_program_option_value, {
+	response.error_code = program_get_custom_option_value(program,
+	                                                      request->name_string_id,
+	                                                      &response.value_string_id);
+})
+
+CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
+	response.error_code = program_remove_custom_option(program,
+	                                                   request->name_string_id);
+})
+
 #undef CALL_PROGRAM_FUNCTION
 
 #undef CALL_FUNCTION_WITH_STRING
@@ -774,6 +800,10 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULE,             GetProgramSchedule,           get_program_schedule)
 	DISPATCH_FUNCTION(GET_LAST_SPAWNED_PROGRAM_PROCESS, GetLastSpawnedProgramProcess, get_last_spawned_program_process)
 	DISPATCH_FUNCTION(GET_LAST_PROGRAM_SCHEDULER_ERROR, GetLastProgramSchedulerError, get_last_program_scheduler_error)
+	DISPATCH_FUNCTION(GET_CUSTOM_PROGRAM_OPTION_NAMES,  GetCustomProgramOptionNames,  get_custom_program_option_names)
+	DISPATCH_FUNCTION(SET_CUSTOM_PROGRAM_OPTION_VALUE,  SetCustomProgramOptionValue,  set_custom_program_option_value)
+	DISPATCH_FUNCTION(GET_CUSTOM_PROGRAM_OPTION_VALUE,  GetCustomProgramOptionValue,  get_custom_program_option_value)
+	DISPATCH_FUNCTION(REMOVE_CUSTOM_PROGRAM_OPTION,     RemoveCustomProgramOption,    remove_custom_program_option)
 
 	// misc
 	DISPATCH_FUNCTION(GET_IDENTITY,                     GetIdentity,                  get_identity)
@@ -860,6 +890,10 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_GET_PROGRAM_SCHEDULE:             return "get-program-schedule";
 	case FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS: return "get-last-spawned-program-process";
 	case FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR: return "get-last-program-scheduler-error";
+	case FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES:  return "get-custom-program-option-names";
+	case FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE:  return "set-custom-program-option-value";
+	case FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE:  return "get-custom-program-option-value";
+	case FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION:     return "remove-custom-program-option";
 	case CALLBACK_PROGRAM_PROCESS_SPAWNED:          return "program-process-spawned";
 	case CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED: return "program-scheduler-error-occurred";
 

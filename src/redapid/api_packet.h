@@ -729,6 +729,52 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionNamesRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t names_list_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionNamesResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t name_string_id;
+	uint16_t value_string_id;
+} ATTRIBUTE_PACKED SetCustomProgramOptionValueRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetCustomProgramOptionValueResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionValueRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t value_string_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionValueResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED RemoveCustomProgramOptionRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RemoveCustomProgramOptionResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
 } ATTRIBUTE_PACKED ProgramProcessSpawnedCallback;
 
 typedef struct {

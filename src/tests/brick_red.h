@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-02.      *
+ * This file was automatically generated on 2014-10-07.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -286,6 +286,26 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 55
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 56
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 57
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 58
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_FUNCTION_GET_IDENTITY 255
 
 /**
@@ -320,14 +340,14 @@ typedef Device RED;
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 55
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 59
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 56
+#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 60
 
 
 /**
@@ -1028,7 +1048,8 @@ int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *r
 /**
  * \ingroup BrickRED
  *
- * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object asynchronously.
+ * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object asynchronously. The
+ * minimum asynchronous read length is 1 byte.
  * 
  * Returns the resulting error code.
  * 
@@ -1374,6 +1395,34 @@ int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t 
  * 
  */
 int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint64_t *ret_timestamp, uint16_t *ret_message_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_custom_program_option_names(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_names_list_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_custom_program_option_value(RED *red, uint16_t program_id, uint16_t name_string_id, uint16_t value_string_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_custom_program_option_value(RED *red, uint16_t program_id, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_value_string_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_remove_custom_program_option(RED *red, uint16_t program_id, uint16_t name_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED

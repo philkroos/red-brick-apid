@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-02.      *
+ * This file was automatically generated on 2014-10-07.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -711,6 +711,52 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionNames_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t names_list_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionNamesResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t name_string_id;
+	uint16_t value_string_id;
+} ATTRIBUTE_PACKED SetCustomProgramOptionValue_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetCustomProgramOptionValueResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionValue_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t value_string_id;
+} ATTRIBUTE_PACKED GetCustomProgramOptionValueResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t name_string_id;
+} ATTRIBUTE_PACKED RemoveCustomProgramOption_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED RemoveCustomProgramOptionResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
 } ATTRIBUTE_PACKED ProgramProcessSpawnedCallback_;
 
 typedef struct {
@@ -875,6 +921,10 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -2355,6 +2405,116 @@ int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t 
 	*ret_error_code = response.error_code;
 	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 	*ret_message_string_id = leconvert_uint16_from(response.message_string_id);
+
+
+
+	return ret;
+}
+
+int red_get_custom_program_option_names(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_names_list_id) {
+	DevicePrivate *device_p = red->p;
+	GetCustomProgramOptionNames_ request;
+	GetCustomProgramOptionNamesResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_names_list_id = leconvert_uint16_from(response.names_list_id);
+
+
+
+	return ret;
+}
+
+int red_set_custom_program_option_value(RED *red, uint16_t program_id, uint16_t name_string_id, uint16_t value_string_id, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	SetCustomProgramOptionValue_ request;
+	SetCustomProgramOptionValueResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+	request.name_string_id = leconvert_uint16_to(name_string_id);
+	request.value_string_id = leconvert_uint16_to(value_string_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
+int red_get_custom_program_option_value(RED *red, uint16_t program_id, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_value_string_id) {
+	DevicePrivate *device_p = red->p;
+	GetCustomProgramOptionValue_ request;
+	GetCustomProgramOptionValueResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+	request.name_string_id = leconvert_uint16_to(name_string_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_value_string_id = leconvert_uint16_from(response.value_string_id);
+
+
+
+	return ret;
+}
+
+int red_remove_custom_program_option(RED *red, uint16_t program_id, uint16_t name_string_id, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	RemoveCustomProgramOption_ request;
+	RemoveCustomProgramOptionResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+	request.name_string_id = leconvert_uint16_to(name_string_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
 
 
 

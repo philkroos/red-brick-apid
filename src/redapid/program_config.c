@@ -36,6 +36,13 @@
 typedef const char *(*ProgramConfigGetNameFunction)(int value);
 typedef int (*ProgramConfigGetValueFunction)(const char *name, int *value);
 
+static void program_custom_option_unlock(void *item) {
+	ProgramCustomOption *custom_option = item;
+
+	string_unlock(custom_option->name);
+	string_unlock(custom_option->value);
+}
+
 static const char *program_config_get_stdio_redirection_name(int redirection) {
 	switch (redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL: return "/dev/null";
@@ -167,7 +174,7 @@ static APIE program_config_get_string(ProgramConfig *program_config,
 	                         NULL, value);
 
 	if (error_code != API_E_SUCCESS) {
-		log_error("Could not create string object from '%s' option in '%s': %s (%d)",
+		log_error("Could not create string object from '%s' option value in '%s': %s (%d)",
 		          name, program_config->filename, get_errno_name(errno), errno);
 
 		return error_code;
@@ -492,6 +499,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	String *executable;
 	List *arguments;
 	List *environment;
+	Array *custom_options;
 
 	// create executable string object
 	error_code = string_wrap("",
@@ -529,6 +537,31 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 
 	phase = 3;
 
+	// create custom options array
+	custom_options = calloc(1, sizeof(Array));
+
+	if (custom_options == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
+		log_error("Could not allocate custom options array: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		goto cleanup;
+	}
+
+	phase = 4;
+
+	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create custom options array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 5;
+
 	// initalize all members
 	program_config->filename = strdup(filename);
 
@@ -562,11 +595,18 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->repeat_day_mask = 0;
 	program_config->repeat_month_mask = 0;
 	program_config->repeat_weekday_mask = 0;
+	program_config->custom_options = custom_options;
 
-	phase = 4;
+	phase = 6;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 5:
+		array_destroy(custom_options, program_custom_option_unlock);
+
+	case 4:
+		free(custom_options);
+
 	case 3:
 		list_unlock(environment);
 
@@ -580,10 +620,13 @@ cleanup:
 		break;
 	}
 
-	return phase == 4 ? API_E_SUCCESS : error_code;
+	return phase == 6 ? API_E_SUCCESS : error_code;
 }
 
 void program_config_destroy(ProgramConfig *program_config) {
+	array_destroy(program_config->custom_options, program_custom_option_unlock);
+	free(program_config->custom_options);
+
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stderr_file_name);
 	}
@@ -628,6 +671,13 @@ APIE program_config_load(ProgramConfig *program_config) {
 	uint64_t repeat_day_mask;
 	uint64_t repeat_month_mask;
 	uint64_t repeat_weekday_mask;
+	Array *custom_options;
+	const char *custom_name;
+	const char *custom_value;
+	int cookie;
+	const char *custom_prefix = "custom.";
+	int custom_prefix_length = strlen(custom_prefix);
+	ProgramCustomOption *custom_option;
 
 	if (conf_file_create(&conf_file) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -903,7 +953,81 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// unlock old objects
+	// get custom.* options
+	custom_options = calloc(1, sizeof(Array));
+
+	if (custom_options == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
+		log_error("Could not allocate custom options array: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		goto cleanup;
+	}
+
+	phase = 8;
+
+	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create custom options array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 9;
+
+	if (conf_file_get_first_option(&conf_file, &custom_name, &custom_value, &cookie)) {
+		do {
+			if (strncasecmp(custom_name, custom_prefix, custom_prefix_length) != 0) {
+				continue;
+			}
+
+			custom_option = array_append(custom_options);
+
+			if (custom_option == NULL) {
+				error_code = api_get_error_code_from_errno();
+
+				log_error("Could not append to custom options array: %s (%d)",
+				          get_errno_name(errno), errno);
+
+				goto cleanup;
+			}
+
+			error_code = string_wrap(custom_name,
+			                         OBJECT_CREATE_FLAG_INTERNAL |
+			                         OBJECT_CREATE_FLAG_LOCKED,
+			                         NULL, &custom_option->name);
+
+			if (error_code != API_E_SUCCESS) {
+				log_error("Could not create string object from '%s' option name in '%s': %s (%d)",
+				          custom_name, program_config->filename, get_errno_name(errno), errno);
+
+				array_remove(custom_options, custom_options->count - 1, NULL);
+
+				goto cleanup;
+			}
+
+			error_code = string_wrap(custom_value,
+			                         OBJECT_CREATE_FLAG_INTERNAL |
+			                         OBJECT_CREATE_FLAG_LOCKED,
+			                         NULL, &custom_option->value);
+
+			if (error_code != API_E_SUCCESS) {
+				log_error("Could not create string object from '%s' option value in '%s': %s (%d)",
+				          custom_value, program_config->filename, get_errno_name(errno), errno);
+
+				string_unlock(custom_option->name);
+
+				array_remove(custom_options, custom_options->count - 1, NULL);
+
+				goto cleanup;
+			}
+		} while (conf_file_get_next_option(&conf_file, &custom_name, &custom_value, &cookie));
+	}
+
+	// unlock/destroy old objects
 	string_unlock(program_config->executable);
 	list_unlock(program_config->arguments);
 	list_unlock(program_config->environment);
@@ -919,6 +1043,9 @@ APIE program_config_load(ProgramConfig *program_config) {
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stderr_file_name);
 	}
+
+	array_destroy(program_config->custom_options, program_custom_option_unlock);
+	free(program_config->custom_options);
 
 	// set new objects
 	program_config->executable          = executable;
@@ -941,13 +1068,20 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->repeat_day_mask     = repeat_day_mask     & ((1ULL << 31) - 1);
 	program_config->repeat_month_mask   = repeat_month_mask   & ((1ULL << 12) - 1);
 	program_config->repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
+	program_config->custom_options      = custom_options;
 
-	phase = 8;
+	phase = 10;
 
 	conf_file_destroy(&conf_file);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 9:
+		array_destroy(custom_options, program_custom_option_unlock);
+
+	case 8:
+		free(custom_options);
+
 	case 7:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_unlock(stderr_file_name);
@@ -979,12 +1113,15 @@ cleanup:
 		break;
 	}
 
-	return phase == 8 ? API_E_SUCCESS : error_code;
+	return phase == 10 ? API_E_SUCCESS : error_code;
 }
 
 APIE program_config_save(ProgramConfig *program_config) {
 	APIE error_code = API_E_UNKNOWN_ERROR;
 	ConfFile conf_file;
+	int i;
+	ProgramCustomOption *custom_option;
+	char buffer[1024];
 
 	if (conf_file_create(&conf_file) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -1219,6 +1356,30 @@ APIE program_config_save(ProgramConfig *program_config) {
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
+	}
+
+	// set custom.* options
+	conf_file_remove_option(&conf_file, "custom.", true);
+
+	for (i = 0; i < program_config->custom_options->count; ++i) {
+		custom_option = array_get(program_config->custom_options, i);
+
+		if (robust_snprintf(buffer, sizeof(buffer), "custom.%s",
+		                    custom_option->name->buffer) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not format custom option name: %s (%d)",
+			          get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
+
+		error_code = program_config_set_string(program_config, &conf_file,
+		                                       buffer, custom_option->value);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
 	}
 
 	// write config

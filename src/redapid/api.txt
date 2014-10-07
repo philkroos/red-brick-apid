@@ -308,6 +308,14 @@ enum program_repeat_mode {
                                                                      uint8_t repeat_weekday_mask
 + get_last_program_spawned_process (uint16_t program_id)          -> uint8_t error_code, uint16_t process_id
 + get_last_program_scheduler_error (uint16_t program_id)          -> uint8_t error_code, uint64_t timestamp, uint16_t message_string_id
++ get_custom_program_option_names  (uint16_t program_id)          -> uint8_t error_code, uint16_t names_list_id
++ set_custom_program_option_value  (uint16_t program_id,
+                                    uint16_t name_string_id,
+                                    uint16_t value_string_id)     -> uint8_t error_code
++ get_custom_program_option_value  (uint16_t program_id,
+                                    uint16_t name_string_id)      -> uint8_t error_code, uint16_t value_string_id
++ remove_custom_program_option     (uint16_t program_id,
+                                    uint16_t name_string_id)      -> uint8_t error_code
 
 + callback: program_process_spawned          -> uint16_t program_id
 + callback: program_scheduler_error_occurred -> uint16_t program_id

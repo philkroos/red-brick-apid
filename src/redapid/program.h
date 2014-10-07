@@ -99,4 +99,11 @@ APIE program_get_last_spawned_process(Program *program, ObjectID *process_id);
 APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
                                       ObjectID *message_id);
 
+APIE program_get_custom_option_names(Program *program, ObjectID *names_id);
+APIE program_set_custom_option_value(Program *program, ObjectID name_id,
+                                     ObjectID value_id);
+APIE program_get_custom_option_value(Program *program, ObjectID name_id,
+                                     ObjectID *value_id);
+APIE program_remove_custom_option(Program *program, ObjectID name_id);
+
 #endif // REDAPID_PROGRAM_H
