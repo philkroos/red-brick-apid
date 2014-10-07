@@ -329,6 +329,10 @@ APIE string_get_chunk(String *string, uint32_t offset, char *buffer) {
 	return API_E_SUCCESS;
 }
 
+APIE string_get(ObjectID id, String **string) {
+	return inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+}
+
 APIE string_lock(ObjectID id, String **string) {
 	return inventory_lock_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }

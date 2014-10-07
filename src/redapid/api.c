@@ -193,9 +193,7 @@ static PacketE api_get_packet_error_code(APIE error_code) {
 		packet_prefix##Response response; \
 		String *variable; \
 		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
-		response.error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, \
-		                                                 request->variable##_string_id, \
-		                                                 (Object **)&variable); \
+		response.error_code = string_get(request->variable##_string_id, &variable); \
 		if (response.error_code == API_E_SUCCESS) { \
 			body \
 		} \

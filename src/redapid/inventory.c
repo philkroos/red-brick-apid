@@ -142,7 +142,7 @@ int inventory_init(void) {
 		return -1;
 	}
 
-	// allocate object arrays
+	// create object arrays
 	for (type = OBJECT_TYPE_INVENTORY; type <= OBJECT_TYPE_PROGRAM; ++type) {
 		if (array_create(&_objects[type], 32, sizeof(Object *), true) < 0) {
 			log_error("Could not create %s object array: %s (%d)",
