@@ -192,10 +192,10 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	directory->name_length = name->length;
 	directory->dp = dp;
 
-	string_copy(directory->buffer, name->buffer, sizeof(directory->buffer));
+	string_copy(directory->buffer, sizeof(directory->buffer), name->buffer);
 
 	if (directory->buffer[directory->name_length - 1] != '/') {
-		string_append(directory->buffer, "/", sizeof(directory->buffer));
+		string_append(directory->buffer, sizeof(directory->buffer), "/");
 
 		++directory->name_length;
 	}
@@ -279,7 +279,7 @@ APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *
 
 		directory->buffer[directory->name_length] = '\0';
 
-		string_append(directory->buffer, dirent->d_name, sizeof(directory->buffer));
+		string_append(directory->buffer, sizeof(directory->buffer), dirent->d_name);
 
 		switch (dirent->d_type) {
 		case DT_REG:  *type = FILE_TYPE_REGULAR;   break;
