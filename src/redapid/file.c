@@ -324,9 +324,7 @@ static void file_handle_async_read(void *opaque) {
 		}
 
 		return;
-	}
-
-	if (length_read == 0) {
+	} else if (length_read == 0) {
 		log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") asynchronously reached end-of-file",
 		          file_expand_signature(file));
 
@@ -1030,6 +1028,11 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 		}
 
 		return error_code;
+	} else if (length_to_read > 0 && rc == 0) {
+		log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") reached end-of-file",
+		          file_expand_signature(file));
+
+		return API_E_NO_MORE_DATA;
 	}
 
 	*length_read = rc;
