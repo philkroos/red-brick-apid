@@ -1051,6 +1051,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	free(program_config->custom_options);
 
 	// set new objects
+	program_config->defined             = defined;
 	program_config->executable          = executable;
 	program_config->arguments           = arguments;
 	program_config->environment         = environment;
