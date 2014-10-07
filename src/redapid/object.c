@@ -81,7 +81,6 @@ static void object_remove_reference(Object *object, int *reference_count,
 
 const char *object_get_type_name(ObjectType type) {
 	switch (type) {
-	case OBJECT_TYPE_INVENTORY: return "inventory";
 	case OBJECT_TYPE_STRING:    return "string";
 	case OBJECT_TYPE_LIST:      return "list";
 	case OBJECT_TYPE_FILE:      return "file";
@@ -95,7 +94,6 @@ const char *object_get_type_name(ObjectType type) {
 
 bool object_is_valid_type(ObjectType type) {
 	switch (type) {
-	case OBJECT_TYPE_INVENTORY:
 	case OBJECT_TYPE_STRING:
 	case OBJECT_TYPE_LIST:
 	case OBJECT_TYPE_FILE:

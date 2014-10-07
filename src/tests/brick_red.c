@@ -59,49 +59,6 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED OpenInventory_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED OpenInventoryResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED GetInventoryType_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t type;
-} ATTRIBUTE_PACKED GetInventoryTypeResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED GetNextInventoryEntry_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t entry_object_id;
-} ATTRIBUTE_PACKED GetNextInventoryEntryResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED RewindInventory_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED RewindInventoryResponse_;
-
-typedef struct {
-	PacketHeader header;
 	uint32_t length_to_reserve;
 	char buffer[60];
 } ATTRIBUTE_PACKED AllocateString_;
@@ -888,10 +845,6 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p = red->p;
 
 	device_p->response_expected[RED_FUNCTION_RELEASE_OBJECT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_OPEN_INVENTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_INVENTORY_TYPE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_REWIND_INVENTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_ALLOCATE_STRING] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_TRUNCATE_STRING] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_STRING_LENGTH] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -995,113 +948,6 @@ int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code) {
 	}
 
 	request.object_id = leconvert_uint16_to(object_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-
-
-
-	return ret;
-}
-
-int red_open_inventory(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_inventory_id) {
-	DevicePrivate *device_p = red->p;
-	OpenInventory_ request;
-	OpenInventoryResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_OPEN_INVENTORY, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.type = type;
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_inventory_id = leconvert_uint16_from(response.inventory_id);
-
-
-
-	return ret;
-}
-
-int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint8_t *ret_type) {
-	DevicePrivate *device_p = red->p;
-	GetInventoryType_ request;
-	GetInventoryTypeResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_INVENTORY_TYPE, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.inventory_id = leconvert_uint16_to(inventory_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_type = response.type;
-
-
-
-	return ret;
-}
-
-int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_entry_object_id) {
-	DevicePrivate *device_p = red->p;
-	GetNextInventoryEntry_ request;
-	GetNextInventoryEntryResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.inventory_id = leconvert_uint16_to(inventory_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_entry_object_id = leconvert_uint16_from(response.entry_object_id);
-
-
-
-	return ret;
-}
-
-int red_rewind_inventory(RED *red, uint16_t inventory_id, uint8_t *ret_error_code) {
-	DevicePrivate *device_p = red->p;
-	RewindInventory_ request;
-	RewindInventoryResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_REWIND_INVENTORY, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.inventory_id = leconvert_uint16_to(inventory_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 

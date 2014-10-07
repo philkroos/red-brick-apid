@@ -48,53 +48,6 @@ typedef struct {
 } ATTRIBUTE_PACKED ReleaseObjectResponse;
 
 //
-// inventory
-//
-
-typedef struct {
-	PacketHeader header;
-	uint8_t type;
-} ATTRIBUTE_PACKED OpenInventoryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED OpenInventoryResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED GetInventoryTypeRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t type;
-} ATTRIBUTE_PACKED GetInventoryTypeResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED GetNextInventoryEntryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t entry_object_id;
-} ATTRIBUTE_PACKED GetNextInventoryEntryResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t inventory_id;
-} ATTRIBUTE_PACKED RewindInventoryRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED RewindInventoryResponse;
-
-//
 // string
 //
 

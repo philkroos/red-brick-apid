@@ -45,11 +45,6 @@
 typedef enum {
 	FUNCTION_RELEASE_OBJECT = 1,
 
-	FUNCTION_OPEN_INVENTORY,
-	FUNCTION_GET_INVENTORY_TYPE,
-	FUNCTION_GET_NEXT_INVENTORY_ENTRY,
-	FUNCTION_REWIND_INVENTORY,
-
 	FUNCTION_ALLOCATE_STRING,
 	FUNCTION_TRUNCATE_STRING,
 	FUNCTION_GET_STRING_LENGTH,
@@ -227,32 +222,6 @@ CALL_OBJECT_FUNCTION(ReleaseObject, release_object, {
 })
 
 #undef CALL_OBJECT_FUNCTION
-
-//
-// inventory
-//
-
-#define CALL_INVENTORY_FUNCTION(packet_prefix, function_suffix, body) \
-	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
-	                   OBJECT_TYPE_INVENTORY, Inventory, inventory)
-
-CALL_FUNCTION(OpenInventory, open_inventory, {
-	response.error_code = inventory_open(request->type, &response.inventory_id);
-})
-
-CALL_INVENTORY_FUNCTION(GetInventoryType, get_inventory_type, {
-	response.error_code = inventory_get_type(inventory, &response.type);
-})
-
-CALL_INVENTORY_FUNCTION(GetNextInventoryEntry, get_next_inventory_entry, {
-	response.error_code = inventory_get_next_entry(inventory, &response.entry_object_id);
-})
-
-CALL_INVENTORY_FUNCTION(RewindInventory, rewind_inventory, {
-	response.error_code = inventory_rewind(inventory);
-})
-
-#undef CALL_INVENTORY_FUNCTION
 
 //
 // string
@@ -747,12 +716,6 @@ void api_handle_request(Packet *request) {
 	// object
 	DISPATCH_FUNCTION(RELEASE_OBJECT,                   ReleaseObject,                release_object)
 
-	// inventory
-	DISPATCH_FUNCTION(OPEN_INVENTORY,                   OpenInventory,                open_inventory)
-	DISPATCH_FUNCTION(GET_INVENTORY_TYPE,               GetInventoryType,             get_inventory_type)
-	DISPATCH_FUNCTION(GET_NEXT_INVENTORY_ENTRY,         GetNextInventoryEntry,        get_next_inventory_entry)
-	DISPATCH_FUNCTION(REWIND_INVENTORY,                 RewindInventory,              rewind_inventory)
-
 	// string
 	DISPATCH_FUNCTION(ALLOCATE_STRING,                  AllocateString,               allocate_string)
 	DISPATCH_FUNCTION(TRUNCATE_STRING,                  TruncateString,               truncate_string)
@@ -835,12 +798,6 @@ const char *api_get_function_name(int function_id) {
 	switch (function_id) {
 	// object
 	case FUNCTION_RELEASE_OBJECT:                   return "release-object";
-
-	// inventory
-	case FUNCTION_OPEN_INVENTORY:                   return "open-inventory";
-	case FUNCTION_GET_INVENTORY_TYPE:               return "get-inventory-type";
-	case FUNCTION_GET_NEXT_INVENTORY_ENTRY:         return "get-next-inventory-entry";
-	case FUNCTION_REWIND_INVENTORY:                 return "rewind-inventory";
 
 	// string
 	case FUNCTION_ALLOCATE_STRING:                  return "allocate-string";

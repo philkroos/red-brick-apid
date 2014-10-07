@@ -39,8 +39,7 @@ enum api_e {
  */
 
 enum object_type {
-	OBJECT_TYPE_INVENTORY = 0,
-	OBJECT_TYPE_STRING,
+	OBJECT_TYPE_STRING = 0,
 	OBJECT_TYPE_LIST,
 	OBJECT_TYPE_FILE,
 	OBJECT_TYPE_DIRECTORY,
@@ -50,18 +49,6 @@ enum object_type {
 
 + release_object                (uint16_t object_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
 ? emergency_release_all_objects ()                   -> uint8_t error_code // decreases all object reference counts to zero
-
-
-/*
- * inventory
- */
-
-// FIXME: remove this and use more specific functions: get_processes/get_defined_programs/get_undefined_programs/...
-
-+ open_inventory           (uint8_t type)          -> uint8_t error_code, uint16_t inventory_id
-+ get_inventory_type       (uint16_t inventory_id) -> uint8_t error_code, uint8_t type
-+ get_next_inventory_entry (uint16_t inventory_id) -> uint8_t error_code, uint16_t entry_object_id // error_code == NO_MORE_DATA means end-of-inventory
-+ rewind_inventory         (uint16_t inventory_id) -> uint8_t error_code
 
 
 /*

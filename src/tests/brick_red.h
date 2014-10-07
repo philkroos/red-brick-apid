@@ -36,282 +36,262 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_INVENTORY 2
+#define RED_FUNCTION_ALLOCATE_STRING 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_INVENTORY_TYPE 3
+#define RED_FUNCTION_TRUNCATE_STRING 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_INVENTORY_ENTRY 4
+#define RED_FUNCTION_GET_STRING_LENGTH 4
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_INVENTORY 5
+#define RED_FUNCTION_SET_STRING_CHUNK 5
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_STRING 6
+#define RED_FUNCTION_GET_STRING_CHUNK 6
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_TRUNCATE_STRING 7
+#define RED_FUNCTION_ALLOCATE_LIST 7
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_LENGTH 8
+#define RED_FUNCTION_GET_LIST_LENGTH 8
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_STRING_CHUNK 9
+#define RED_FUNCTION_GET_LIST_ITEM 9
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_CHUNK 10
+#define RED_FUNCTION_APPEND_TO_LIST 10
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_LIST 11
+#define RED_FUNCTION_REMOVE_FROM_LIST 11
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_LENGTH 12
+#define RED_FUNCTION_OPEN_FILE 12
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_ITEM 13
+#define RED_FUNCTION_CREATE_PIPE 13
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_APPEND_TO_LIST 14
+#define RED_FUNCTION_GET_FILE_INFO 14
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_FROM_LIST 15
+#define RED_FUNCTION_READ_FILE 15
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_FILE 16
+#define RED_FUNCTION_READ_FILE_ASYNC 16
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_PIPE 17
+#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 17
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_INFO 18
+#define RED_FUNCTION_WRITE_FILE 18
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE 19
+#define RED_FUNCTION_WRITE_FILE_UNCHECKED 19
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE_ASYNC 20
+#define RED_FUNCTION_WRITE_FILE_ASYNC 20
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 21
+#define RED_FUNCTION_SET_FILE_POSITION 21
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE 22
+#define RED_FUNCTION_GET_FILE_POSITION 22
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_UNCHECKED 23
+#define RED_FUNCTION_LOOKUP_FILE_INFO 25
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_ASYNC 24
+#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 26
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_FILE_POSITION 25
+#define RED_FUNCTION_OPEN_DIRECTORY 27
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_POSITION 26
+#define RED_FUNCTION_GET_DIRECTORY_NAME 28
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_FILE_INFO 29
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 29
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 30
+#define RED_FUNCTION_REWIND_DIRECTORY 30
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 31
+#define RED_FUNCTION_CREATE_DIRECTORY 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 32
+#define RED_FUNCTION_GET_PROCESSES 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 33
+#define RED_FUNCTION_SPAWN_PROCESS 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 34
+#define RED_FUNCTION_KILL_PROCESS 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_DIRECTORY 35
+#define RED_FUNCTION_GET_PROCESS_COMMAND 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESSES 36
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 37
+#define RED_FUNCTION_GET_PROCESS_STDIO 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 38
+#define RED_FUNCTION_GET_PROCESS_STATE 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 39
+#define RED_FUNCTION_GET_DEFINED_PROGRAMS 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_IDENTITY 40
+#define RED_FUNCTION_DEFINE_PROGRAM 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIO 41
+#define RED_FUNCTION_UNDEFINE_PROGRAM 42
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 42
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DEFINED_PROGRAMS 44
+#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 45
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 46
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 47
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 48
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 49
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 50
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 50
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 51
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 52
+#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 52
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 53
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 53
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 54
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 54
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 55
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 55
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 56
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 57
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 58
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 59
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 60
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 56
 
 /**
  * \ingroup BrickRED
@@ -326,7 +306,7 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_read_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 27
+#define RED_CALLBACK_ASYNC_FILE_READ 23
 
 /**
  * \ingroup BrickRED
@@ -336,64 +316,59 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_write_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 28
+#define RED_CALLBACK_ASYNC_FILE_WRITE 24
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint32_t pid, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 43
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 39
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 61
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 57
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 62
+#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 58
 
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_INVENTORY 0
+#define RED_OBJECT_TYPE_STRING 0
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_STRING 1
+#define RED_OBJECT_TYPE_LIST 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_LIST 2
+#define RED_OBJECT_TYPE_FILE 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_FILE 3
+#define RED_OBJECT_TYPE_DIRECTORY 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_DIRECTORY 4
+#define RED_OBJECT_TYPE_PROCESS 4
 
 /**
  * \ingroup BrickRED
  */
-#define RED_OBJECT_TYPE_PROCESS 5
-
-/**
- * \ingroup BrickRED
- */
-#define RED_OBJECT_TYPE_PROGRAM 6
+#define RED_OBJECT_TYPE_PROGRAM 5
 
 /**
  * \ingroup BrickRED
@@ -815,54 +790,6 @@ int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
 /**
  * \ingroup BrickRED
  *
- * Opens the inventory for a specific object type and allocates a new inventory
- * object for it.
- * 
- * Possible object types are:
- * 
- * * Inventory = 0
- * * String = 1
- * * List = 2
- * * File = 3
- * * Directory = 4
- * * Process = 5
- * * Program = 6
- * 
- * Returns the object ID of the new directory object and the resulting error code.
- */
-int red_open_inventory(RED *red, uint8_t type, uint8_t *ret_error_code, uint16_t *ret_inventory_id);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the object type of a inventory object, as passed to
- * {@link red_open_inventory}, and the resulting error code.
- * 
- * See {@link red_open_inventory} for possible object types.
- */
-int red_get_inventory_type(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint8_t *ret_type);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the object ID of the next object in an inventory object and the
- * resulting error code.
- * 
- * If there is not next object then error code *NoMoreData* is returned. To rewind
- * an inventory object call {@link red_rewind_inventory}.
- */
-int red_get_next_inventory_entry(RED *red, uint16_t inventory_id, uint8_t *ret_error_code, uint16_t *ret_entry_object_id);
-
-/**
- * \ingroup BrickRED
- *
- * Rewinds an inventory object and returns the resulting error code.
- */
-int red_rewind_inventory(RED *red, uint16_t inventory_id, uint8_t *ret_error_code);
-
-/**
- * \ingroup BrickRED
- *
  * Allocates a new string object, reserves ``length_to_reserve`` bytes memory
  * for it and sets up to the first 60 bytes. Set ``length_to_reserve`` to the
  * length of the string that should be stored in the string object.
@@ -929,6 +856,15 @@ int red_get_list_length(RED *red, uint16_t list_id, uint8_t *ret_error_code, uin
  *
  * Returns the object ID and type of the object stored at ``index`` in a list
  * object and returns the resulting error code.
+ * 
+ * Possible object types are:
+ * 
+ * * String = 0
+ * * List = 1
+ * * File = 2
+ * * Directory = 3
+ * * Process = 4
+ * * Program = 5
  */
 int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id, uint8_t *ret_type);
 
