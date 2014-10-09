@@ -332,7 +332,7 @@ static void file_handle_async_read(void *opaque) {
 
 		file->length_to_read_async = 0;
 
-		file_send_async_read_callback(file, API_E_NO_MORE_DATA, buffer, 0);
+		file_send_async_read_callback(file, API_E_SUCCESS, buffer, 0);
 
 		return;
 	}
@@ -1019,20 +1019,18 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 		error_code = api_get_error_code_from_errno();
 
 		if (errno_would_block()) {
-			log_debug("Reading %u byte(s) from file object ("FILE_SIGNATURE_FORMAT") would block",
-			          length_to_read, file_expand_signature(file));
+			// don't report an error, just return an empty buffer if there is
+			// nothing to read at this time
+			*length_read = 0;
+
+			return API_E_SUCCESS;
 		} else {
 			log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
 			         length_to_read, file_expand_signature(file),
 			         get_errno_name(errno), errno);
+
+			return error_code;
 		}
-
-		return error_code;
-	} else if (length_to_read > 0 && rc == 0) {
-		log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") reached end-of-file",
-		          file_expand_signature(file));
-
-		return API_E_NO_MORE_DATA;
 	}
 
 	*length_read = rc;
