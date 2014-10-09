@@ -92,7 +92,7 @@ typedef enum {
 	FUNCTION_DEFINE_PROGRAM,
 	FUNCTION_UNDEFINE_PROGRAM,
 	FUNCTION_GET_PROGRAM_IDENTIFIER,
-	FUNCTION_GET_PROGRAM_DIRECTORY,
+	FUNCTION_GET_PROGRAM_ROOT_DIRECTORY,
 	FUNCTION_SET_PROGRAM_COMMAND,
 	FUNCTION_GET_PROGRAM_COMMAND,
 	FUNCTION_SET_PROGRAM_STDIO_REDIRECTION,
@@ -517,9 +517,9 @@ CALL_PROGRAM_FUNCTION(GetProgramIdentifier, get_program_identifier, {
 	                                             &response.identifier_string_id);
 })
 
-CALL_PROGRAM_FUNCTION(GetProgramDirectory, get_program_directory, {
-	response.error_code = program_get_directory(program,
-	                                            &response.directory_string_id);
+CALL_PROGRAM_FUNCTION(GetProgramRootDirectory, get_program_root_directory, {
+	response.error_code = program_get_root_directory(program,
+	                                                 &response.root_directory_string_id);
 })
 
 CALL_PROGRAM_FUNCTION(SetProgramCommand, set_program_command, {
@@ -766,7 +766,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(DEFINE_PROGRAM,                   DefineProgram,                define_program)
 	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,                 UndefineProgram,              undefine_program)
 	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,           GetProgramIdentifier,         get_program_identifier)
-	DISPATCH_FUNCTION(GET_PROGRAM_DIRECTORY,            GetProgramDirectory,          get_program_directory)
+	DISPATCH_FUNCTION(GET_PROGRAM_ROOT_DIRECTORY,       GetProgramRootDirectory,      get_program_root_directory)
 	DISPATCH_FUNCTION(SET_PROGRAM_COMMAND,              SetProgramCommand,            set_program_command)
 	DISPATCH_FUNCTION(GET_PROGRAM_COMMAND,              GetProgramCommand,            get_program_command)
 	DISPATCH_FUNCTION(SET_PROGRAM_STDIO_REDIRECTION,    SetProgramStdioRedirection,   set_program_stdio_redirection)
@@ -852,7 +852,7 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_DEFINE_PROGRAM:                   return "define-program";
 	case FUNCTION_UNDEFINE_PROGRAM:                 return "undefine-program";
 	case FUNCTION_GET_PROGRAM_IDENTIFIER:           return "get-program-identifier";
-	case FUNCTION_GET_PROGRAM_DIRECTORY:            return "get-program-directory";
+	case FUNCTION_GET_PROGRAM_ROOT_DIRECTORY:       return "get-program-root-directory";
 	case FUNCTION_SET_PROGRAM_COMMAND:              return "set-program-command";
 	case FUNCTION_GET_PROGRAM_COMMAND:              return "get-program-command";
 	case FUNCTION_SET_PROGRAM_STDIO_REDIRECTION:    return "set-program-stdio-redirection";

@@ -40,7 +40,7 @@ typedef enum {
 
 typedef struct {
 	char *identifier;
-	char *directory; // <home>/programs/<identifier>
+	char *root_directory; // <home>/programs/<identifier>
 	ProgramConfig *config;
 	bool reboot;
 	ProgramSchedulerSpawnFunction spawn;
@@ -59,7 +59,7 @@ typedef struct {
 } ProgramScheduler;
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
-                              const char *identifier, const char *directory,
+                              const char *identifier, const char *root_directory,
                               ProgramConfig *config, bool reboot,
                               ProgramSchedulerSpawnFunction spawn,
                               ProgramSchedulerErrorFunction error, void *opaque);

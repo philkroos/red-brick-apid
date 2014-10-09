@@ -289,7 +289,7 @@ enum program_repeat_mode {
 ? recover_program                 (uint16_t identifier_string_id) -> uint8_t error_code, uint16_t program_id
 ? purge_program                   (uint16_t identifier_string_id) -> uint8_t error_code
 + get_program_identifier          (uint16_t program_id)           -> uint8_t error_code, uint16_t identifier_string_id
-+ get_program_directory           (uint16_t program_id)           -> uint8_t error_code, uint16_t directory_string_id
++ get_program_root_directory      (uint16_t program_id)           -> uint8_t error_code, uint16_t root_directory_string_id
 + set_program_command             (uint16_t program_id,
                                    uint16_t executable_string_id,
                                    uint16_t arguments_list_id,

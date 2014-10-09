@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-07.      *
+ * This file was automatically generated on 2014-10-09.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -554,13 +554,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramDirectory_;
+} ATTRIBUTE_PACKED GetProgramRootDirectory_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t directory_string_id;
-} ATTRIBUTE_PACKED GetProgramDirectoryResponse_;
+	uint16_t root_directory_string_id;
+} ATTRIBUTE_PACKED GetProgramRootDirectoryResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -887,7 +887,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_DEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_UNDEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_IDENTIFIER] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -2053,13 +2053,13 @@ int red_get_program_identifier(RED *red, uint16_t program_id, uint8_t *ret_error
 	return ret;
 }
 
-int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_directory_string_id) {
+int red_get_program_root_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_root_directory_string_id) {
 	DevicePrivate *device_p = red->p;
-	GetProgramDirectory_ request;
-	GetProgramDirectoryResponse_ response;
+	GetProgramRootDirectory_ request;
+	GetProgramRootDirectoryResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_DIRECTORY, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2073,7 +2073,7 @@ int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_directory_string_id = leconvert_uint16_from(response.directory_string_id);
+	*ret_root_directory_string_id = leconvert_uint16_from(response.root_directory_string_id);
 
 
 

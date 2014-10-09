@@ -609,7 +609,7 @@ static void program_scheduler_tick(void *opaque) {
 }
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
-                              const char *identifier, const char *directory,
+                              const char *identifier, const char *root_directory,
                               ProgramConfig *config, bool reboot,
                               ProgramSchedulerSpawnFunction spawn,
                               ProgramSchedulerErrorFunction error, void *opaque) {
@@ -634,10 +634,10 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 
 	phase = 1;
 
-	// duplicate directory string
-	program_scheduler->directory = strdup(directory);
+	// duplicate root directory string
+	program_scheduler->root_directory = strdup(root_directory);
 
-	if (program_scheduler->directory == NULL) {
+	if (program_scheduler->root_directory == NULL) {
 		error_code = API_E_NO_FREE_MEMORY;
 
 		log_error("Could not duplicate program directory name: %s (%d)",
@@ -649,7 +649,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	phase = 2;
 
 	// format working directory name
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin", directory) < 0) {
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin", root_directory) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program working directory name: %s (%d)",
@@ -679,7 +679,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	}
 
 	// format log directory name
-	if (asprintf(&log_directory, "%s/log", directory) < 0) {
+	if (asprintf(&log_directory, "%s/log", root_directory) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program log directory name: %s (%d)",
@@ -747,7 +747,7 @@ cleanup:
 		string_unlock(working_directory);
 
 	case 2:
-		free(program_scheduler->directory);
+		free(program_scheduler->root_directory);
 
 	case 1:
 		free(program_scheduler->identifier);
@@ -767,7 +767,7 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 	string_unlock(program_scheduler->dev_null_file_name);
 	free(program_scheduler->log_directory);
 	string_unlock(program_scheduler->working_directory);
-	free(program_scheduler->directory);
+	free(program_scheduler->root_directory);
 	free(program_scheduler->identifier);
 }
 

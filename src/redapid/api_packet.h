@@ -568,13 +568,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED GetProgramDirectoryRequest;
+} ATTRIBUTE_PACKED GetProgramRootDirectoryRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint16_t directory_string_id;
-} ATTRIBUTE_PACKED GetProgramDirectoryResponse;
+	uint16_t root_directory_string_id;
+} ATTRIBUTE_PACKED GetProgramRootDirectoryResponse;
 
 typedef struct {
 	PacketHeader header;

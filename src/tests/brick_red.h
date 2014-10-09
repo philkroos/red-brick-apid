@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-07.      *
+ * This file was automatically generated on 2014-10-09.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -231,7 +231,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_DIRECTORY 44
+#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 44
 
 /**
  * \ingroup BrickRED
@@ -1298,7 +1298,7 @@ int red_get_program_identifier(RED *red, uint16_t program_id, uint8_t *ret_error
  *
  * 
  */
-int red_get_program_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_directory_string_id);
+int red_get_program_root_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_root_directory_string_id);
 
 /**
  * \ingroup BrickRED

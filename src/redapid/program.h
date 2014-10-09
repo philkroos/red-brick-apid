@@ -34,7 +34,7 @@ typedef struct {
 	Object base;
 
 	String *identifier;
-	String *directory; // <home>/programs/<identifier>
+	String *root_directory; // <home>/programs/<identifier>
 	ProgramConfig config;
 	ProgramScheduler scheduler;
 	uint64_t error_timestamp;
@@ -42,13 +42,14 @@ typedef struct {
 	bool error_internal; // == true if error message wrapping failed
 } Program;
 
-APIE program_load(const char *identifier, const char *directory, const char *filename);
+APIE program_load(const char *identifier, const char *root_directory,
+                  const char *config_filename);
 
 APIE program_define(ObjectID identifier_id, ObjectID *id);
 APIE program_undefine(Program *program);
 
 APIE program_get_identifier(Program *program, ObjectID *identifier_id);
-APIE program_get_directory(Program *program, ObjectID *directory_id);
+APIE program_get_root_directory(Program *program, ObjectID *root_directory_id);
 
 APIE program_set_command(Program *program, ObjectID executable_id,
                          ObjectID arguments_id, ObjectID environment_id);

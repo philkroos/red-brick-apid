@@ -164,18 +164,19 @@ static void program_destroy(Object *object) {
 
 	program_config_destroy(&program->config);
 
-	string_unlock(program->directory);
+	string_unlock(program->root_directory);
 	string_unlock(program->identifier);
 
 	free(program);
 }
 
-APIE program_load(const char *identifier, const char *directory, const char *filename) {
+APIE program_load(const char *identifier, const char *root_directory,
+                  const char *config_filename) {
 	int phase = 0;
 	APIE error_code;
 	ProgramConfig program_config;
 	String *identifier_object;
-	String *directory_object;
+	String *root_directory_object;
 	Program *program;
 
 	// check identifier
@@ -188,7 +189,7 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 	}
 
 	// load config
-	error_code = program_config_create(&program_config, filename);
+	error_code = program_config_create(&program_config, config_filename);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -204,7 +205,7 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 
 	// check if program is defined
 	if (!program_config.defined) {
-		log_debug("Ignoring undefined program configuration '%s'", filename);
+		log_debug("Ignoring undefined program configuration '%s'", config_filename);
 
 		program_config_destroy(&program_config);
 
@@ -223,11 +224,11 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 
 	phase = 2;
 
-	// wrap directory string
-	error_code = string_wrap(directory,
+	// wrap root directory string
+	error_code = string_wrap(root_directory,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &directory_object);
+	                         NULL, &root_directory_object);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -251,7 +252,7 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 
 	// create program object
 	program->identifier = identifier_object;
-	program->directory = directory_object;
+	program->root_directory = root_directory_object;
 	program->error_timestamp = 0;
 	program->error_message = NULL;
 	program->error_internal = false;
@@ -260,7 +261,7 @@ APIE program_load(const char *identifier, const char *directory, const char *fil
 
 	error_code = program_scheduler_create(&program->scheduler,
 	                                      program->identifier->buffer,
-	                                      program->directory->buffer,
+	                                      program->root_directory->buffer,
 	                                      &program->config, true,
 	                                      program_report_process_spawn,
 	                                      program_report_scheduler_error,
@@ -297,7 +298,7 @@ cleanup:
 		free(program);
 
 	case 3:
-		string_unlock(directory_object);
+		string_unlock(root_directory_object);
 
 	case 2:
 		string_unlock(identifier_object);
@@ -319,7 +320,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	String *identifier;
 	char buffer[1024];
 	char config_filename[1024];
-	String *directory;
+	String *root_directory;
 	Program *program;
 
 	// lock identifier string object
@@ -340,7 +341,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	// create directory string object
+	// create root directory string object
 	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s",
 	                    inventory_get_programs_directory(), identifier->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -354,7 +355,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	error_code = string_wrap(buffer,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &directory);
+	                         NULL, &root_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -364,7 +365,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	// format config filename
 	if (robust_snprintf(config_filename, sizeof(config_filename),
-	                    "%s/program.conf", directory->buffer) < 0) {
+	                    "%s/program.conf", root_directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program config file name: %s (%d)",
@@ -374,7 +375,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	}
 
 	// create program directory as default user (UID 1000, GID 1000)
-	error_code = directory_create(directory->buffer,
+	error_code = directory_create(root_directory->buffer,
 	                              DIRECTORY_FLAG_RECURSIVE |
 	                              DIRECTORY_FLAG_EXCLUSIVE,
 	                              0755, 1000, 1000);
@@ -401,7 +402,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	// create program object
 	program->identifier = identifier;
-	program->directory = directory;
+	program->root_directory = root_directory;
 	program->error_timestamp = 0;
 	program->error_message = NULL;
 	program->error_internal = false;
@@ -422,7 +423,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	error_code = program_scheduler_create(&program->scheduler,
 	                                      program->identifier->buffer,
-	                                      program->directory->buffer,
+	                                      program->root_directory->buffer,
 	                                      &program->config, false,
 	                                      program_report_process_spawn,
 	                                      program_report_scheduler_error,
@@ -465,10 +466,10 @@ cleanup:
 		free(program);
 
 	case 3:
-		rmdir(directory->buffer); // FIXME: do a recursive remove here
+		rmdir(root_directory->buffer); // FIXME: do a recursive remove here
 
 	case 2:
-		string_unlock(directory);
+		string_unlock(root_directory);
 
 	case 1:
 		string_unlock(identifier);
@@ -521,10 +522,10 @@ APIE program_get_identifier(Program *program, ObjectID *identifier_id) {
 }
 
 // public API
-APIE program_get_directory(Program *program, ObjectID *directory_id) {
-	object_add_external_reference(&program->directory->base);
+APIE program_get_root_directory(Program *program, ObjectID *root_directory_id) {
+	object_add_external_reference(&program->root_directory->base);
 
-	*directory_id = program->directory->base.id;
+	*root_directory_id = program->root_directory->base.id;
 
 	return API_E_SUCCESS;
 }
