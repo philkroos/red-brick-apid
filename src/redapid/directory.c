@@ -282,15 +282,15 @@ APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *
 		string_append(directory->buffer, sizeof(directory->buffer), dirent->d_name);
 
 		switch (dirent->d_type) {
-		case DT_REG:  *type = FILE_TYPE_REGULAR;   break;
-		case DT_DIR:  *type = FILE_TYPE_DIRECTORY; break;
-		case DT_CHR:  *type = FILE_TYPE_CHARACTER; break;
-		case DT_BLK:  *type = FILE_TYPE_BLOCK;     break;
-		case DT_FIFO: *type = FILE_TYPE_FIFO;      break;
-		case DT_LNK:  *type = FILE_TYPE_SYMLINK;   break;
-		case DT_SOCK: *type = FILE_TYPE_SOCKET;    break;
+		case DT_REG:  *type = DIRECTORY_ENTRY_TYPE_REGULAR;   break;
+		case DT_DIR:  *type = DIRECTORY_ENTRY_TYPE_DIRECTORY; break;
+		case DT_CHR:  *type = DIRECTORY_ENTRY_TYPE_CHARACTER; break;
+		case DT_BLK:  *type = DIRECTORY_ENTRY_TYPE_BLOCK;     break;
+		case DT_FIFO: *type = DIRECTORY_ENTRY_TYPE_FIFO;      break;
+		case DT_LNK:  *type = DIRECTORY_ENTRY_TYPE_SYMLINK;   break;
+		case DT_SOCK: *type = DIRECTORY_ENTRY_TYPE_SOCKET;    break;
 
-		default:      *type = FILE_TYPE_UNKNOWN;   break;
+		default:      *type = DIRECTORY_ENTRY_TYPE_UNKNOWN;   break;
 		}
 
 		return string_wrap(directory->buffer, OBJECT_CREATE_FLAG_EXTERNAL, name_id, NULL);

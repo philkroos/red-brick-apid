@@ -548,6 +548,46 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
+#define RED_DIRECTORY_ENTRY_TYPE_UNKNOWN 0
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_REGULAR 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_DIRECTORY 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_CHARACTER 3
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_BLOCK 4
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_FIFO 5
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_SYMLINK 6
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_DIRECTORY_ENTRY_TYPE_SOCKET 7
+
+/**
+ * \ingroup BrickRED
+ */
 #define RED_DIRECTORY_FLAG_RECURSIVE 1
 
 /**
@@ -1153,7 +1193,16 @@ int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_c
  * If there is not next entry then error code *NoMoreData* is returned. To rewind
  * a directory object call {@link red_rewind_directory}.
  * 
- * See :func:`GetFileType` for a list of possible file types.
+ * Possible directory entry types are:
+ * 
+ * * Unknown = 0
+ * * Regular = 1
+ * * Directory = 2
+ * * Character = 3
+ * * Block = 4
+ * * FIFO = 5
+ * * Symlink = 6
+ * * Socket = 7
  */
 int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id, uint8_t *ret_type);
 
@@ -1232,8 +1281,8 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
 /**
  * \ingroup BrickRED
  *
- * Returns the current state, timestamp, process ID and exit code of a process
- * object, and the resulting error code.
+ * Returns the current state, timestamp (UNIX time) of the last state change,
+ * process ID and exit code of a process object, and the resulting error code.
  * 
  * Possible process states are:
  * 
@@ -1243,9 +1292,6 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * Exited = 3
  * * Killed = 4
  * * Stopped = 5
- * 
- * The timestamp represents the UNIX time since the process is in its current
- * state.
  * 
  * The process ID is only valid if the state is *Running* or *Stopped*.
  * 
