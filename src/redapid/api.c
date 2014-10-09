@@ -898,12 +898,9 @@ void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
 }
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
-                                             uint64_t timestamp, uint32_t pid,
                                              uint8_t exit_code) {
 	_process_state_changed_callback.process_id = process_id;
 	_process_state_changed_callback.state = state;
-	_process_state_changed_callback.timestamp = timestamp;
-	_process_state_changed_callback.pid = pid;
 	_process_state_changed_callback.exit_code = exit_code;
 
 	network_dispatch_response((Packet *)&_process_state_changed_callback);
