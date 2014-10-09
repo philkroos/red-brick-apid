@@ -40,7 +40,6 @@ typedef enum {
 
 typedef struct {
 	char *identifier;
-	char *root_directory; // <home>/programs/<identifier>
 	ProgramConfig *config;
 	bool reboot;
 	ProgramSchedulerSpawnFunction spawn;

@@ -634,20 +634,6 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 
 	phase = 1;
 
-	// duplicate root directory string
-	program_scheduler->root_directory = strdup(root_directory);
-
-	if (program_scheduler->root_directory == NULL) {
-		error_code = API_E_NO_FREE_MEMORY;
-
-		log_error("Could not duplicate program directory name: %s (%d)",
-		          get_errno_name(ENOMEM), ENOMEM);
-
-		return API_E_NO_FREE_MEMORY;
-	}
-
-	phase = 2;
-
 	// format working directory name
 	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin", root_directory) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -668,7 +654,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 3;
+	phase = 2;
 
 	// create working directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(working_directory->buffer,
@@ -688,7 +674,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 3;
 
 	// create log directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(log_directory, DIRECTORY_FLAG_RECURSIVE,
@@ -708,7 +694,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 4;
 
 	program_scheduler->config = config;
 	program_scheduler->reboot = reboot;
@@ -733,21 +719,18 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 6;
+	phase = 5;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 5:
+	case 4:
 		string_unlock(dev_null_file_name);
 
-	case 4:
+	case 3:
 		free(log_directory);
 
-	case 3:
-		string_unlock(working_directory);
-
 	case 2:
-		free(program_scheduler->root_directory);
+		string_unlock(working_directory);
 
 	case 1:
 		free(program_scheduler->identifier);
@@ -756,7 +739,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 6 ? API_E_SUCCESS : error_code;
+	return phase == 5 ? API_E_SUCCESS : error_code;
 }
 
 void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
@@ -767,7 +750,6 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 	string_unlock(program_scheduler->dev_null_file_name);
 	free(program_scheduler->log_directory);
 	string_unlock(program_scheduler->working_directory);
-	free(program_scheduler->root_directory);
 	free(program_scheduler->identifier);
 }
 
