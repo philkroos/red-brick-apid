@@ -479,6 +479,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
+	uint32_t pid;
 	uint32_t uid;
 	uint32_t gid;
 } ATTRIBUTE_PACKED GetProcessIdentityResponse;
@@ -505,8 +506,6 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t state;
-	uint64_t timestamp;
-	uint32_t pid;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED GetProcessStateResponse;
 
@@ -514,8 +513,6 @@ typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
 	uint8_t state;
-	uint64_t timestamp;
-	uint32_t pid;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED ProcessStateChangedCallback;
 

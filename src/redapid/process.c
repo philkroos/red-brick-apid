@@ -43,7 +43,6 @@
 
 typedef struct {
 	ProcessState state;
-	uint64_t timestamp;
 	uint8_t exit_code;
 } ProcessStateChange;
 
@@ -135,8 +134,6 @@ static void process_wait(void *opaque) {
 			break;
 		}
 
-		change.timestamp = time(NULL);
-
 		if (WIFEXITED(status)) {
 			change.state = PROCESS_STATE_EXITED;
 			change.exit_code = WEXITSTATUS(status);
@@ -198,7 +195,6 @@ static void process_handle_state_change(void *opaque) {
 	}
 
 	process->state = change.state;
-	process->timestamp = change.timestamp;
 	process->exit_code = change.exit_code;
 
 	if (!process_is_alive(process)) {
@@ -215,7 +211,6 @@ static void process_handle_state_change(void *opaque) {
 	// sending process-state-changed callbacks for scheduled program executions
 	if (process->base.external_reference_count > 0) {
 		api_send_process_state_changed_callback(process->base.id, change.state,
-		                                        change.timestamp, process->pid,
 		                                        change.exit_code);
 	}
 
@@ -706,7 +701,6 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->state_change = state_change;
 	process->opaque = opaque;
 	process->state = PROCESS_STATE_RUNNING;
-	process->timestamp = time(NULL);
 	process->pid = pid;
 	process->exit_code = 0; // invalid
 
@@ -861,7 +855,9 @@ APIE process_get_command(Process *process, ObjectID *executable_id,
 }
 
 // public API
-APIE process_get_identity(Process *process, uint32_t *uid, uint32_t *gid) {
+APIE process_get_identity(Process *process, uint32_t *pid, uint32_t *uid,
+                          uint32_t *gid) {
+	*pid = process->pid;
 	*uid = process->uid;
 	*gid = process->gid;
 
@@ -883,11 +879,8 @@ APIE process_get_stdio(Process *process, ObjectID *stdin_id, ObjectID *stdout_id
 }
 
 // public API
-APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
-                       uint32_t *pid, uint8_t *exit_code) {
+APIE process_get_state(Process *process, uint8_t *state, uint8_t *exit_code) {
 	*state = process->state;
-	*timestamp = process->timestamp;
-	*pid = process->pid;
 	*exit_code = process->exit_code;
 
 	return API_E_SUCCESS;

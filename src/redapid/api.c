@@ -471,7 +471,9 @@ CALL_PROCESS_FUNCTION(GetProcessCommand, get_process_command, {
 
 CALL_PROCESS_FUNCTION(GetProcessIdentity, get_process_identity, {
 	response.error_code = process_get_identity(process,
-	                                           &response.uid, &response.gid);
+	                                           &response.pid,
+	                                           &response.uid,
+	                                           &response.gid);
 })
 
 CALL_PROCESS_FUNCTION(GetProcessStdio, get_process_stdio, {
@@ -484,8 +486,6 @@ CALL_PROCESS_FUNCTION(GetProcessStdio, get_process_stdio, {
 CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
 	response.error_code = process_get_state(process,
 	                                        &response.state,
-	                                        &response.timestamp,
-	                                        &response.pid,
 	                                        &response.exit_code);
 })
 

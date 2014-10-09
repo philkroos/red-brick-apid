@@ -321,7 +321,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  *
- * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint32_t pid, uint8_t exit_code, void *user_data) \endcode
+ * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
  */
 #define RED_CALLBACK_PROCESS_STATE_CHANGED 39
 
@@ -1265,10 +1265,13 @@ int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_co
 /**
  * \ingroup BrickRED
  *
- * Returns the user and group ID used to spawn a process object, as passed to
- * {@link red_spawn_process}, and the resulting error code.
+ * Returns the process ID and the user and group ID used to spawn a process object,
+ * as passed to {@link red_spawn_process}, and the resulting error code.
+ * 
+ * The process ID is only valid if the state is *Running* or *Stopped*, see
+ * {@link red_get_process_state}.
  */
-int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_uid, uint32_t *ret_gid);
+int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint32_t *ret_pid, uint32_t *ret_uid, uint32_t *ret_gid);
 
 /**
  * \ingroup BrickRED
@@ -1281,8 +1284,8 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
 /**
  * \ingroup BrickRED
  *
- * Returns the current state, timestamp (UNIX time) of the last state change,
- * process ID and exit code of a process object, and the resulting error code.
+ * Returns the current state and exit code of a process object, and the resulting
+ * error code.
  * 
  * Possible process states are:
  * 
@@ -1292,8 +1295,6 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * Exited = 3
  * * Killed = 4
  * * Stopped = 5
- * 
- * The process ID is only valid if the state is *Running* or *Stopped*.
  * 
  * The exit code is only valid if the state is *Error*, *Exited*, *Killed* or
  * *Stopped* and has different meanings depending on the state:
@@ -1309,7 +1310,7 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * CannotExecute = 126
  * * DoesNotExist = 127
  */
-int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint64_t *ret_timestamp, uint32_t *ret_pid, uint8_t *ret_exit_code);
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
 
 /**
  * \ingroup BrickRED
