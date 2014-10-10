@@ -291,7 +291,7 @@ static off_t pipe_handle_seek(File *file, off_t offset, int whence) {
 // FIXME: maybe add a loop here and read multiple times per read event
 static void file_handle_async_read(void *opaque) {
 	File *file = opaque;
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_READ_ASYNC_BUFFER_LENGTH];
 	uint8_t length_to_read = sizeof(buffer);
 	int length_read;
 	APIE error_code;

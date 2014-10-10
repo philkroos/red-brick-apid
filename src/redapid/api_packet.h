@@ -335,7 +335,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+	uint8_t buffer[FILE_MAX_READ_ASYNC_BUFFER_LENGTH];
 	uint8_t length_read;
 } ATTRIBUTE_PACKED AsyncFileReadCallback;
 
