@@ -300,7 +300,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	Program *program;
 
 	// lock identifier string object
-	error_code = string_lock(identifier_id, &identifier);
+	error_code = string_get_locked(identifier_id, &identifier);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -514,7 +514,7 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	ProgramConfig backup;
 
 	// lock new executable string object
-	error_code = string_lock(executable_id, &executable);
+	error_code = string_get_locked(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -531,7 +531,7 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	}
 
 	// lock new arguments list object
-	error_code = list_lock(arguments_id, OBJECT_TYPE_STRING, &arguments);
+	error_code = list_get_locked(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -540,7 +540,7 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	phase = 2;
 
 	// lock new environment list object
-	error_code = list_lock(environment_id, OBJECT_TYPE_STRING, &environment);
+	error_code = list_get_locked(environment_id, OBJECT_TYPE_STRING, &environment);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -650,7 +650,7 @@ APIE program_set_stdio_redirection(Program *program,
 
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// lock new stdin file name string object
-		error_code = string_lock(stdin_file_name_id, &stdin_file_name);
+		error_code = string_get_locked(stdin_file_name_id, &stdin_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -680,7 +680,7 @@ APIE program_set_stdio_redirection(Program *program,
 
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// lock new stdout file name string object
-		error_code = string_lock(stdout_file_name_id, &stdout_file_name);
+		error_code = string_get_locked(stdout_file_name_id, &stdout_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -710,7 +710,7 @@ APIE program_set_stdio_redirection(Program *program,
 
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// lock new stderr file name string object
-		error_code = string_lock(stderr_file_name_id, &stderr_file_name);
+		error_code = string_get_locked(stderr_file_name_id, &stderr_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -1029,7 +1029,7 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 		return error_code;
 	}
 
-	error_code = string_lock(value_id, &value);
+	error_code = string_get_locked(value_id, &value);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -1038,14 +1038,6 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 	custom_option = program_find_custom_option(program, name, NULL);
 
 	if (custom_option == NULL) {
-		error_code = string_lock(name_id, &name);
-
-		if (error_code != API_E_SUCCESS) {
-			string_unlock(value);
-
-			return error_code;
-		}
-
 		custom_option = array_append(program->config.custom_options);
 
 		if (custom_option == NULL) {
@@ -1055,11 +1047,12 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 			          program->base.id, program->identifier->buffer,
 			          get_errno_name(errno), errno);
 
-			string_unlock(name);
 			string_unlock(value);
 
 			return error_code;
 		}
+
+		string_lock(name);
 
 		custom_option->name = name;
 		custom_option->value = value;

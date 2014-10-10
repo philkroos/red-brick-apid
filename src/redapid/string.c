@@ -333,8 +333,20 @@ APIE string_get(ObjectID id, String **string) {
 	return inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
-APIE string_lock(ObjectID id, String **string) {
-	return inventory_lock_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+APIE string_get_locked(ObjectID id, String **string) {
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	object_lock(&(*string)->base);
+
+	return API_E_SUCCESS;
+}
+
+void string_lock(String *string) {
+	object_lock(&string->base);
 }
 
 void string_unlock(String *string) {

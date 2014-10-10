@@ -325,7 +325,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	Process *process;
 
 	// lock executable string object
-	error_code = string_lock(executable_id, &executable);
+	error_code = string_get_locked(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -342,7 +342,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	}
 
 	// lock arguments list object
-	error_code = list_lock(arguments_id, OBJECT_TYPE_STRING, &arguments);
+	error_code = list_get_locked(arguments_id, OBJECT_TYPE_STRING, &arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -404,7 +404,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	*item = NULL;
 
 	// lock environment list object
-	error_code = list_lock(environment_id, OBJECT_TYPE_STRING, &environment);
+	error_code = list_get_locked(environment_id, OBJECT_TYPE_STRING, &environment);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -455,7 +455,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	*item = NULL;
 
 	// lock working directory string object
-	error_code = string_lock(working_directory_id, &working_directory);
+	error_code = string_get_locked(working_directory_id, &working_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -481,7 +481,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	}
 
 	// lock stdin file object
-	error_code = file_lock(stdin_id, &stdin);
+	error_code = file_get_locked(stdin_id, &stdin);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -490,7 +490,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	phase = 7;
 
 	// lock stdout file object
-	error_code = file_lock(stdout_id, &stdout);
+	error_code = file_get_locked(stdout_id, &stdout);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -499,7 +499,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	phase = 8;
 
 	// lock stderr file object
-	error_code = file_lock(stderr_id, &stderr);
+	error_code = file_get_locked(stderr_id, &stderr);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

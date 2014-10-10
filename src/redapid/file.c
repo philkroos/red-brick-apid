@@ -668,7 +668,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	}
 
 	// lock name string object
-	error_code = string_lock(name_id, &name);
+	error_code = string_get_locked(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -1302,8 +1302,16 @@ IOHandle file_get_write_handle(File *file) {
 	}
 }
 
-APIE file_lock(ObjectID id, File **file) {
-	return inventory_lock_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
+APIE file_get_locked(ObjectID id, File **file) {
+	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	object_lock(&(*file)->base);
+
+	return API_E_SUCCESS;
 }
 
 void file_unlock(File *file) {

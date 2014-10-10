@@ -127,7 +127,7 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	Directory *directory;
 
 	// lock name string object
-	error_code = string_lock(name_id, &name);
+	error_code = string_get_locked(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

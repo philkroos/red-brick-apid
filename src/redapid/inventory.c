@@ -370,30 +370,6 @@ APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
-APIE inventory_lock_object(ObjectID id, Object **object) {
-	APIE error_code = inventory_get_object(id, object);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	object_lock(*object);
-
-	return API_E_SUCCESS;
-}
-
-APIE inventory_lock_typed_object(ObjectType type, ObjectID id, Object **object) {
-	APIE error_code = inventory_get_typed_object(type, id, object);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	object_lock(*object);
-
-	return API_E_SUCCESS;
-}
-
 // public API
 APIE inventory_get_processes(ObjectID *processes_id) {
 	List *processes;
