@@ -41,8 +41,6 @@ void async_file_read(uint16_t file_id, uint8_t error_code, uint8_t *buffer, uint
 
 		printf("red_read_file_async in %f sec, %f kB/s\n", dur, length_to_read / dur / 1024);
 	} else if ((total_length_read % length_to_read_block) == 0) {
-		uint8_t ec;
-
 		printf("red_read_file_async... %d started\n", async_reads+1);
 		int rc = red_read_file_async(&red, fid, length_to_read_block);
 		if (rc < 0) {
