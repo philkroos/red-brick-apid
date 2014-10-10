@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-09.      *
+ * This file was automatically generated on 2014-10-10.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -1023,7 +1023,12 @@ int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8
  *
  * Reads up to 62 bytes from a file object.
  * 
- * Returns the read bytes and the resulting error code.
+ * Returns the bytes read, the actual number of bytes read and the resulting
+ * error code.
+ * 
+ * If there is not data to be read, either because the file position reached
+ * end-of-file or because there is not data in the pipe, then zero bytes are
+ * returned.
  * 
  * If the file object was created by {@link red_open_file} without the *NonBlocking*
  * flag or by {@link red_create_pipe} without the *NonBlockingRead* flag then the
@@ -1034,19 +1039,20 @@ int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *r
 /**
  * \ingroup BrickRED
  *
- * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object asynchronously. The
- * minimum asynchronous read length is 1 byte.
+ * Reads up to 2\ :sup:`63`\  - 1 bytes from a file object asynchronously.
  * 
- * Returns the resulting error code.
+ * Reports the bytes read (in 60 byte chunks), the actual number of bytes read and
+ * the resulting error code via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
  * 
- * The read bytes in 60 byte chunks and the resulting error codes of the read
- * operations are reported via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
+ * If there is not data to be read, either because the file position reached
+ * end-of-file or because there is not data in the pipe, then zero bytes are
+ * reported.
  * 
  * If the file object was created by {@link red_open_file} without the *NonBlocking*
  * flag or by {@link red_create_pipe} without the *NonBlockingRead* flag then the error
  * code *NotSupported* is reported via the {@link RED_CALLBACK_ASYNC_FILE_READ} callback.
  */
-int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uint8_t *ret_error_code);
+int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read);
 
 /**
  * \ingroup BrickRED
@@ -1054,6 +1060,8 @@ int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uin
  * Aborts a {@link red_read_file_async} operation in progress.
  * 
  * Returns the resulting error code.
+ * 
+ * On success the {@link RED_CALLBACK_ASYNC_FILE_READ} callback will report *OperationAborted*.
  */
 int red_abort_async_file_read(RED *red, uint16_t file_id, uint8_t *ret_error_code);
 

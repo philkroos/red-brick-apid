@@ -223,6 +223,35 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+	uint8_t length_to_read;
+} ATTRIBUTE_PACKED ReadFileRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t buffer[FILE_MAX_READ_BUFFER_LENGTH];
+	uint8_t length_read;
+} ATTRIBUTE_PACKED ReadFileResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint64_t length_to_read;
+} ATTRIBUTE_PACKED ReadFileAsyncRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED AbortAsyncFileReadRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED AbortAsyncFileReadResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
 	uint8_t buffer[FILE_MAX_WRITE_BUFFER_LENGTH];
 	uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileRequest;
@@ -246,40 +275,6 @@ typedef struct {
 	uint8_t buffer[FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH];
 	uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileAsyncRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t length_to_read;
-} ATTRIBUTE_PACKED ReadFileRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t buffer[FILE_MAX_READ_BUFFER_LENGTH];
-	uint8_t length_read;
-} ATTRIBUTE_PACKED ReadFileResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint64_t length_to_read;
-} ATTRIBUTE_PACKED ReadFileAsyncRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED ReadFileAsyncResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-} ATTRIBUTE_PACKED AbortAsyncFileReadRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED AbortAsyncFileReadResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -682,6 +677,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t process_id;
+	uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessResponse;
 
 typedef struct {
@@ -692,8 +688,8 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint64_t timestamp;
 	uint16_t message_string_id;
+	uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastProgramSchedulerErrorResponse;
 
 typedef struct {

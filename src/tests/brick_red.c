@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-09.      *
+ * This file was automatically generated on 2014-10-10.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -236,11 +236,6 @@ typedef struct {
 	uint16_t file_id;
 	uint64_t length_to_read;
 } ATTRIBUTE_PACKED ReadFileAsync_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-} ATTRIBUTE_PACKED ReadFileAsyncResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -854,7 +849,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_CREATE_PIPE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_FILE_INFO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_READ_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_READ_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_READ_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_FALSE;
 	device_p->response_expected[RED_FUNCTION_ABORT_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_WRITE_FILE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_WRITE_FILE_UNCHECKED] = DEVICE_RESPONSE_EXPECTED_FALSE;
@@ -1356,10 +1351,9 @@ int red_read_file(RED *red, uint16_t file_id, uint8_t length_to_read, uint8_t *r
 	return ret;
 }
 
-int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uint8_t *ret_error_code) {
+int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read) {
 	DevicePrivate *device_p = red->p;
 	ReadFileAsync_ request;
-	ReadFileAsyncResponse_ response;
 	int ret;
 
 	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_READ_FILE_ASYNC, device_p->ipcon_p, device_p);
@@ -1371,13 +1365,7 @@ int red_read_file_async(RED *red, uint16_t file_id, uint64_t length_to_read, uin
 	request.file_id = leconvert_uint16_to(file_id);
 	request.length_to_read = leconvert_uint64_to(length_to_read);
 
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-
+	ret = device_send_request(device_p, (Packet *)&request, NULL);
 
 
 	return ret;

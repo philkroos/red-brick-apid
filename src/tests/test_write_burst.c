@@ -37,7 +37,8 @@ void async_file_write(uint16_t file_id, uint8_t error_code, uint8_t length_writt
 		uint64_t et = microseconds();
 		float dur = (et - st) / 1000000.0;
 
-		printf("RED_CALLBACK_ASYNC_FILE_WRITE file_id %u, length_written %d, in %f sec, %f kB/s\n", file_id, length_written, dur, 10 * 30001 * FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH / dur / 1024);
+		printf("RED_CALLBACK_ASYNC_FILE_WRITE file_id %u, length_written %d, in %f sec, %f kB/s\n",
+		       file_id, length_written, dur, 10 * 30001 * FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH / dur / 1024);
 	}
 }
 

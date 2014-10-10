@@ -133,6 +133,10 @@ static void api_prepare_response(Packet *request, Packet *response, uint8_t leng
 }
 
 void api_prepare_callback(Packet *callback, uint8_t length, uint8_t function_id) {
+	// memset'ing the whole callback to zero first ensures that all members
+	// have a known initial value, that no random heap/stack data can leak to
+	// the client and that all potential object ID members are set to zero to
+	// indicate that there is no object here
 	memset(callback, 0, length);
 
 	callback->header.uid = _uid;
@@ -343,8 +347,11 @@ CALL_FILE_FUNCTION(ReadFile, read_file, {
 	                                &response.length_read);
 })
 
-CALL_FILE_FUNCTION(ReadFileAsync, read_file_async, {
-	response.error_code = file_read_async(file, request->length_to_read);
+CALL_FILE_PROCEDURE(ReadFileAsync, read_file_async, {
+	// FIXME: this callback should be delivered after the response of this function
+	api_send_async_file_read_callback(request->file_id, error_code, NULL, 0);
+}, {
+	error_code = file_read_async(file, request->length_to_read);
 })
 
 CALL_FILE_FUNCTION(AbortAsyncFileRead, abort_async_file_read, {
@@ -881,7 +888,13 @@ void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
 	_async_file_read_callback.error_code = error_code;
 	_async_file_read_callback.length_read = length_read;
 
-	memcpy(_async_file_read_callback.buffer, buffer, length_read);
+	// buffer can be NULL if length_read is zero
+	if (length_read > 0) {
+		memcpy(_async_file_read_callback.buffer, buffer, length_read);
+	}
+
+	// memset'ing the rest of the buffer to zero ensures that no random
+	// heap/stack data can leak to the client
 	memset(_async_file_read_callback.buffer + length_read, 0,
 	       sizeof(_async_file_read_callback.buffer) - length_read);
 

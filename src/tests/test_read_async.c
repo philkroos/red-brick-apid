@@ -44,13 +44,9 @@ void async_file_read(uint16_t file_id, uint8_t error_code, uint8_t *buffer, uint
 		uint8_t ec;
 
 		printf("red_read_file_async... %d started\n", async_reads+1);
-		int rc = red_read_file_async(&red, fid, length_to_read_block, &ec);
-
+		int rc = red_read_file_async(&red, fid, length_to_read_block);
 		if (rc < 0) {
 			printf("red_read_file_async -> rc %d\n", rc);
-		}
-		if (ec != 0) {
-			printf("red_read_file_async -> ec %u\n", ec);
 		}
 
 		++async_reads;
@@ -103,12 +99,9 @@ int main() {
 	st = microseconds();
 
 	printf("red_read_file_async... %d started\n", async_reads+1);
-	rc = red_read_file_async(&red, fid, length_to_read_block, &ec);
+	rc = red_read_file_async(&red, fid, length_to_read_block);
 	if (rc < 0) {
 		printf("red_read_file_async %d -> rc %d\n", async_reads, rc);
-	}
-	if (ec != 0) {
-		printf("red_read_file_async %d -> ec %u\n", async_reads, ec);
 	}
 
 	++async_reads;

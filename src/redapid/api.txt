@@ -144,7 +144,7 @@ enum pipe_flag { // bitmask
                                                                                            uint64_t modification_timestamp,
                                                                                            uint64_t status_change_timestamp
 + read_file             (uint16_t file_id, uint8_t length_to_read)                      -> uint8_t error_code, uint8_t buffer[62], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
-+ read_file_async       (uint16_t file_id, uint64_t length_to_read)                     -> uint8_t error_code
++ read_file_async       (uint16_t file_id, uint64_t length_to_read)                     // no response
 + abort_async_file_read (uint16_t file_id)                                              -> uint8_t error_code
 + write_file            (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) -> uint8_t error_code, uint8_t length_written
 + write_file_unchecked  (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response

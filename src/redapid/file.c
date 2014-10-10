@@ -181,7 +181,7 @@ static uint16_t file_get_permissions_from_stat_mode(mode_t mode) {
 static void file_destroy(Object *object) {
 	File *file = (File *)object;
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Destroying file object ("FILE_SIGNATURE_FORMAT") while an asynchronous read for %"PRIu64" byte(s) is in progress",
 		         file_expand_signature(file), file->length_to_read_async);
 
@@ -288,6 +288,7 @@ static off_t pipe_handle_seek(File *file, off_t offset, int whence) {
 	return (off_t)-1;
 }
 
+// FIXME: maybe add a loop here and read multiple times per read event
 static void file_handle_async_read(void *opaque) {
 	File *file = opaque;
 	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
@@ -295,46 +296,42 @@ static void file_handle_async_read(void *opaque) {
 	int length_read;
 	APIE error_code;
 
-	// FIXME: maybe add a loop here and read multiple times per read event
+	if (!file->async_read_in_progress) {
+		log_error("Got asynchronous read event for file object ("FILE_SIGNATURE_FORMAT") without an asynchronous read in progress",
+		          file_expand_signature(file));
+
+		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+
+		return;
+	}
 
 	if (length_to_read > file->length_to_read_async) {
 		length_to_read = file->length_to_read_async;
 	}
 
-	length_read = file->read(file, buffer, length_to_read);
+	length_read = file->read(file, buffer, length_to_read); // FIXME: handle EINTR
 
 	if (length_read < 0) {
-		if (errno_interrupted()) {
-			log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") asynchronously was interrupted, retrying",
-			          file_expand_signature(file));
-		} else if (errno_would_block()) {
-			log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") asynchronously would block, retrying",
-			          file_expand_signature(file));
+		if (errno_would_block()) {
+			// don't report an error, just return an empty buffer if there is
+			// nothing to read at this time
+			length_read = 0;
 		} else {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not read from file object ("FILE_SIGNATURE_FORMAT") asynchronously, giving up: %s (%d)",
-			         file_expand_signature(file), get_errno_name(errno), errno);
+			log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
+			         length_to_read, file_expand_signature(file),
+			         get_errno_name(errno), errno);
 
 			event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
+			file->async_read_in_progress = false;
 			file->length_to_read_async = 0;
 
-			file_send_async_read_callback(file, error_code, buffer, 0);
+			file_send_async_read_callback(file, error_code, NULL, 0);
+
+			return;
 		}
-
-		return;
-	} else if (length_read == 0) {
-		log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") asynchronously reached end-of-file",
-		          file_expand_signature(file));
-
-		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
-
-		file->length_to_read_async = 0;
-
-		file_send_async_read_callback(file, API_E_SUCCESS, buffer, 0);
-
-		return;
 	}
 
 	file->length_to_read_async -= length_read;
@@ -342,13 +339,18 @@ static void file_handle_async_read(void *opaque) {
 	log_debug("Read %d byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously, %"PRIu64" byte(s) left to read",
 	          length_read, file_expand_signature(file), file->length_to_read_async);
 
-	if (file->length_to_read_async == 0) {
+	if (length_read == 0 || file->length_to_read_async == 0) {
+		// finished asynchronous reading either because there is nothing
+		// to read or the request amount was read
+		file->async_read_in_progress = false;
+		file->length_to_read_async = 0;
+
 		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
 	file_send_async_read_callback(file, API_E_SUCCESS, buffer, length_read);
 
-	if (file->length_to_read_async == 0) {
+	if (!file->async_read_in_progress) {
 		log_debug("Finished asynchronous reading from file object ("FILE_SIGNATURE_FORMAT")",
 		          file_expand_signature(file));
 	}
@@ -770,6 +772,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->name = name;
 	file->flags = flags;
 	file->fd = fd;
+	file->async_read_in_progress = false;
 	file->length_to_read_async = 0;
 	file->read = file_handle_read;
 	file->write = file_handle_write;
@@ -887,6 +890,7 @@ APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
 	file->flags = flags;
 	file->fd = -1;
 	file->async_read_handle = file->pipe.read_end;
+	file->async_read_in_progress = false;
 	file->length_to_read_async = 0;
 	file->read = pipe_handle_read;
 	file->write = pipe_handle_write;
@@ -996,7 +1000,7 @@ APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags
 // public API
 APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read) {
-	ssize_t rc;
+	int rc;
 	APIE error_code;
 
 	if (length_to_read > FILE_MAX_READ_BUFFER_LENGTH) {
@@ -1006,25 +1010,23 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 		return API_E_OUT_OF_RANGE;
 	}
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Cannot read %u byte(s) synchronously while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         length_to_read, file->length_to_read_async, file_expand_signature(file));
 
 		return API_E_INVALID_OPERATION;
 	}
 
-	rc = file->read(file, buffer, length_to_read);
+	rc = file->read(file, buffer, length_to_read); // FIXME: handle EINTR
 
 	if (rc < 0) {
-		error_code = api_get_error_code_from_errno();
-
 		if (errno_would_block()) {
 			// don't report an error, just return an empty buffer if there is
 			// nothing to read at this time
-			*length_read = 0;
-
-			return API_E_SUCCESS;
+			rc = 0;
 		} else {
+			error_code = api_get_error_code_from_errno();
+
 			log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
 			         length_to_read, file_expand_signature(file),
 			         get_errno_name(errno), errno);
@@ -1039,27 +1041,28 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 }
 
 // public API
-APIE file_read_async(File *file, uint64_t length_to_read) {
-	if (length_to_read < 1) {
-		log_warn("Cannot read less than 1 byte asynchronously");
-
-		return API_E_OUT_OF_RANGE;
-	}
-
+PacketE file_read_async(File *file, uint64_t length_to_read) {
 	if (length_to_read > INT64_MAX) {
 		log_warn("Length of %"PRIu64" byte(s) exceeds maximum length of file",
 		         length_to_read);
 
-		return API_E_OUT_OF_RANGE;
+		// FIXME: this callback should be delivered after the response of this function
+		file_send_async_read_callback(file, API_E_OUT_OF_RANGE, NULL, 0);
+
+		return PACKET_E_INVALID_PARAMETER;
 	}
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Still reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         file->length_to_read_async, file_expand_signature(file));
 
-		return API_E_INVALID_OPERATION;
+		// FIXME: this callback should be delivered after the response of this function
+		file_send_async_read_callback(file, API_E_INVALID_OPERATION, NULL, 0);
+
+		return PACKET_E_UNKNOWN_ERROR;
 	}
 
+	file->async_read_in_progress = true;
 	file->length_to_read_async = length_to_read;
 
 	// reading the whole file and generating the callbacks here could block
@@ -1068,30 +1071,29 @@ APIE file_read_async(File *file, uint64_t length_to_read) {
 	// remove the file or pipe from the event loop again
 	if (event_add_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC,
 	                     EVENT_READ, file_handle_async_read, file) < 0) {
-		return API_E_INTERNAL_ERROR;
+		// FIXME: this callback should be delivered after the response of this function
+		file_send_async_read_callback(file, API_E_INTERNAL_ERROR, NULL, 0);
+
+		return PACKET_E_UNKNOWN_ERROR;
 	}
 
 	log_debug("Started reading of %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 	          length_to_read, file_expand_signature(file));
 
-	return API_E_SUCCESS;
+	return PACKET_E_SUCCESS;
 }
 
 // public API
 APIE file_abort_async_read(File *file) {
-	uint8_t buffer[FILE_MAX_ASYNC_READ_BUFFER_LENGTH];
+	if (file->async_read_in_progress) {
+		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
 
-	if (file->length_to_read_async == 0) {
-		// nothing to abort
-		return API_E_SUCCESS;
+		file->async_read_in_progress = false;
+		file->length_to_read_async = 0;
 	}
 
-	event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
-
-	file->length_to_read_async = 0;
-
 	// FIXME: this callback should be delivered after the response of this function
-	file_send_async_read_callback(file, API_E_OPERATION_ABORTED, buffer, 0);
+	file_send_async_read_callback(file, API_E_OPERATION_ABORTED, NULL, 0);
 
 	return API_E_SUCCESS;
 }
@@ -1099,7 +1101,7 @@ APIE file_abort_async_read(File *file) {
 // public API
 APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
                 uint8_t *length_written) {
-	ssize_t rc;
+	int rc;
 	APIE error_code;
 
 	if (length_to_write > FILE_MAX_WRITE_BUFFER_LENGTH) {
@@ -1109,14 +1111,14 @@ APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
 		return API_E_OUT_OF_RANGE;
 	}
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Cannot write %u byte(s) while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         length_to_write, file->length_to_read_async, file_expand_signature(file));
 
 		return API_E_INVALID_OPERATION;
 	}
 
-	rc = file->write(file, buffer, length_to_write);
+	rc = file->write(file, buffer, length_to_write); // FIXME: handle EINTR
 
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -1147,14 +1149,14 @@ PacketE file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_writ
 		return PACKET_E_INVALID_PARAMETER;
 	}
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Cannot write %u byte(s) unchecked while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         length_to_write, file->length_to_read_async, file_expand_signature(file));
 
 		return PACKET_E_UNKNOWN_ERROR;
 	}
 
-	if (file->write(file, buffer, length_to_write) < 0) {
+	if (file->write(file, buffer, length_to_write) < 0) { // FIXME: handle EINTR
 		if (errno_would_block()) {
 			log_debug("Writing %u byte(s) unchecked to file object ("FILE_SIGNATURE_FORMAT") would block",
 			          length_to_write, file_expand_signature(file));
@@ -1172,7 +1174,7 @@ PacketE file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_writ
 
 // public API
 PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
-	ssize_t length_written;
+	int length_written;
 	APIE error_code;
 
 	if (length_to_write > FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH) {
@@ -1180,12 +1182,12 @@ PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
 		         length_to_write);
 
 		// FIXME: this callback should be delivered after the response of this function
-		file_send_async_write_callback(file, API_E_INVALID_PARAMETER, 0);
+		file_send_async_write_callback(file, API_E_OUT_OF_RANGE, 0);
 
 		return PACKET_E_INVALID_PARAMETER;
 	}
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Cannot write %u byte(s) asynchronously while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         length_to_write, file->length_to_read_async, file_expand_signature(file));
 
@@ -1195,7 +1197,7 @@ PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
 		return PACKET_E_UNKNOWN_ERROR;
 	}
 
-	length_written = file->write(file, buffer, length_to_write);
+	length_written = file->write(file, buffer, length_to_write); // FIXME: handle EINTR
 
 	if (length_written < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -1239,7 +1241,7 @@ APIE file_set_position(File *file, int64_t offset, FileOrigin origin,
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (file->length_to_read_async > 0) {
+	if (file->async_read_in_progress) {
 		log_warn("Cannot set position (offset %"PRIi64", origin: %d) while reading %"PRIu64" byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously",
 		         offset, origin, file->length_to_read_async, file_expand_signature(file));
 

@@ -128,7 +128,8 @@ struct _File {
 	                            // set to pipe.read_end if type == FILE_TYPE_PIPE,
 	                            // set to fd otherwise
 	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
-	uint64_t length_to_read_async; // > 0 means async read in progress
+	bool async_read_in_progress;
+	uint64_t length_to_read_async;
 	FileWriteFunction read;
 	FileWriteFunction write;
 	FileSeekFunction seek;
@@ -150,7 +151,7 @@ APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags
 
 APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read);
-APIE file_read_async(File *file, uint64_t length_to_read);
+PacketE file_read_async(File *file, uint64_t length_to_read);
 APIE file_abort_async_read(File *file);
 
 APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
