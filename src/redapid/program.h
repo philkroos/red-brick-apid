@@ -37,9 +37,6 @@ typedef struct {
 	String *root_directory; // <home>/programs/<identifier>
 	ProgramConfig config;
 	ProgramScheduler scheduler;
-	uint64_t error_timestamp;
-	String *error_message; // == NULL until the first error occurred
-	bool error_internal; // == true if error message wrapping failed
 } Program;
 
 APIE program_load(const char *identifier, const char *root_directory,
@@ -96,9 +93,10 @@ APIE program_get_schedule(Program *program,
                           uint16_t *repeat_month_mask,
                           uint8_t *repeat_weekday_mask); // week starts on monday
 
-APIE program_get_last_spawned_process(Program *program, ObjectID *process_id);
-APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
-                                      ObjectID *message_id);
+APIE program_get_last_spawned_process(Program *program, ObjectID *process_id,
+                                      uint64_t *timestamp);
+APIE program_get_last_scheduler_error(Program *program, ObjectID *message_id,
+                                      uint64_t *timestamp);
 
 APIE program_get_custom_option_names(Program *program, ObjectID *names_id);
 APIE program_set_custom_option_value(Program *program, ObjectID name_id,

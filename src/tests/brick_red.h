@@ -1402,14 +1402,14 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_c
  *
  * 
  */
-int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
+int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_process_id, uint64_t *ret_timestamp);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint64_t *ret_timestamp, uint16_t *ret_message_string_id);
+int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_message_string_id, uint64_t *ret_timestamp);
 
 /**
  * \ingroup BrickRED

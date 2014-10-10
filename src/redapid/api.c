@@ -595,13 +595,14 @@ CALL_PROGRAM_FUNCTION(GetProgramSchedule, get_program_schedule, {
 
 CALL_PROGRAM_FUNCTION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {
 	response.error_code = program_get_last_spawned_process(program,
-	                                                       &response.process_id);
+	                                                       &response.process_id,
+	                                                       &response.timestamp);
 })
 
 CALL_PROGRAM_FUNCTION(GetLastProgramSchedulerError, get_last_program_scheduler_error, {
 	response.error_code = program_get_last_scheduler_error(program,
-	                                                       &response.timestamp,
-	                                                       &response.message_string_id);
+	                                                       &response.message_string_id,
+	                                                       &response.timestamp);
 })
 
 CALL_PROGRAM_FUNCTION(GetCustomProgramOptionNames, get_custom_program_option_names, {

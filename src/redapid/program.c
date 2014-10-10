@@ -125,25 +125,8 @@ static void program_report_process_spawn(void *opaque) {
 	}
 }
 
-static void program_report_scheduler_error(uint64_t timestamp, const char *message,
-                                           void *opaque) {
+static void program_report_scheduler_error(void *opaque) {
 	Program *program = opaque;
-
-	if (program->error_message != NULL) {
-		string_unlock(program->error_message);
-	}
-
-	if (string_wrap(message,
-	                OBJECT_CREATE_FLAG_INTERNAL |
-	                OBJECT_CREATE_FLAG_LOCKED,
-	                NULL, &program->error_message) == API_E_SUCCESS) {
-		program->error_timestamp = timestamp;
-		program->error_internal = false;
-	} else {
-		program->error_timestamp = 0;
-		program->error_message = NULL;
-		program->error_internal = true;
-	}
 
 	// only send a program-scheduler-error-occurred callback if there is at
 	// least one external reference to the program object. otherwise there is
@@ -155,10 +138,6 @@ static void program_report_scheduler_error(uint64_t timestamp, const char *messa
 
 static void program_destroy(Object *object) {
 	Program *program = (Program *)object;
-
-	if (program->error_message != NULL) {
-		string_unlock(program->error_message);
-	}
 
 	program_scheduler_destroy(&program->scheduler);
 
@@ -253,9 +232,6 @@ APIE program_load(const char *identifier, const char *root_directory,
 	// create program object
 	program->identifier = identifier_object;
 	program->root_directory = root_directory_object;
-	program->error_timestamp = 0;
-	program->error_message = NULL;
-	program->error_internal = false;
 
 	memcpy(&program->config, &program_config, sizeof(program->config));
 
@@ -403,9 +379,6 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 	// create program object
 	program->identifier = identifier;
 	program->root_directory = root_directory;
-	program->error_timestamp = 0;
-	program->error_message = NULL;
-	program->error_internal = false;
 
 	error_code = program_config_create(&program->config, config_filename);
 
@@ -972,39 +945,41 @@ APIE program_get_schedule(Program *program,
 }
 
 // public API
-APIE program_get_last_spawned_process(Program *program, ObjectID *process_id) {
-	if (program->scheduler.process == NULL) {
+APIE program_get_last_spawned_process(Program *program, ObjectID *process_id,
+                                      uint64_t *timestamp) {
+	if (program->scheduler.last_spawned_process == NULL) {
 		log_warn("No process was spawned for program object (id: %u, identifier: %s) yet",
 		         program->base.id, program->identifier->buffer);
 
 		return API_E_DOES_NOT_EXIST;
 	}
 
-	object_add_external_reference(&program->scheduler.process->base);
+	object_add_external_reference(&program->scheduler.last_spawned_process->base);
 
-	*process_id = program->scheduler.process->base.id;
+	*process_id = program->scheduler.last_spawned_process->base.id;
+	*timestamp = program->scheduler.last_spawn_timestamp;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE program_get_last_scheduler_error(Program *program, uint64_t *timestamp,
-                                      ObjectID *message_id) {
-	if (program->error_internal) {
+APIE program_get_last_scheduler_error(Program *program, ObjectID *message_id,
+                                      uint64_t *timestamp) {
+	if (program->scheduler.last_error_internal) {
 		return API_E_INTERNAL_ERROR;
 	}
 
-	if (program->error_message == NULL) {
+	if (program->scheduler.last_error_message == NULL) {
 		log_warn("No scheduler error occurred for program object (id: %u, identifier: %s) yet",
 		         program->base.id, program->identifier->buffer);
 
 		return API_E_DOES_NOT_EXIST;
 	}
 
-	object_add_external_reference(&program->error_message->base);
+	object_add_external_reference(&program->scheduler.last_error_message->base);
 
-	*timestamp = program->error_timestamp;
-	*message_id = program->error_message->base.id;
+	*message_id = program->scheduler.last_error_message->base.id;
+	*timestamp = program->scheduler.last_error_timestamp;
 
 	return API_E_SUCCESS;
 }

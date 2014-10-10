@@ -663,6 +663,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t process_id;
+	uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessResponse_;
 
 typedef struct {
@@ -673,8 +674,8 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint64_t timestamp;
 	uint16_t message_string_id;
+	uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastProgramSchedulerErrorResponse_;
 
 typedef struct {
@@ -2258,7 +2259,7 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_c
 	return ret;
 }
 
-int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_process_id) {
+int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_process_id, uint64_t *ret_timestamp) {
 	DevicePrivate *device_p = red->p;
 	GetLastSpawnedProgramProcess_ request;
 	GetLastSpawnedProgramProcessResponse_ response;
@@ -2279,13 +2280,14 @@ int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t 
 	}
 	*ret_error_code = response.error_code;
 	*ret_process_id = leconvert_uint16_from(response.process_id);
+	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 
 
 
 	return ret;
 }
 
-int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint64_t *ret_timestamp, uint16_t *ret_message_string_id) {
+int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_message_string_id, uint64_t *ret_timestamp) {
 	DevicePrivate *device_p = red->p;
 	GetLastProgramSchedulerError_ request;
 	GetLastProgramSchedulerErrorResponse_ response;
@@ -2305,8 +2307,8 @@ int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t 
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 	*ret_message_string_id = leconvert_uint16_from(response.message_string_id);
+	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 
 
 

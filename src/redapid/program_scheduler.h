@@ -28,8 +28,7 @@
 #include "program_config.h"
 
 typedef void (*ProgramSchedulerSpawnFunction)(void *opaque);
-typedef void (*ProgramSchedulerErrorFunction)(uint64_t timestamp, const char *message,
-                                              void *opaque);
+typedef void (*ProgramSchedulerErrorFunction)(void *opaque);
 
 typedef enum {
 	PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION = 0,
@@ -53,8 +52,11 @@ typedef struct {
 	Timer timer;
 	bool timer_active;
 	bool shutdown;
-	Process *process;
+	Process *last_spawned_process; // == NULL until the first process spawned
 	uint64_t last_spawn_timestamp;
+	String *last_error_message; // == NULL until the first error occurred
+	uint64_t last_error_timestamp;
+	bool last_error_internal; // == true if error message wrapping failed
 } ProgramScheduler;
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
