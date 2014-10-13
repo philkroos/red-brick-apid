@@ -55,7 +55,7 @@ enum object_type {
  * string
  */
 
-+ allocate_string   (uint32_t length_to_reserve)                           -> uint8_t error_code, uint16_t string_id
++ allocate_string   (uint32_t length_to_reserve, char buffer[60])          -> uint8_t error_code, uint16_t string_id
 + truncate_string   (uint16_t string_id, uint32_t length)                  -> uint8_t error_code
 + get_string_length (uint16_t string_id)                                   -> uint8_t error_code, uint32_t length
 + set_string_chuck  (uint16_t string_id, uint32_t offset, char buffer[58]) -> uint8_t error_code
@@ -108,8 +108,8 @@ enum file_origin {
 }
 
 enum file_event { // bitmask
-	FILE_EVENT_READ  = 0x01,
-	FILE_EVENT_WRITE = 0x02
+	FILE_EVENT_READABLE = 0x01,
+	FILE_EVENT_WRITABLE = 0x02
 }
 
 enum file_type {
