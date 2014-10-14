@@ -41,6 +41,7 @@ APIE api_get_error_code_from_errno(void) {
 	case ENAMETOOLONG: return API_E_NAME_TOO_LONG;
 	case ESPIPE:       return API_E_INVALID_SEEK;
 	case ENOTSUP:      return API_E_NOT_SUPPORTED;
+	case EMFILE:       return API_E_TOO_MANY_OPEN_FILES;
 
 	default:           return API_E_UNKNOWN_ERROR;
 	}
