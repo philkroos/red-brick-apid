@@ -664,7 +664,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		log_error("Could not duplicate program identifier: %s (%d)",
 		          get_errno_name(ENOMEM), ENOMEM);
 
-		return API_E_NO_FREE_MEMORY;
+		goto cleanup;
 	}
 
 	phase = 1;
