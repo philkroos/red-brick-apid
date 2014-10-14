@@ -42,15 +42,17 @@ typedef struct {
 APIE program_load(const char *identifier, const char *root_directory,
                   const char *config_filename);
 
-APIE program_define(ObjectID identifier_id, ObjectID *id);
+APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id);
 APIE program_undefine(Program *program);
 
-APIE program_get_identifier(Program *program, ObjectID *identifier_id);
-APIE program_get_root_directory(Program *program, ObjectID *root_directory_id);
+APIE program_get_identifier(Program *program, Session *session,
+                            ObjectID *identifier_id);
+APIE program_get_root_directory(Program *program, Session *session,
+                                ObjectID *root_directory_id);
 
 APIE program_set_command(Program *program, ObjectID executable_id,
                          ObjectID arguments_id, ObjectID environment_id);
-APIE program_get_command(Program *program, ObjectID *executable_id,
+APIE program_get_command(Program *program, Session *session, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id);
 
 APIE program_set_stdio_redirection(Program *program,
@@ -60,7 +62,7 @@ APIE program_set_stdio_redirection(Program *program,
                                    ObjectID stdout_file_name_id,
                                    ProgramStdioRedirection stderr_redirection,
                                    ObjectID stderr_file_name_id);
-APIE program_get_stdio_redirection(Program *program,
+APIE program_get_stdio_redirection(Program *program, Session *sessio,
                                    uint8_t *stdin_redirection,
                                    ObjectID *stdin_file_name_id,
                                    uint8_t *stdout_redirection,
@@ -93,16 +95,17 @@ APIE program_get_schedule(Program *program,
                           uint16_t *repeat_month_mask,
                           uint8_t *repeat_weekday_mask); // week starts on monday
 
-APIE program_get_last_spawned_process(Program *program, ObjectID *process_id,
-                                      uint64_t *timestamp);
-APIE program_get_last_scheduler_error(Program *program, ObjectID *message_id,
-                                      uint64_t *timestamp);
+APIE program_get_last_spawned_process(Program *program, Session *session,
+                                      ObjectID *process_id, uint64_t *timestamp);
+APIE program_get_last_scheduler_error(Program *program, Session *session,
+                                      ObjectID *message_id, uint64_t *timestamp);
 
-APIE program_get_custom_option_names(Program *program, ObjectID *names_id);
+APIE program_get_custom_option_names(Program *program, Session *session,
+                                     ObjectID *names_id);
 APIE program_set_custom_option_value(Program *program, ObjectID name_id,
                                      ObjectID value_id);
-APIE program_get_custom_option_value(Program *program, ObjectID name_id,
-                                     ObjectID *value_id);
+APIE program_get_custom_option_value(Program *program, Session *session,
+                                     ObjectID name_id, ObjectID *value_id);
 APIE program_remove_custom_option(Program *program, ObjectID name_id);
 
 #endif // REDAPID_PROGRAM_H

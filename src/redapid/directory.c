@@ -119,7 +119,7 @@ static APIE directory_create_helper(char *name, uint16_t flags, mode_t mode) {
 }
 
 // public API
-APIE directory_open(ObjectID name_id, ObjectID *id) {
+APIE directory_open(ObjectID name_id, Session *session, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -201,7 +201,8 @@ APIE directory_open(ObjectID name_id, ObjectID *id) {
 	}
 
 	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY,
-	                           OBJECT_CREATE_FLAG_EXTERNAL, directory_destroy);
+	                           session, OBJECT_CREATE_FLAG_EXTERNAL,
+	                           directory_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -233,8 +234,12 @@ cleanup:
 }
 
 // public API
-APIE directory_get_name(Directory *directory, ObjectID *name_id) {
-	object_add_external_reference(&directory->name->base);
+APIE directory_get_name(Directory *directory, Session *session, ObjectID *name_id) {
+	APIE error_code = object_add_external_reference(&directory->name->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*name_id = directory->name->base.id;
 
@@ -242,7 +247,8 @@ APIE directory_get_name(Directory *directory, ObjectID *name_id) {
 }
 
 // public API
-APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *type) {
+APIE directory_get_next_entry(Directory *directory, Session *session,
+                              ObjectID *name_id, uint8_t *type) {
 	struct dirent *dirent;
 	APIE error_code;
 
@@ -293,7 +299,9 @@ APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *
 		default:      *type = DIRECTORY_ENTRY_TYPE_UNKNOWN;   break;
 		}
 
-		return string_wrap(directory->buffer, OBJECT_CREATE_FLAG_EXTERNAL, name_id, NULL);
+		return string_wrap(directory->buffer,
+		                   session, OBJECT_CREATE_FLAG_EXTERNAL,
+		                   name_id, NULL);
 	}
 }
 

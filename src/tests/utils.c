@@ -10,19 +10,57 @@ uint64_t microseconds(void) {
 	}
 }
 
-int allocate_string(RED *red, const char *string, uint16_t *object_id) {
+int create_session(RED *red, uint32_t lifetime, uint16_t *session_id) {
+	int rc;
+	uint8_t ec;
+	uint16_t sid;
+
+	rc = red_create_session(red, lifetime, &ec, &sid);
+	if (rc < 0) {
+		printf("red_create_session -> rc %d\n", rc);
+		return -1;
+	}
+	if (ec != 0) {
+		printf("red_create_session -> ec %u\n", ec);
+		return -1;
+	}
+	printf("red_create_session -> sid %u\n", sid);
+
+	*session_id = sid;
+
+	return 0;
+}
+
+int expire_session(RED *red, uint16_t session_id) {
+	int rc;
+	uint8_t ec;
+
+	rc = red_expire_session(red, session_id, &ec);
+	if (rc < 0) {
+		printf("red_expire_session -> rc %d\n", rc);
+		return -1;
+	}
+	if (ec != 0) {
+		printf("red_expire_session -> ec %u\n", ec);
+		return -1;
+	}
+
+	return 0;
+}
+
+int allocate_string(RED *red, const char *string, uint16_t session_id, uint16_t *object_id) {
 	int length = strlen(string);
 	int rc;
 	uint8_t ec;
 	uint16_t sid;
 
-	if (length > 60) {
+	if (length > 58) {
 		// FIXME
 		printf("string '%s' is too long\n", string);
 		return -1;
 	}
 
-	rc = red_allocate_string(red, length, string, &ec, &sid);
+	rc = red_allocate_string(red, length, string, session_id, &ec, &sid);
 	if (rc < 0) {
 		printf("red_allocate_string '%s' -> rc %d\n", string, rc);
 		return -1;
@@ -48,11 +86,11 @@ int allocate_string(RED *red, const char *string, uint16_t *object_id) {
 	return 0;
 }
 
-int release_object(RED *red, uint16_t object_id, const char *type) {
+int release_object(RED *red, uint16_t object_id, uint16_t session_id, const char *type) {
 	uint8_t ec;
 	int rc;
 
-	rc = red_release_object(red, object_id, &ec);
+	rc = red_release_object(red, object_id, session_id, &ec);
 	if (rc < 0) {
 		printf("red_release_object/%s -> rc %d\n", type, rc);
 		return -1;

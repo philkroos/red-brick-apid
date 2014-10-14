@@ -43,7 +43,11 @@
 #define RED_BRICK_DEVICE_IDENTIFIER 17
 
 typedef enum {
-	FUNCTION_RELEASE_OBJECT = 1,
+	FUNCTION_CREATE_SESSION = 1,
+	FUNCTION_EXPIRE_SESSION,
+	FUNCTION_KEEP_SESSION_ALIVE,
+
+	FUNCTION_RELEASE_OBJECT,
 
 	FUNCTION_ALLOCATE_STRING,
 	FUNCTION_TRUNCATE_STRING,
@@ -193,6 +197,24 @@ static PacketE api_get_packet_error_code(APIE error_code) {
 		network_dispatch_response((Packet *)&response); \
 	}
 
+#define CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, object_type, type, variable) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		type *variable; \
+		Session *session; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = inventory_get_typed_object(object_type, \
+		                                                 request->variable##_id, \
+		                                                 (Object **)&variable); \
+		if (response.error_code == API_E_SUCCESS) { \
+			response.error_code = inventory_get_session(request->session_id, &session); \
+			if (response.error_code == API_E_SUCCESS) { \
+				body \
+			} \
+		} \
+		network_dispatch_response((Packet *)&response); \
+	}
+
 #define CALL_FUNCTION_WITH_STRING(packet_prefix, function_suffix, variable, body) \
 	static void api_##function_suffix(packet_prefix##Request *request) { \
 		packet_prefix##Response response; \
@@ -205,27 +227,87 @@ static PacketE api_get_packet_error_code(APIE error_code) {
 		network_dispatch_response((Packet *)&response); \
 	}
 
-//
-// object
-//
-
-#define CALL_OBJECT_FUNCTION(packet_prefix, function_suffix, body) \
+#define CALL_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
 	static void api_##function_suffix(packet_prefix##Request *request) { \
 		packet_prefix##Response response; \
-		Object *object; \
+		Session *session; \
 		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
-		response.error_code = inventory_get_object(request->object_id, &object); \
+		response.error_code = inventory_get_session(request->session_id, &session); \
 		if (response.error_code == API_E_SUCCESS) { \
 			body \
 		} \
 		network_dispatch_response((Packet *)&response); \
 	}
 
-CALL_OBJECT_FUNCTION(ReleaseObject, release_object, {
-	response.error_code = object_release(object);
+#define CALL_FUNCTION_WITH_STRING_AND_SESSION(packet_prefix, function_suffix, variable, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		String *variable; \
+		Session *session; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = string_get(request->variable##_string_id, &variable); \
+		if (response.error_code == API_E_SUCCESS) { \
+			response.error_code = inventory_get_session(request->session_id, &session); \
+			if (response.error_code == API_E_SUCCESS) { \
+				body \
+			} \
+		} \
+		network_dispatch_response((Packet *)&response); \
+	}
+
+//
+// session
+//
+
+#define CALL_SESSION_FUNCTION(packet_prefix, function_suffix, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		Session *session; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = inventory_get_session(request->session_id, &session); \
+		if (response.error_code == API_E_SUCCESS) { \
+			body \
+		} \
+		network_dispatch_response((Packet *)&response); \
+	}
+
+CALL_FUNCTION(CreateSession, create_session, {
+	response.error_code = session_create(request->lifetime, &response.session_id);
 })
 
-#undef CALL_OBJECT_FUNCTION
+CALL_SESSION_FUNCTION(ExpireSession, expire_session, {
+	response.error_code = session_expire(session);
+})
+
+CALL_SESSION_FUNCTION(KeepSessionAlive, keep_session_alive, {
+	response.error_code = session_keep_alive(session, request->lifetime);
+})
+
+//
+// object
+//
+
+#define CALL_OBJECT_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		packet_prefix##Response response; \
+		Object *object; \
+		Session *session; \
+		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
+		response.error_code = inventory_get_object(request->object_id, &object); \
+		if (response.error_code == API_E_SUCCESS) { \
+			response.error_code = inventory_get_session(request->session_id, &session); \
+			if (response.error_code == API_E_SUCCESS) { \
+				body \
+			} \
+		} \
+		network_dispatch_response((Packet *)&response); \
+	}
+
+CALL_OBJECT_FUNCTION_WITH_SESSION(ReleaseObject, release_object, {
+	response.error_code = object_release(object, session);
+})
+
+#undef CALL_OBJECT_FUNCTION_WITH_SESSION
 
 //
 // string
@@ -235,9 +317,10 @@ CALL_OBJECT_FUNCTION(ReleaseObject, release_object, {
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_STRING, String, string)
 
-CALL_FUNCTION(AllocateString, allocate_string, {
+CALL_FUNCTION_WITH_SESSION(AllocateString, allocate_string, {
 	response.error_code = string_allocate(request->length_to_reserve,
-	                                      request->buffer, &response.string_id);
+	                                      request->buffer, session,
+	                                      &response.string_id);
 })
 
 CALL_STRING_FUNCTION(TruncateString, truncate_string, {
@@ -266,8 +349,12 @@ CALL_STRING_FUNCTION(GetStringChunk, get_string_chunk, {
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_LIST, List, list)
 
-CALL_FUNCTION(AllocateList, allocate_list, {
-	response.error_code = list_allocate(request->length_to_reserve,
+#define CALL_LIST_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, \
+	                                OBJECT_TYPE_LIST, List, list)
+
+CALL_FUNCTION_WITH_SESSION(AllocateList, allocate_list, {
+	response.error_code = list_allocate(request->length_to_reserve, session,
 	                                    OBJECT_CREATE_FLAG_EXTERNAL,
 	                                    &response.list_id, NULL);
 })
@@ -276,8 +363,8 @@ CALL_LIST_FUNCTION(GetListLength, get_list_length, {
 	response.error_code = list_get_length(list, &response.length);
 })
 
-CALL_LIST_FUNCTION(GetListItem, get_list_item, {
-	response.error_code = list_get_item(list, request->index,
+CALL_LIST_FUNCTION_WITH_SESSION(GetListItem, get_list_item, {
+	response.error_code = list_get_item(list, request->index, session,
 	                                    &response.item_object_id,
 	                                    &response.type);
 })
@@ -290,6 +377,7 @@ CALL_LIST_FUNCTION(RemoveFromList, remove_from_list, {
 	response.error_code = list_remove_from(list, request->index);
 })
 
+#undef CALL_LIST_FUNCTION_WITH_SESSION
 #undef CALL_LIST_FUNCTION
 
 //
@@ -299,6 +387,10 @@ CALL_LIST_FUNCTION(RemoveFromList, remove_from_list, {
 #define CALL_FILE_FUNCTION(packet_prefix, function_suffix, body) \
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_FILE, File, file)
+
+#define CALL_FILE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, \
+	                                OBJECT_TYPE_FILE, File, file)
 
 #define CALL_FILE_PROCEDURE(packet_prefix, function_suffix, error_handler, body) \
 	static void api_##function_suffix(packet_prefix##Request *request) { \
@@ -320,20 +412,22 @@ CALL_LIST_FUNCTION(RemoveFromList, remove_from_list, {
 		api_send_response_if_expected((Packet *)request, packet_error_code); \
 	}
 
-CALL_FUNCTION(OpenFile, open_file, {
+CALL_FUNCTION_WITH_SESSION(OpenFile, open_file, {
 	response.error_code = file_open(request->name_string_id, request->flags,
 	                                request->permissions, request->uid,
-	                                request->gid, OBJECT_CREATE_FLAG_EXTERNAL,
+	                                request->gid, session,
+	                                OBJECT_CREATE_FLAG_EXTERNAL,
 	                                &response.file_id, NULL);
 })
 
-CALL_FUNCTION(CreatePipe, create_pipe, {
-	response.error_code = pipe_create_(request->flags, OBJECT_CREATE_FLAG_EXTERNAL,
+CALL_FUNCTION_WITH_SESSION(CreatePipe, create_pipe, {
+	response.error_code = pipe_create_(request->flags, session,
+	                                   OBJECT_CREATE_FLAG_EXTERNAL,
 	                                   &response.file_id, NULL);
 })
 
-CALL_FILE_FUNCTION(GetFileInfo, get_file_info, {
-	response.error_code = file_get_info(file, &response.type,
+CALL_FILE_FUNCTION_WITH_SESSION(GetFileInfo, get_file_info, {
+	response.error_code = file_get_info(file, session, &response.type,
 	                                    &response.name_string_id, &response.flags,
 	                                    &response.permissions, &response.uid,
 	                                    &response.gid, &response.length,
@@ -385,20 +479,27 @@ CALL_FILE_FUNCTION(GetFilePosition, get_file_position, {
 })
 
 CALL_FUNCTION_WITH_STRING(LookupFileInfo, lookup_file_info, name, {
-	response.error_code = file_lookup_info(name->buffer, request->follow_symlink,
-	                                       &response.type, &response.permissions,
-	                                       &response.uid, &response.gid,
-	                                       &response.length, &response.access_timestamp,
+	response.error_code = file_lookup_info(name->buffer,
+	                                       request->follow_symlink,
+	                                       &response.type,
+	                                       &response.permissions,
+	                                       &response.uid,
+	                                       &response.gid,
+	                                       &response.length,
+	                                       &response.access_timestamp,
 	                                       &response.modification_timestamp,
 	                                       &response.status_change_timestamp);
 })
 
-CALL_FUNCTION_WITH_STRING(LookupSymlinkTarget, lookup_symlink_target, name, {
+CALL_FUNCTION_WITH_STRING_AND_SESSION(LookupSymlinkTarget, lookup_symlink_target, name, {
 	response.error_code = symlink_lookup_target(name->buffer,
 	                                            request->canonicalize,
+	                                            session,
 	                                            &response.target_string_id);
 })
 
+#undef CALL_FILE_PROCEDURE
+#undef CALL_FILE_FUNCTION_WITH_SESSION
 #undef CALL_FILE_FUNCTION
 
 //
@@ -409,18 +510,22 @@ CALL_FUNCTION_WITH_STRING(LookupSymlinkTarget, lookup_symlink_target, name, {
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_DIRECTORY, Directory, directory)
 
-CALL_FUNCTION(OpenDirectory, open_directory, {
-	response.error_code = directory_open(request->name_string_id,
+#define CALL_DIRECTORY_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, \
+	                                OBJECT_TYPE_DIRECTORY, Directory, directory)
+
+CALL_FUNCTION_WITH_SESSION(OpenDirectory, open_directory, {
+	response.error_code = directory_open(request->name_string_id, session,
 	                                     &response.directory_id);
 })
 
-CALL_DIRECTORY_FUNCTION(GetDirectoryName, get_directory_name, {
-	response.error_code = directory_get_name(directory,
+CALL_DIRECTORY_FUNCTION_WITH_SESSION(GetDirectoryName, get_directory_name, {
+	response.error_code = directory_get_name(directory, session,
 	                                         &response.name_string_id);
 })
 
-CALL_DIRECTORY_FUNCTION(GetNextDirectoryEntry, get_next_directory_entry, {
-	response.error_code = directory_get_next_entry(directory,
+CALL_DIRECTORY_FUNCTION_WITH_SESSION(GetNextDirectoryEntry, get_next_directory_entry, {
+	response.error_code = directory_get_next_entry(directory, session,
 	                                               &response.name_string_id,
 	                                               &response.type);
 })
@@ -435,6 +540,7 @@ CALL_FUNCTION_WITH_STRING(CreateDirectory, create_directory, name, {
 	                                       request->uid, request->gid);
 })
 
+#undef CALL_DIRECTORY_FUNCTION_WITH_SESSION
 #undef CALL_DIRECTORY_FUNCTION
 
 //
@@ -445,11 +551,15 @@ CALL_FUNCTION_WITH_STRING(CreateDirectory, create_directory, name, {
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_PROCESS, Process, process)
 
-CALL_FUNCTION(GetProcesses, get_processes, {
-	response.error_code = inventory_get_processes(&response.processes_list_id);
+#define CALL_PROCESS_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, \
+	                                OBJECT_TYPE_PROCESS, Process, process)
+
+CALL_FUNCTION_WITH_SESSION(GetProcesses, get_processes, {
+	response.error_code = inventory_get_processes(session, &response.processes_list_id);
 })
 
-CALL_FUNCTION(SpawnProcess, spawn_process, {
+CALL_FUNCTION_WITH_SESSION(SpawnProcess, spawn_process, {
 	response.error_code = process_spawn(request->executable_string_id,
 	                                    request->arguments_list_id,
 	                                    request->environment_list_id,
@@ -458,6 +568,7 @@ CALL_FUNCTION(SpawnProcess, spawn_process, {
 	                                    request->stdin_file_id,
 	                                    request->stdout_file_id,
 	                                    request->stderr_file_id,
+	                                    session,
 	                                    OBJECT_CREATE_FLAG_INTERNAL |
 	                                    OBJECT_CREATE_FLAG_EXTERNAL,
 	                                    true, NULL, NULL,
@@ -468,8 +579,8 @@ CALL_PROCESS_FUNCTION(KillProcess, kill_process, {
 	response.error_code = process_kill(process, request->signal);
 })
 
-CALL_PROCESS_FUNCTION(GetProcessCommand, get_process_command, {
-	response.error_code = process_get_command(process,
+CALL_PROCESS_FUNCTION_WITH_SESSION(GetProcessCommand, get_process_command, {
+	response.error_code = process_get_command(process, session,
 	                                          &response.executable_string_id,
 	                                          &response.arguments_list_id,
 	                                          &response.environment_list_id,
@@ -483,8 +594,8 @@ CALL_PROCESS_FUNCTION(GetProcessIdentity, get_process_identity, {
 	                                           &response.gid);
 })
 
-CALL_PROCESS_FUNCTION(GetProcessStdio, get_process_stdio, {
-	response.error_code = process_get_stdio(process,
+CALL_PROCESS_FUNCTION_WITH_SESSION(GetProcessStdio, get_process_stdio, {
+	response.error_code = process_get_stdio(process, session,
 	                                        &response.stdin_file_id,
 	                                        &response.stdout_file_id,
 	                                        &response.stderr_file_id);
@@ -496,6 +607,7 @@ CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
 	                                        &response.exit_code);
 })
 
+#undef CALL_PROCESS_FUNCTION_WITH_SESSION
 #undef CALL_PROCESS_FUNCTION
 
 //
@@ -506,12 +618,16 @@ CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
 	CALL_TYPE_FUNCTION(packet_prefix, function_suffix, body, \
 	                   OBJECT_TYPE_PROGRAM, Program, program)
 
-CALL_FUNCTION(GetDefinedPrograms, get_defined_programs, {
-	response.error_code = inventory_get_defined_programs(&response.programs_list_id);
+#define CALL_PROGRAM_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body) \
+	CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, \
+	                                OBJECT_TYPE_PROGRAM, Program, program)
+
+CALL_FUNCTION_WITH_SESSION(GetDefinedPrograms, get_defined_programs, {
+	response.error_code = inventory_get_defined_programs(session, &response.programs_list_id);
 })
 
-CALL_FUNCTION(DefineProgram, define_program, {
-	response.error_code = program_define(request->identifier_string_id,
+CALL_FUNCTION_WITH_SESSION(DefineProgram, define_program, {
+	response.error_code = program_define(request->identifier_string_id, session,
 	                                     &response.program_id);
 })
 
@@ -519,13 +635,13 @@ CALL_PROGRAM_FUNCTION(UndefineProgram, undefine_program, {
 	response.error_code = program_undefine(program);
 })
 
-CALL_PROGRAM_FUNCTION(GetProgramIdentifier, get_program_identifier, {
-	response.error_code = program_get_identifier(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramIdentifier, get_program_identifier, {
+	response.error_code = program_get_identifier(program, session,
 	                                             &response.identifier_string_id);
 })
 
-CALL_PROGRAM_FUNCTION(GetProgramRootDirectory, get_program_root_directory, {
-	response.error_code = program_get_root_directory(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramRootDirectory, get_program_root_directory, {
+	response.error_code = program_get_root_directory(program, session,
 	                                                 &response.root_directory_string_id);
 })
 
@@ -536,8 +652,8 @@ CALL_PROGRAM_FUNCTION(SetProgramCommand, set_program_command, {
 	                                          request->environment_list_id);
 })
 
-CALL_PROGRAM_FUNCTION(GetProgramCommand, get_program_command, {
-	response.error_code = program_get_command(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramCommand, get_program_command, {
+	response.error_code = program_get_command(program, session,
 	                                          &response.executable_string_id,
 	                                          &response.arguments_list_id,
 	                                          &response.environment_list_id);
@@ -553,8 +669,8 @@ CALL_PROGRAM_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection,
 	                                                    request->stderr_file_name_string_id);
 })
 
-CALL_PROGRAM_FUNCTION(GetProgramStdioRedirection, get_program_stdio_redirection, {
-	response.error_code = program_get_stdio_redirection(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramStdioRedirection, get_program_stdio_redirection, {
+	response.error_code = program_get_stdio_redirection(program, session,
 	                                                    &response.stdin_redirection,
 	                                                    &response.stdin_file_name_string_id,
 	                                                    &response.stdout_redirection,
@@ -593,20 +709,20 @@ CALL_PROGRAM_FUNCTION(GetProgramSchedule, get_program_schedule, {
 	                                           &response.repeat_weekday_mask);
 })
 
-CALL_PROGRAM_FUNCTION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {
-	response.error_code = program_get_last_spawned_process(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {
+	response.error_code = program_get_last_spawned_process(program, session,
 	                                                       &response.process_id,
 	                                                       &response.timestamp);
 })
 
-CALL_PROGRAM_FUNCTION(GetLastProgramSchedulerError, get_last_program_scheduler_error, {
-	response.error_code = program_get_last_scheduler_error(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetLastProgramSchedulerError, get_last_program_scheduler_error, {
+	response.error_code = program_get_last_scheduler_error(program, session,
 	                                                       &response.message_string_id,
 	                                                       &response.timestamp);
 })
 
-CALL_PROGRAM_FUNCTION(GetCustomProgramOptionNames, get_custom_program_option_names, {
-	response.error_code = program_get_custom_option_names(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetCustomProgramOptionNames, get_custom_program_option_names, {
+	response.error_code = program_get_custom_option_names(program, session,
 	                                                      &response.names_list_id);
 })
 
@@ -616,8 +732,8 @@ CALL_PROGRAM_FUNCTION(SetCustomProgramOptionValue, set_custom_program_option_val
 	                                                      request->value_string_id);
 })
 
-CALL_PROGRAM_FUNCTION(GetCustomProgramOptionValue, get_custom_program_option_value, {
-	response.error_code = program_get_custom_option_value(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetCustomProgramOptionValue, get_custom_program_option_value, {
+	response.error_code = program_get_custom_option_value(program, session,
 	                                                      request->name_string_id,
 	                                                      &response.value_string_id);
 })
@@ -627,10 +743,15 @@ CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
 	                                                   request->name_string_id);
 })
 
+#undef CALL_PROGRAM_FUNCTION_WITH_SESSION
 #undef CALL_PROGRAM_FUNCTION
 
+#undef CALL_FUNCTION_WITH_STRING_AND_SESSION
+#undef CALL_FUNCTION_WITH_SESSION
 #undef CALL_FUNCTION_WITH_STRING
+#undef CALL_TYPE_FUNCTION_WITH_SESSION
 #undef CALL_TYPE_FUNCTION
+#undef CALL_FUNCTION_WITH_SESSION
 #undef CALL_FUNCTION
 
 //
@@ -721,6 +842,11 @@ void api_handle_request(Packet *request) {
 			break;
 
 	switch (request->header.function_id) {
+	// session
+	DISPATCH_FUNCTION(CREATE_SESSION,                   CreateSession,                create_session)
+	DISPATCH_FUNCTION(EXPIRE_SESSION,                   ExpireSession,                expire_session)
+	DISPATCH_FUNCTION(KEEP_SESSION_ALIVE,               KeepSessionAlive,             keep_session_alive)
+
 	// object
 	DISPATCH_FUNCTION(RELEASE_OBJECT,                   ReleaseObject,                release_object)
 
@@ -804,6 +930,11 @@ void api_handle_request(Packet *request) {
 
 const char *api_get_function_name(int function_id) {
 	switch (function_id) {
+	// string
+	case FUNCTION_CREATE_SESSION:                   return "create-session";
+	case FUNCTION_EXPIRE_SESSION:                   return "expire-session";
+	case FUNCTION_KEEP_SESSION_ALIVE:               return "keep-session-alive";
+
 	// object
 	case FUNCTION_RELEASE_OBJECT:                   return "release-object";
 

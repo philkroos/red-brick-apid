@@ -58,11 +58,12 @@ typedef struct {
 	char buffer[DIRECTORY_MAX_NAME_LENGTH + 1 /* for / */ + DIRECTORY_MAX_ENTRY_LENGTH + 1 /* for \0 */];
 } Directory;
 
-APIE directory_open(ObjectID name_id, ObjectID *id);
+APIE directory_open(ObjectID name_id, Session *session, ObjectID *id);
 
-APIE directory_get_name(Directory *directory, ObjectID *name_id);
+APIE directory_get_name(Directory *directory, Session *session, ObjectID *name_id);
 
-APIE directory_get_next_entry(Directory *directory, ObjectID *name_id, uint8_t *type);
+APIE directory_get_next_entry(Directory *directory, Session *session,
+                              ObjectID *name_id, uint8_t *type);
 APIE directory_rewind(Directory *directory);
 
 APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,

@@ -89,18 +89,18 @@ const char *process_get_error_code_name(ProcessE error_code);
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
-                   ObjectID stdout_id, ObjectID stderr_id,
+                   ObjectID stdout_id, ObjectID stderr_id, Session *session,
                    uint16_t object_create_flags, bool auto_destroy,
                    ProcessStateChangeFunction state_change, void *opaque,
                    ObjectID *id, Process **object);
 APIE process_kill(Process *process, ProcessSignal signal);
 
-APIE process_get_command(Process *process, ObjectID *executable_id,
+APIE process_get_command(Process *process, Session *session, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id,
                          ObjectID *working_directory_id);
 APIE process_get_identity(Process *process, uint32_t *pid, uint32_t *uid,
                           uint32_t *gid);
-APIE process_get_stdio(Process *process, ObjectID *stdin_id,
+APIE process_get_stdio(Process *process, Session *session, ObjectID *stdin_id,
                        ObjectID *stdout_id, ObjectID *stderr_id);
 APIE process_get_state(Process *process, uint8_t *state, uint8_t *exit_code);
 

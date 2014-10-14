@@ -84,6 +84,7 @@ SOURCES := ../daemonlib/array.c \
            program.c \
            program_config.c \
            program_scheduler.c \
+           session.c \
            string.c
 
 OBJECTS := ${SOURCES:.c=.o}

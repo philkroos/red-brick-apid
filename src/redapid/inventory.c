@@ -54,8 +54,16 @@
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
 
 static char _programs_directory[1024]; // <home>/programs
-static ObjectID _next_id = 1; // don't use object ID zero
+static SessionID _next_session_id = 1; // don't use session ID zero
+static Array _sessions;
+static ObjectID _next_object_id = 1; // don't use object ID zero
 static Array _objects[OBJECT_TYPE_PROGRAM - OBJECT_TYPE_STRING + 1];
+
+static void inventory_destroy_session(void *item) {
+	Session *session = *(Session **)item;
+
+	session_destroy(session);
+}
 
 static void inventory_destroy_object(void *item) {
 	Object *object = *(Object **)item;
@@ -63,7 +71,43 @@ static void inventory_destroy_object(void *item) {
 	object_destroy(object);
 }
 
-static APIE inventory_get_next_id(ObjectID *id) {
+static APIE inventory_get_next_session_id(SessionID *id) {
+	int i;
+	SessionID candidate;
+	bool collision;
+	int k;
+	Session *session;
+
+	// FIXME: this is an O(n^2) algorithm
+	for (i = 0; i < SESSION_ID_MAX; ++i) {
+		if (_next_session_id == SESSION_ID_ZERO) {
+			_next_session_id = 1; // don't use object ID zero
+		}
+
+		candidate = _next_session_id++;
+		collision = false;
+
+		for (k = 0; k < _sessions.count; ++k) {
+			session = *(Session **)array_get(&_sessions, k);
+
+			if (candidate == session->id) {
+				collision = true;
+
+				break;
+			}
+		}
+
+		if (!collision) {
+			*id = candidate;
+
+			return API_E_SUCCESS;
+		}
+	}
+
+	return API_E_NO_FREE_SESSION_ID;
+}
+
+static APIE inventory_get_next_object_id(ObjectID *id) {
 	int i;
 	ObjectID candidate;
 	bool collision;
@@ -73,11 +117,11 @@ static APIE inventory_get_next_id(ObjectID *id) {
 
 	// FIXME: this is an O(n^2) algorithm
 	for (i = 0; i < OBJECT_ID_MAX; ++i) {
-		if (_next_id == OBJECT_ID_ZERO) {
-			_next_id = 1; // don't use object ID zero
+		if (_next_object_id == OBJECT_ID_ZERO) {
+			_next_object_id = 1; // don't use object ID zero
 		}
 
-		candidate = _next_id++;
+		candidate = _next_object_id++;
 		collision = false;
 
 		for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
@@ -130,11 +174,21 @@ int inventory_init(void) {
 		return -1;
 	}
 
+	// create session array
+	if (array_create(&_sessions, 32, sizeof(Session *), true) < 0) {
+		log_error("Could not create session array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return -1;
+	}
+
 	// create object arrays
 	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
 		if (array_create(&_objects[type], 32, sizeof(Object *), true) < 0) {
 			log_error("Could not create %s object array: %s (%d)",
 			          object_get_type_name(type), get_errno_name(errno), errno);
+
+			array_destroy(&_sessions, inventory_destroy_session);
 
 			for (--type; type >= OBJECT_TYPE_STRING; --type) {
 				array_destroy(&_objects[type], inventory_destroy_object);
@@ -149,6 +203,8 @@ int inventory_init(void) {
 
 void inventory_exit(void) {
 	log_debug("Shutting down inventory subsystem");
+
+	array_destroy(&_sessions, inventory_destroy_session);
 
 	// object types have to be destroyed in a specific order. if objects of
 	// type A can use (have a reference to) objects of type B then A has to be
@@ -273,11 +329,81 @@ void inventory_unload_programs(void) {
 	}
 }
 
+APIE inventory_add_session(Session *session) {
+	Session **session_ptr;
+	APIE error_code;
+
+	error_code = inventory_get_next_session_id(&session->id);
+
+	if (error_code != API_E_SUCCESS) {
+		log_warn("Cannot add new session, all session IDs are in use");
+
+		return error_code;
+	}
+
+	session_ptr = array_append(&_sessions);
+
+	if (session_ptr == NULL) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not append to session array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	*session_ptr = session;
+
+	log_debug("Added session (id: %u)", session->id);
+
+	return API_E_SUCCESS;
+}
+
+void inventory_remove_session(Session *session) {
+	int i;
+	Session *candidate;
+
+	for (i = 0; i < _sessions.count; ++i) {
+		candidate = *(Session **)array_get(&_sessions, i);
+
+		if (candidate != session) {
+			continue;
+		}
+
+		log_debug("Removing session (id: %u)", session->id);
+
+		array_remove(&_sessions, i, inventory_destroy_session);
+
+		return;
+	}
+
+	log_error("Could not find session (id: %u) to remove it", session->id);
+}
+
+APIE inventory_get_session(SessionID id, Session **session) {
+	int i;
+	Session *candidate;
+
+	for (i = 0; i < _sessions.count; ++i) {
+		candidate = *(Session **)array_get(&_sessions, i);
+
+		if (candidate->id == id) {
+			*session = candidate;
+
+			return API_E_SUCCESS;
+		}
+	}
+
+	log_warn("Could not find session (id: %u)", id);
+
+	return API_E_UNKNOWN_SESSION_ID;
+}
+
 APIE inventory_add_object(Object *object) {
 	Object **object_ptr;
 	APIE error_code;
 
-	error_code = inventory_get_next_id(&object->id);
+	error_code = inventory_get_next_object_id(&object->id);
 
 	if (error_code != API_E_SUCCESS) {
 		log_warn("Cannot add new %s object, all object IDs are in use",
@@ -371,14 +497,15 @@ APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
 }
 
 // public API
-APIE inventory_get_processes(ObjectID *processes_id) {
+APIE inventory_get_processes(Session *session, ObjectID *processes_id) {
 	List *processes;
 	APIE error_code;
 	int i;
 	Process *process;
 
 	error_code = list_allocate(_objects[OBJECT_TYPE_PROCESS].count,
-	                           OBJECT_CREATE_FLAG_EXTERNAL, NULL, &processes);
+	                           session, OBJECT_CREATE_FLAG_EXTERNAL,
+	                           NULL, &processes);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -389,7 +516,7 @@ APIE inventory_get_processes(ObjectID *processes_id) {
 		error_code = list_append_to(processes, process->base.id);
 
 		if (error_code != API_E_SUCCESS) {
-			object_remove_external_reference(&processes->base);
+			object_remove_external_reference(&processes->base, session);
 
 			return error_code;
 		}
@@ -401,14 +528,15 @@ APIE inventory_get_processes(ObjectID *processes_id) {
 }
 
 // public API
-APIE inventory_get_defined_programs(ObjectID *programs_id) {
+APIE inventory_get_defined_programs(Session *session, ObjectID *programs_id) {
 	List *programs;
 	APIE error_code;
 	int i;
 	Program *program;
 
 	error_code = list_allocate(_objects[OBJECT_TYPE_PROCESS].count,
-	                           OBJECT_CREATE_FLAG_EXTERNAL, NULL, &programs);
+	                           session, OBJECT_CREATE_FLAG_EXTERNAL,
+	                           NULL, &programs);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -424,7 +552,7 @@ APIE inventory_get_defined_programs(ObjectID *programs_id) {
 		error_code = list_append_to(programs, program->base.id);
 
 		if (error_code != API_E_SUCCESS) {
-			object_remove_external_reference(&programs->base);
+			object_remove_external_reference(&programs->base, session);
 
 			return error_code;
 		}

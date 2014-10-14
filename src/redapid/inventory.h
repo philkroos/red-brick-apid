@@ -23,6 +23,7 @@
 #define REDAPID_INVENTORY_H
 
 #include "object.h"
+#include "session.h"
 
 int inventory_init(void);
 void inventory_exit(void);
@@ -32,13 +33,16 @@ const char *inventory_get_programs_directory(void);
 int inventory_load_programs(void);
 void inventory_unload_programs(void);
 
+APIE inventory_add_session(Session *session);
+void inventory_remove_session(Session *session);
+APIE inventory_get_session(SessionID id, Session **session);
+
 APIE inventory_add_object(Object *object);
 void inventory_remove_object(Object *object);
-
 APIE inventory_get_object(ObjectID id, Object **object);
 APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object);
 
-APIE inventory_get_processes(ObjectID *processes_id);
-APIE inventory_get_defined_programs(ObjectID *programs_id);
+APIE inventory_get_processes(Session *session, ObjectID *processes_id);
+APIE inventory_get_defined_programs(Session *session, ObjectID *programs_id);
 
 #endif // REDAPID_INVENTORY_H

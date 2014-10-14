@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-10.      *
+ * This file was automatically generated on 2014-10-14.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -31,267 +31,282 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_RELEASE_OBJECT 1
+#define RED_FUNCTION_CREATE_SESSION 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_STRING 2
+#define RED_FUNCTION_EXPIRE_SESSION 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_TRUNCATE_STRING 3
+#define RED_FUNCTION_KEEP_SESSION_ALIVE 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_LENGTH 4
+#define RED_FUNCTION_RELEASE_OBJECT 4
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_STRING_CHUNK 5
+#define RED_FUNCTION_ALLOCATE_STRING 5
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_CHUNK 6
+#define RED_FUNCTION_TRUNCATE_STRING 6
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_LIST 7
+#define RED_FUNCTION_GET_STRING_LENGTH 7
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_LENGTH 8
+#define RED_FUNCTION_SET_STRING_CHUNK 8
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_ITEM 9
+#define RED_FUNCTION_GET_STRING_CHUNK 9
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_APPEND_TO_LIST 10
+#define RED_FUNCTION_ALLOCATE_LIST 10
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_FROM_LIST 11
+#define RED_FUNCTION_GET_LIST_LENGTH 11
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_FILE 12
+#define RED_FUNCTION_GET_LIST_ITEM 12
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_PIPE 13
+#define RED_FUNCTION_APPEND_TO_LIST 13
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_INFO 14
+#define RED_FUNCTION_REMOVE_FROM_LIST 14
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE 15
+#define RED_FUNCTION_OPEN_FILE 15
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE_ASYNC 16
+#define RED_FUNCTION_CREATE_PIPE 16
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 17
+#define RED_FUNCTION_GET_FILE_INFO 17
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE 18
+#define RED_FUNCTION_READ_FILE 18
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_UNCHECKED 19
+#define RED_FUNCTION_READ_FILE_ASYNC 19
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_ASYNC 20
+#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 20
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_FILE_POSITION 21
+#define RED_FUNCTION_WRITE_FILE 21
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_POSITION 22
+#define RED_FUNCTION_WRITE_FILE_UNCHECKED 22
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_FILE_INFO 25
+#define RED_FUNCTION_WRITE_FILE_ASYNC 23
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 26
+#define RED_FUNCTION_SET_FILE_POSITION 24
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 27
+#define RED_FUNCTION_GET_FILE_POSITION 25
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 28
+#define RED_FUNCTION_LOOKUP_FILE_INFO 28
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 29
+#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 29
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 30
+#define RED_FUNCTION_OPEN_DIRECTORY 30
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_DIRECTORY 31
+#define RED_FUNCTION_GET_DIRECTORY_NAME 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESSES 32
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 33
+#define RED_FUNCTION_REWIND_DIRECTORY 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 34
+#define RED_FUNCTION_CREATE_DIRECTORY 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 35
+#define RED_FUNCTION_GET_PROCESSES 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_IDENTITY 36
+#define RED_FUNCTION_SPAWN_PROCESS 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIO 37
+#define RED_FUNCTION_KILL_PROCESS 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 38
+#define RED_FUNCTION_GET_PROCESS_COMMAND 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DEFINED_PROGRAMS 40
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 41
+#define RED_FUNCTION_GET_PROCESS_STDIO 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 42
+#define RED_FUNCTION_GET_PROCESS_STATE 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 43
+#define RED_FUNCTION_GET_DEFINED_PROGRAMS 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 44
+#define RED_FUNCTION_DEFINE_PROGRAM 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 45
+#define RED_FUNCTION_UNDEFINE_PROGRAM 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 46
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 47
+#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 48
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 49
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 50
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 50
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 51
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 52
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 52
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 53
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 53
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 54
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 54
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 55
+#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 55
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 56
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 56
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 57
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 58
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 59
 
 /**
  * \ingroup BrickRED
@@ -306,7 +321,7 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_read_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 23
+#define RED_CALLBACK_ASYNC_FILE_READ 26
 
 /**
  * \ingroup BrickRED
@@ -316,28 +331,28 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_write_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 24
+#define RED_CALLBACK_ASYNC_FILE_WRITE 27
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 39
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 42
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 57
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 60
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 58
+#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 61
 
 
 /**
@@ -822,10 +837,31 @@ int red_get_api_version(RED *red, uint8_t ret_api_version[3]);
 /**
  * \ingroup BrickRED
  *
+ * 
+ */
+int red_create_session(RED *red, uint32_t lifetime, uint8_t *ret_error_code, uint16_t *ret_session_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_expire_session(RED *red, uint16_t session_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_keep_session_alive(RED *red, uint16_t session_id, uint32_t lifetime, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
  * Decreases the reference count of an object by one and returns the resulting
  * error code. If the reference count reaches zero the object gets destroyed.
  */
-int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
+int red_release_object(RED *red, uint16_t object_id, uint16_t session_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
@@ -836,7 +872,7 @@ int red_release_object(RED *red, uint16_t object_id, uint8_t *ret_error_code);
  * 
  * Returns the object ID of the new string object and the resulting error code.
  */
-int red_allocate_string(RED *red, uint32_t length_to_reserve, const char buffer[60], uint8_t *ret_error_code, uint16_t *ret_string_id);
+int red_allocate_string(RED *red, uint32_t length_to_reserve, const char buffer[58], uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_string_id);
 
 /**
  * \ingroup BrickRED
@@ -882,7 +918,7 @@ int red_get_string_chunk(RED *red, uint16_t string_id, uint32_t offset, uint8_t 
  * When a list object gets destroyed then the reference count of each object in
  * the list object is decreased by one.
  */
-int red_allocate_list(RED *red, uint16_t length_to_reserve, uint8_t *ret_error_code, uint16_t *ret_list_id);
+int red_allocate_list(RED *red, uint16_t length_to_reserve, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_list_id);
 
 /**
  * \ingroup BrickRED
@@ -906,7 +942,7 @@ int red_get_list_length(RED *red, uint16_t list_id, uint8_t *ret_error_code, uin
  * * Process = 4
  * * Program = 5
  */
-int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint8_t *ret_error_code, uint16_t *ret_item_object_id, uint8_t *ret_type);
+int red_get_list_item(RED *red, uint16_t list_id, uint16_t index, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_item_object_id, uint8_t *ret_type);
 
 /**
  * \ingroup BrickRED
@@ -972,7 +1008,7 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * 
  * Returns the object ID of the new file object and the resulting error code.
  */
-int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code, uint16_t *ret_file_id);
+int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -987,7 +1023,7 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
  * 
  * Returns the object ID of the new file object and the resulting error code.
  */
-int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t *ret_file_id);
+int red_create_pipe(RED *red, uint16_t flags, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -1016,7 +1052,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint8_t *ret_error_code, uint16_t 
  * 
  * FIXME: everything except flags is invalid if file type is *Pipe*
  */
-int red_get_file_info(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
+int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
 
 /**
  * \ingroup BrickRED
@@ -1167,7 +1203,7 @@ int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink,
  * `realpath() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/realpath.html>`__
  * function.
  */
-int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint8_t *ret_error_code, uint16_t *ret_target_string_id);
+int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_target_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1183,7 +1219,7 @@ int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicali
  * 
  * Returns the object ID of the new directory object and the resulting error code.
  */
-int red_open_directory(RED *red, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_directory_id);
+int red_open_directory(RED *red, uint16_t name_string_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_directory_id);
 
 /**
  * \ingroup BrickRED
@@ -1191,7 +1227,7 @@ int red_open_directory(RED *red, uint16_t name_string_id, uint8_t *ret_error_cod
  * Returns the name of a directory object, as passed to {@link red_open_directory}, and
  * the resulting error code.
  */
-int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
+int red_get_directory_name(RED *red, uint16_t directory_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1212,7 +1248,7 @@ int red_get_directory_name(RED *red, uint16_t directory_id, uint8_t *ret_error_c
  * * Symlink = 6
  * * Socket = 7
  */
-int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id, uint8_t *ret_type);
+int red_get_next_directory_entry(RED *red, uint16_t directory_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_name_string_id, uint8_t *ret_type);
 
 /**
  * \ingroup BrickRED
@@ -1233,14 +1269,14 @@ int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint
  *
  * 
  */
-int red_get_processes(RED *red, uint8_t *ret_error_code, uint16_t *ret_processes_list_id);
+int red_get_processes(RED *red, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_processes_list_id);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t uid, uint32_t gid, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
+int red_spawn_process(RED *red, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint32_t uid, uint32_t gid, uint16_t stdin_file_id, uint16_t stdout_file_id, uint16_t stderr_file_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_process_id);
 
 /**
  * \ingroup BrickRED
@@ -1268,7 +1304,7 @@ int red_kill_process(RED *red, uint16_t process_id, uint8_t signal, uint8_t *ret
  * spawn a process object, as passed to {@link red_spawn_process}, and the resulting
  * error code.
  */
-int red_get_process_command(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id, uint16_t *ret_working_directory_string_id);
+int red_get_process_command(RED *red, uint16_t process_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id, uint16_t *ret_working_directory_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1287,7 +1323,7 @@ int red_get_process_identity(RED *red, uint16_t process_id, uint8_t *ret_error_c
  * Returns the stdin, stdout and stderr files used to spawn a process object, as
  * passed to {@link red_spawn_process}, and the resulting error code.
  */
-int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id, uint16_t *ret_stdout_file_id, uint16_t *ret_stderr_file_id);
+int red_get_process_stdio(RED *red, uint16_t process_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_stdin_file_id, uint16_t *ret_stdout_file_id, uint16_t *ret_stderr_file_id);
 
 /**
  * \ingroup BrickRED
@@ -1317,6 +1353,9 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint8_t *ret_error_code
  * * InternalError = 125
  * * CannotExecute = 126
  * * DoesNotExist = 127
+ * 
+ * The *CannotExecute* error can be caused by the executable being opened for
+ * writing.
  */
 int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
 
@@ -1325,14 +1364,14 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
  *
  * 
  */
-int red_get_defined_programs(RED *red, uint8_t *ret_error_code, uint16_t *ret_programs_list_id);
+int red_get_defined_programs(RED *red, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_programs_list_id);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_define_program(RED *red, uint16_t identifier_string_id, uint8_t *ret_error_code, uint16_t *ret_program_id);
+int red_define_program(RED *red, uint16_t identifier_string_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_program_id);
 
 /**
  * \ingroup BrickRED
@@ -1346,14 +1385,14 @@ int red_undefine_program(RED *red, uint16_t program_id, uint8_t *ret_error_code)
  *
  * 
  */
-int red_get_program_identifier(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_identifier_string_id);
+int red_get_program_identifier(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_identifier_string_id);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_program_root_directory(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_root_directory_string_id);
+int red_get_program_root_directory(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_root_directory_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1367,7 +1406,7 @@ int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_s
  *
  * 
  */
-int red_get_program_command(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id);
+int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id);
 
 /**
  * \ingroup BrickRED
@@ -1381,7 +1420,7 @@ int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t std
  *
  * 
  */
-int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_stdin_redirection, uint16_t *ret_stdin_file_name_string_id, uint8_t *ret_stdout_redirection, uint16_t *ret_stdout_file_name_string_id, uint8_t *ret_stderr_redirection, uint16_t *ret_stderr_file_name_string_id);
+int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_stdin_redirection, uint16_t *ret_stdin_file_name_string_id, uint8_t *ret_stdout_redirection, uint16_t *ret_stdout_file_name_string_id, uint8_t *ret_stderr_redirection, uint16_t *ret_stderr_file_name_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1402,21 +1441,21 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_c
  *
  * 
  */
-int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_process_id, uint64_t *ret_timestamp);
+int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_process_id, uint64_t *ret_timestamp);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_message_string_id, uint64_t *ret_timestamp);
+int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_message_string_id, uint64_t *ret_timestamp);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_custom_program_option_names(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint16_t *ret_names_list_id);
+int red_get_custom_program_option_names(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_names_list_id);
 
 /**
  * \ingroup BrickRED
@@ -1430,7 +1469,7 @@ int red_set_custom_program_option_value(RED *red, uint16_t program_id, uint16_t 
  *
  * 
  */
-int red_get_custom_program_option_value(RED *red, uint16_t program_id, uint16_t name_string_id, uint8_t *ret_error_code, uint16_t *ret_value_string_id);
+int red_get_custom_program_option_value(RED *red, uint16_t program_id, uint16_t name_string_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_value_string_id);
 
 /**
  * \ingroup BrickRED

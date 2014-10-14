@@ -71,7 +71,7 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 		string_unlock(program_scheduler->last_error_message);
 	}
 
-	if (string_wrap(buffer,
+	if (string_wrap(buffer, NULL,
 	                OBJECT_CREATE_FLAG_INTERNAL |
 	                OBJECT_CREATE_FLAG_LOCKED,
 	                NULL, &program_scheduler->last_error_message) == API_E_SUCCESS) {
@@ -153,7 +153,7 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
 		                       FILE_FLAG_READ_ONLY, 0, 1000, 1000,
-		                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -167,7 +167,7 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 
 	case PROGRAM_STDIO_REDIRECTION_PIPE:
 		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_WRITE,
-		                          OBJECT_CREATE_FLAG_INTERNAL,
+		                          NULL, OBJECT_CREATE_FLAG_INTERNAL,
 		                          NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
@@ -183,7 +183,7 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 	case PROGRAM_STDIO_REDIRECTION_FILE:
 		error_code = file_open(program_scheduler->config->stdin_file_name->base.id,
 		                       FILE_FLAG_READ_ONLY, 0, 1000, 1000,
-		                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -256,7 +256,7 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 	while (counter < 1000) {
 		// only try to create the log file if it's not already existing
 		if (lstat(buffer, &st) < 0) {
-			error_code = string_wrap(buffer,
+			error_code = string_wrap(buffer, NULL,
 			                         OBJECT_CREATE_FLAG_INTERNAL |
 			                         OBJECT_CREATE_FLAG_LOCKED,
 			                         NULL, &name);
@@ -272,7 +272,7 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 			error_code = file_open(name->base.id,
 			                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE,
 			                       0755, 1000, 1000,
-			                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+			                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 			string_unlock(name);
 
@@ -318,7 +318,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY, 0, 1000, 1000,
-		                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -332,7 +332,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 	case PROGRAM_STDIO_REDIRECTION_PIPE:
 		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_READ,
-		                          OBJECT_CREATE_FLAG_INTERNAL,
+		                          NULL, OBJECT_CREATE_FLAG_INTERNAL,
 		                          NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
@@ -347,8 +347,9 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
 		error_code = file_open(program_scheduler->config->stdout_file_name->base.id,
-		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE, 0755, 1000, 1000,
-		                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE,
+		                       0755, 1000, 1000,
+		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -388,7 +389,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY, 0, 1000, 1000,
-		                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -402,7 +403,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 	case PROGRAM_STDIO_REDIRECTION_PIPE:
 		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_READ,
-		                          OBJECT_CREATE_FLAG_INTERNAL,
+		                          NULL, OBJECT_CREATE_FLAG_INTERNAL,
 		                          NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
@@ -417,8 +418,9 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
 		error_code = file_open(program_scheduler->config->stderr_file_name->base.id,
-		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE, 0755, 1000, 1000,
-		                       OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE,
+		                       0755, 1000, 1000,
+		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -506,7 +508,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	                           program_scheduler->working_directory->base.id,
 	                           1000, 1000,
 	                           stdin->base.id, stdout->base.id, stderr->base.id,
-	                           OBJECT_CREATE_FLAG_INTERNAL, false,
+	                           NULL, OBJECT_CREATE_FLAG_INTERNAL, false,
 	                           program_scheduler_handle_process_state_change,
 	                           program_scheduler,
 	                           NULL, &process);
@@ -680,7 +682,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	}
 
 	// wrap working directory string
-	error_code = string_wrap(buffer,
+	error_code = string_wrap(buffer, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &working_directory);
@@ -720,7 +722,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	}
 
 	// wrap /dev/null string
-	error_code = string_wrap("/dev/null",
+	error_code = string_wrap("/dev/null", NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &dev_null_file_name);

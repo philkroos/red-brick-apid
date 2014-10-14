@@ -31,8 +31,13 @@ int main() {
 		return -1;
 	}
 
+	uint16_t session_id;
+	if (create_session(&red, 30, &session_id) < 0) {
+		return -1;
+	}
+
 	uint16_t lid;
-	rc = red_allocate_list(&red, 20, &ec, &lid);
+	rc = red_allocate_list(&red, 20, session_id, &ec, &lid);
 	if (rc < 0) {
 		printf("red_allocate_list -> rc %d\n", rc);
 		return -1;
@@ -41,12 +46,12 @@ int main() {
 		printf("red_allocate_list -> ec %u\n", ec);
 		return -1;
 	}
-	printf("red_allocate_list -> sid %u\n", lid);
+	printf("red_allocate_list -> lid %u\n", lid);
 
 	int i;
 	for (i = 0; i < 30; ++i) {
 		uint16_t sid;
-		if (allocate_string(&red, "A123456789B123456789C123456789D123456789", &sid) < 0) {
+		if (allocate_string(&red, "A123456789B123456789C123456789D123456789", session_id, &sid) < 0) {
 			goto cleanup;
 		}
 
@@ -58,7 +63,7 @@ int main() {
 			printf("red_append_to_list -> ec %u\n", ec);
 		}
 
-		release_object(&red, sid, "string");
+		release_object(&red, sid, session_id, "string");
 	}
 
 	uint16_t length;
@@ -89,7 +94,8 @@ int main() {
 	printf("red_get_list_length -> length %u\n", length);
 
 cleanup:
-	release_object(&red, lid, "list");
+	release_object(&red, lid, session_id, "list");
+	expire_session(&red, session_id);
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

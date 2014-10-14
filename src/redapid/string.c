@@ -73,8 +73,8 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	return API_E_SUCCESS;
 }
 
-static APIE string_create(uint32_t reserve, uint16_t object_create_flags,
-                          String **string) {
+static APIE string_create(uint32_t reserve, Session *session,
+                          uint16_t object_create_flags, String **string) {
 	int phase = 0;
 	APIE error_code;
 	uint32_t allocated;
@@ -123,7 +123,7 @@ static APIE string_create(uint32_t reserve, uint16_t object_create_flags,
 	(*string)->allocated = allocated;
 
 	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING,
-	                           object_create_flags, string_destroy);
+	                           session, object_create_flags, string_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -146,8 +146,8 @@ cleanup:
 	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
-APIE string_wrap(const char *buffer, uint16_t object_create_flags,
-                 ObjectID *id, String **object) {
+APIE string_wrap(const char *buffer, Session *session,
+                 uint16_t object_create_flags, ObjectID *id, String **object) {
 	uint32_t length = strlen(buffer);
 	APIE error_code;
 	String *string;
@@ -158,7 +158,7 @@ APIE string_wrap(const char *buffer, uint16_t object_create_flags,
 		return API_E_OUT_OF_RANGE;
 	}
 
-	error_code = string_create(length, object_create_flags, &string);
+	error_code = string_create(length, session, object_create_flags, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -181,7 +181,7 @@ APIE string_wrap(const char *buffer, uint16_t object_create_flags,
 }
 
 // public API
-APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
+APIE string_allocate(uint32_t reserve, char *buffer, Session *session, ObjectID *id) {
 	uint32_t length = strnlen(buffer, STRING_MAX_ALLOCATE_BUFFER_LENGTH);
 	String *string;
 	APIE error_code;
@@ -190,7 +190,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id) {
 		reserve = length;
 	}
 
-	error_code = string_create(reserve, OBJECT_CREATE_FLAG_EXTERNAL, &string);
+	error_code = string_create(reserve, session, OBJECT_CREATE_FLAG_EXTERNAL, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

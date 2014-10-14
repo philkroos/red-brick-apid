@@ -24,7 +24,7 @@
 
 #include "object.h"
 
-#define STRING_MAX_ALLOCATE_BUFFER_LENGTH 60
+#define STRING_MAX_ALLOCATE_BUFFER_LENGTH 58
 #define STRING_MAX_SET_CHUNK_BUFFER_LENGTH 58
 #define STRING_MAX_GET_CHUNK_BUFFER_LENGTH 63
 
@@ -36,9 +36,9 @@ typedef struct {
 	uint32_t allocated; // <= INT32_MAX + 1, includes NULL-terminator
 } String;
 
-APIE string_wrap(const char *buffer, uint16_t object_create_flags,
-                 ObjectID *id, String **object);
-APIE string_allocate(uint32_t reserve, char *buffer, ObjectID *id);
+APIE string_wrap(const char *buffer, Session *session,
+                 uint16_t object_create_flags, ObjectID *id, String **object);
+APIE string_allocate(uint32_t reserve, char *buffer, Session *session, ObjectID *id);
 
 APIE string_truncate(String *string, uint32_t length);
 APIE string_get_length(String *string, uint32_t *length);

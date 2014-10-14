@@ -301,7 +301,7 @@ const char *process_get_error_code_name(ProcessE error_code) {
 APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
-                   ObjectID stdout_id, ObjectID stderr_id,
+                   ObjectID stdout_id, ObjectID stderr_id, Session *session,
                    uint16_t object_create_flags, bool auto_destroy,
                    ProcessStateChangeFunction state_change, void *opaque,
                    ObjectID *id, Process **object) {
@@ -725,6 +725,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	// create process object
 	error_code = object_create(&process->base,
 	                           OBJECT_TYPE_PROCESS,
+	                           session,
 	                           object_create_flags |
 	                           OBJECT_CREATE_FLAG_INTERNAL,
 	                           process_destroy);
@@ -838,20 +839,69 @@ APIE process_kill(Process *process, ProcessSignal signal) {
 }
 
 // public API
-APIE process_get_command(Process *process, ObjectID *executable_id,
+APIE process_get_command(Process *process, Session *session, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id,
                          ObjectID *working_directory_id) {
-	object_add_external_reference(&process->executable->base);
-	object_add_external_reference(&process->arguments->base);
-	object_add_external_reference(&process->environment->base);
-	object_add_external_reference(&process->working_directory->base);
+	int phase = 0;
+	APIE error_code;
+
+	// executable
+	error_code = object_add_external_reference(&process->executable->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// arguments
+	error_code = object_add_external_reference(&process->arguments->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// environment
+	error_code = object_add_external_reference(&process->environment->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 3;
+
+	// working directory
+	error_code = object_add_external_reference(&process->working_directory->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
 
 	*executable_id = process->executable->base.id;
 	*arguments_id = process->arguments->base.id;
 	*environment_id = process->environment->base.id;
 	*working_directory_id = process->working_directory->base.id;
 
-	return API_E_SUCCESS;
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 3:
+		object_remove_external_reference(&process->environment->base, session);
+
+	case 2:
+		object_remove_external_reference(&process->arguments->base, session);
+
+	case 1:
+		object_remove_external_reference(&process->executable->base, session);
+
+	default:
+		break;
+	}
+
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -865,17 +915,55 @@ APIE process_get_identity(Process *process, uint32_t *pid, uint32_t *uid,
 }
 
 // public API
-APIE process_get_stdio(Process *process, ObjectID *stdin_id, ObjectID *stdout_id,
-                       ObjectID *stderr_id) {
-	object_add_external_reference(&process->stdin->base);
-	object_add_external_reference(&process->stdout->base);
-	object_add_external_reference(&process->stderr->base);
+APIE process_get_stdio(Process *process, Session *session, ObjectID *stdin_id,
+                       ObjectID *stdout_id, ObjectID *stderr_id) {
+	int phase = 0;
+	APIE error_code;
+
+	// stdin
+	error_code = object_add_external_reference(&process->stdin->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// stdout
+	error_code = object_add_external_reference(&process->stdout->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// stderr
+	error_code = object_add_external_reference(&process->stderr->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 3;
 
 	*stdin_id = process->stdin->base.id;
 	*stdout_id = process->stdout->base.id;
 	*stderr_id = process->stderr->base.id;
 
-	return API_E_SUCCESS;
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
+		object_remove_external_reference(&process->stdout->base, session);
+
+	case 1:
+		object_remove_external_reference(&process->stdin->base, session);
+
+	default:
+		break;
+	}
+
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 // public API

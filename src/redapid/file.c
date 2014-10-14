@@ -605,8 +605,8 @@ mode_t file_get_mode_from_permissions(uint16_t permissions) {
 
 // public API
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
-               uint32_t uid, uint32_t gid, uint16_t object_create_flags,
-               ObjectID *id, File **object) {
+               uint32_t uid, uint32_t gid, Session *session,
+               uint16_t object_create_flags, ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -779,7 +779,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->seek = file_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           object_create_flags, file_destroy);
+	                           session, object_create_flags, file_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -830,8 +830,8 @@ cleanup:
 }
 
 // public API
-APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
-                  ObjectID *id, File **object) {
+APIE pipe_create_(uint16_t flags, Session *session,
+                  uint16_t object_create_flags, ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
 	String *name;
@@ -847,7 +847,7 @@ APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
 	}
 
 	// create name string object
-	error_code = string_wrap("<unnamed>",
+	error_code = string_wrap("<unnamed>", NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &name);
@@ -897,7 +897,7 @@ APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
 	file->seek = pipe_handle_seek;
 
 	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           object_create_flags, file_destroy);
+	                           session, object_create_flags, file_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -935,13 +935,15 @@ cleanup:
 }
 
 // public API
-APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags,
+APIE file_get_info(File *file, Session *session, uint8_t *type,
+                   ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
-                   uint64_t *modification_timestamp, uint64_t *status_change_timestamp) {
+                   uint64_t *modification_timestamp,
+                   uint64_t *status_change_timestamp) {
+	APIE error_code;
 	struct stat st;
 	int rc;
-	APIE error_code;
 	FileType current_type;
 
 	*type = file->type;
@@ -949,7 +951,11 @@ APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags
 	if (file->type == FILE_TYPE_PIPE) {
 		*name_id = OBJECT_ID_ZERO;
 	} else {
-		object_add_external_reference(&file->name->base);
+		error_code = object_add_external_reference(&file->name->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
 
 		*name_id = file->name->base.id;
 	}
@@ -1367,7 +1373,8 @@ APIE file_lookup_info(const char *name, bool follow_symlink,
 }
 
 // public API
-APIE symlink_lookup_target(const char *name, bool canonicalize, ObjectID *target_id) {
+APIE symlink_lookup_target(const char *name, bool canonicalize,
+                           Session *session, ObjectID *target_id) {
 	char *target;
 	char buffer[1024 + 1];
 	ssize_t rc;
@@ -1412,7 +1419,8 @@ APIE symlink_lookup_target(const char *name, bool canonicalize, ObjectID *target
 		target = buffer;
 	}
 
-	error_code = string_wrap(target, OBJECT_CREATE_FLAG_EXTERNAL, target_id, NULL);
+	error_code = string_wrap(target, session, OBJECT_CREATE_FLAG_EXTERNAL,
+	                         target_id, NULL);
 
 	if (canonicalize) {
 		free(target);

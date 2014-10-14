@@ -48,8 +48,8 @@ static void list_destroy(Object *object) {
 }
 
 // public API
-APIE list_allocate(uint16_t reserve, uint16_t object_create_flags,
-                   ObjectID *id, List **object) {
+APIE list_allocate(uint16_t reserve, Session *session,
+                   uint16_t object_create_flags, ObjectID *id, List **object) {
 	int phase = 0;
 	APIE error_code;
 	List *list;
@@ -79,7 +79,7 @@ APIE list_allocate(uint16_t reserve, uint16_t object_create_flags,
 	phase = 2;
 
 	error_code = object_create(&list->base, OBJECT_TYPE_LIST,
-	                           object_create_flags, list_destroy);
+	                           session, object_create_flags, list_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -118,8 +118,10 @@ APIE list_get_length(List *list, uint16_t *length) {
 }
 
 // public API
-APIE list_get_item(List *list, uint16_t index, ObjectID *item_id, uint8_t *type) {
+APIE list_get_item(List *list, uint16_t index, Session *session,
+                   ObjectID *item_id, uint8_t *type) {
 	Object *item;
+	APIE error_code;
 
 	if (index >= list->items.count) {
 		log_warn("Index of %u exceeds list object (id: %u) length of %u",
@@ -130,7 +132,11 @@ APIE list_get_item(List *list, uint16_t index, ObjectID *item_id, uint8_t *type)
 
 	item = *(Object **)array_get(&list->items, index);
 
-	object_add_external_reference(item);
+	error_code = object_add_external_reference(item, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*item_id = item->id;
 	*type = item->type;

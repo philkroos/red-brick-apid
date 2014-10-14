@@ -138,16 +138,18 @@ struct _File {
 mode_t file_get_mode_from_permissions(uint16_t permissions);
 
 APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
-               uint32_t uid, uint32_t gid, uint16_t object_create_flags,
-               ObjectID *id, File **object);
+               uint32_t uid, uint32_t gid, Session *session,
+               uint16_t object_create_flags, ObjectID *id, File **object);
 
-APIE pipe_create_(uint16_t flags, uint16_t object_create_flags,
-                  ObjectID *id, File **object);
+APIE pipe_create_(uint16_t flags, Session *session,
+                  uint16_t object_create_flags, ObjectID *id, File **object);
 
-APIE file_get_info(File *file, uint8_t *type, ObjectID *name_id, uint16_t *flags,
+APIE file_get_info(File *file, Session *session, uint8_t *type,
+                   ObjectID *name_id, uint16_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
-                   uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
+                   uint64_t *modification_timestamp,
+                   uint64_t *status_change_timestamp);
 
 APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
                uint8_t *length_read);
@@ -174,6 +176,7 @@ APIE file_lookup_info(const char *name, bool follow_symlink,
                       uint32_t *gid, uint64_t *length, uint64_t *access_timestamp,
                       uint64_t *modification_timestamp, uint64_t *status_change_timestamp);
 
-APIE symlink_lookup_target(const char *name, bool canonicalize, ObjectID *target_id);
+APIE symlink_lookup_target(const char *name, bool canonicalize,
+                           Session *session, ObjectID *target_id);
 
 #endif // REDAPID_FILE_H

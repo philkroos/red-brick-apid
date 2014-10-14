@@ -34,12 +34,49 @@
 typedef uint8_t tfpbool;
 
 //
+// session
+//
+
+typedef struct {
+	PacketHeader header;
+	uint32_t lifetime;
+} ATTRIBUTE_PACKED CreateSessionRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t session_id;
+} ATTRIBUTE_PACKED CreateSessionResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t session_id;
+} ATTRIBUTE_PACKED ExpireSessionRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED ExpireSessionResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t session_id;
+	uint32_t lifetime;
+} ATTRIBUTE_PACKED KeepSessionAliveRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED KeepSessionAliveResponse;
+
+//
 // object
 //
 
 typedef struct {
 	PacketHeader header;
 	uint16_t object_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED ReleaseObjectRequest;
 
 typedef struct {
@@ -55,6 +92,7 @@ typedef struct {
 	PacketHeader header;
 	uint32_t length_to_reserve;
 	char buffer[STRING_MAX_ALLOCATE_BUFFER_LENGTH];
+	uint16_t session_id;
 } ATTRIBUTE_PACKED AllocateStringRequest;
 
 typedef struct {
@@ -116,6 +154,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t length_to_reserve;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED AllocateListRequest;
 
 typedef struct {
@@ -134,6 +173,20 @@ typedef struct {
 	uint8_t error_code;
 	uint16_t length;
 } ATTRIBUTE_PACKED GetListLengthResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t list_id;
+	uint16_t index;
+	uint16_t session_id;
+} ATTRIBUTE_PACKED GetListItemRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t item_object_id;
+	uint8_t type;
+} ATTRIBUTE_PACKED GetListItemResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -157,19 +210,6 @@ typedef struct {
 	uint8_t error_code;
 } ATTRIBUTE_PACKED RemoveFromListResponse;
 
-typedef struct {
-	PacketHeader header;
-	uint16_t list_id;
-	uint16_t index;
-} ATTRIBUTE_PACKED GetListItemRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t item_object_id;
-	uint8_t type;
-} ATTRIBUTE_PACKED GetListItemResponse;
-
 //
 // file
 //
@@ -181,6 +221,7 @@ typedef struct {
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED OpenFileRequest;
 
 typedef struct {
@@ -192,6 +233,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t flags;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED CreatePipeRequest;
 
 typedef struct {
@@ -203,6 +245,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetFileInfoRequest;
 
 typedef struct {
@@ -323,6 +366,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
 	tfpbool canonicalize;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED LookupSymlinkTargetRequest;
 
 typedef struct {
@@ -353,6 +397,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED OpenDirectoryRequest;
 
 typedef struct {
@@ -364,6 +409,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t directory_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetDirectoryNameRequest;
 
 typedef struct {
@@ -375,6 +421,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t directory_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetNextDirectoryEntryRequest;
 
 typedef struct {
@@ -414,6 +461,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProcessesRequest;
 
 typedef struct {
@@ -433,6 +481,7 @@ typedef struct {
 	uint16_t stdin_file_id;
 	uint16_t stdout_file_id;
 	uint16_t stderr_file_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED SpawnProcessRequest;
 
 typedef struct {
@@ -455,6 +504,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProcessCommandRequest;
 
 typedef struct {
@@ -482,6 +532,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProcessStdioRequest;
 
 typedef struct {
@@ -517,6 +568,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetDefinedProgramsRequest;
 
 typedef struct {
@@ -528,6 +580,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t identifier_string_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED DefineProgramRequest;
 
 typedef struct {
@@ -549,6 +602,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramIdentifierRequest;
 
 typedef struct {
@@ -560,6 +614,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramRootDirectoryRequest;
 
 typedef struct {
@@ -584,6 +639,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramCommandRequest;
 
 typedef struct {
@@ -613,6 +669,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionRequest;
 
 typedef struct {
@@ -671,6 +728,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessRequest;
 
 typedef struct {
@@ -683,6 +741,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetLastProgramSchedulerErrorRequest;
 
 typedef struct {
@@ -695,6 +754,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetCustomProgramOptionNamesRequest;
 
 typedef struct {
@@ -719,6 +779,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint16_t name_string_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetCustomProgramOptionValueRequest;
 
 typedef struct {

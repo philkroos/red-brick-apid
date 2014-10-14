@@ -25,7 +25,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <daemonlib/utils.h>
+
 #include "api_error.h"
+#include "session.h"
 
 typedef uint16_t ObjectID;
 
@@ -56,6 +59,7 @@ struct _Object {
 	ObjectType type;
 	ObjectDestroyFunction destroy;
 	int internal_reference_count;
+	Node external_reference_sentinel;
 	int external_reference_count;
 	int lock_count;
 };
@@ -63,17 +67,17 @@ struct _Object {
 const char *object_get_type_name(ObjectType type);
 bool object_is_valid_type(ObjectType type);
 
-APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
-                   ObjectDestroyFunction destroy);
+APIE object_create(Object *object, ObjectType type, Session *session,
+                   uint16_t create_flags, ObjectDestroyFunction destro);
 void object_destroy(Object *object);
 
-APIE object_release(Object *object);
+APIE object_release(Object *object, Session *session);
 
 void object_add_internal_reference(Object *object);
 void object_remove_internal_reference(Object *object);
 
-void object_add_external_reference(Object *object);
-void object_remove_external_reference(Object *object);
+APIE object_add_external_reference(Object *object, Session *session);
+void object_remove_external_reference(Object *object, Session *session);
 
 void object_lock(Object *object);
 void object_unlock(Object *object);

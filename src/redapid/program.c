@@ -192,7 +192,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 	}
 
 	// wrap identifier string
-	error_code = string_wrap(identifier,
+	error_code = string_wrap(identifier, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &identifier_object);
@@ -204,7 +204,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 	phase = 2;
 
 	// wrap root directory string
-	error_code = string_wrap(root_directory,
+	error_code = string_wrap(root_directory, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &root_directory_object);
@@ -249,10 +249,8 @@ APIE program_load(const char *identifier, const char *root_directory,
 
 	phase = 5;
 
-	error_code = object_create(&program->base,
-	                           OBJECT_TYPE_PROGRAM,
-	                           OBJECT_CREATE_FLAG_INTERNAL,
-	                           program_destroy);
+	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM, NULL,
+	                           OBJECT_CREATE_FLAG_INTERNAL, program_destroy);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -290,7 +288,7 @@ cleanup:
 }
 
 // public API
-APIE program_define(ObjectID identifier_id, ObjectID *id) {
+APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *identifier;
@@ -328,7 +326,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 		goto cleanup;
 	}
 
-	error_code = string_wrap(buffer,
+	error_code = string_wrap(buffer, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &root_directory);
@@ -410,6 +408,7 @@ APIE program_define(ObjectID identifier_id, ObjectID *id) {
 
 	error_code = object_create(&program->base,
 	                           OBJECT_TYPE_PROGRAM,
+	                           session,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
 	                           program_destroy);
@@ -486,8 +485,13 @@ APIE program_undefine(Program *program) {
 }
 
 // public API
-APIE program_get_identifier(Program *program, ObjectID *identifier_id) {
-	object_add_external_reference(&program->identifier->base);
+APIE program_get_identifier(Program *program, Session *session,
+                            ObjectID *identifier_id) {
+	APIE error_code = object_add_external_reference(&program->identifier->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*identifier_id = program->identifier->base.id;
 
@@ -495,8 +499,13 @@ APIE program_get_identifier(Program *program, ObjectID *identifier_id) {
 }
 
 // public API
-APIE program_get_root_directory(Program *program, ObjectID *root_directory_id) {
-	object_add_external_reference(&program->root_directory->base);
+APIE program_get_root_directory(Program *program, Session *session,
+                                ObjectID *root_directory_id) {
+	APIE error_code = object_add_external_reference(&program->root_directory->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*root_directory_id = program->root_directory->base.id;
 
@@ -593,17 +602,55 @@ cleanup:
 }
 
 // public API
-APIE program_get_command(Program *program, ObjectID *executable_id,
+APIE program_get_command(Program *program, Session *session, ObjectID *executable_id,
                          ObjectID *arguments_id, ObjectID *environment_id) {
-	object_add_external_reference(&program->config.executable->base);
-	object_add_external_reference(&program->config.arguments->base);
-	object_add_external_reference(&program->config.environment->base);
+	int phase = 0;
+	APIE error_code;
+
+	// executable
+	error_code = object_add_external_reference(&program->config.executable->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// arguments
+	error_code = object_add_external_reference(&program->config.arguments->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// environment
+	error_code = object_add_external_reference(&program->config.environment->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 3;
 
 	*executable_id = program->config.executable->base.id;
 	*arguments_id = program->config.arguments->base.id;
 	*environment_id = program->config.environment->base.id;
 
-	return API_E_SUCCESS;
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
+		object_remove_external_reference(&program->config.arguments->base, session);
+
+	case 1:
+		object_remove_external_reference(&program->config.executable->base, session);
+
+	default:
+		break;
+	}
+
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -820,42 +867,93 @@ cleanup:
 }
 
 // public API
-APIE program_get_stdio_redirection(Program *program,
+APIE program_get_stdio_redirection(Program *program, Session *session,
                                    uint8_t *stdin_redirection,
                                    ObjectID *stdin_file_name_id,
                                    uint8_t *stdout_redirection,
                                    ObjectID *stdout_file_name_id,
                                    uint8_t *stderr_redirection,
                                    ObjectID *stderr_file_name_id) {
-	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		object_add_external_reference(&program->config.stdin_file_name->base);
+	int phase = 0;
+	APIE error_code;
 
+	// stdin
+	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = object_add_external_reference(&program->config.stdin_file_name->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 1;
+
+	// stdout
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = object_add_external_reference(&program->config.stdout_file_name->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 2;
+
+	// stderr
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = object_add_external_reference(&program->config.stderr_file_name->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+	}
+
+	phase = 3;
+
+	// stdin
+	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		*stdin_file_name_id = program->config.stdin_file_name->base.id;
 	} else {
 		*stdin_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		object_add_external_reference(&program->config.stdout_file_name->base);
+	*stdin_redirection = program->config.stdin_redirection;
 
+	// stdout
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		*stdout_file_name_id = program->config.stdout_file_name->base.id;
 	} else {
 		*stdout_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		object_add_external_reference(&program->config.stderr_file_name->base);
+	*stdout_redirection = program->config.stdout_redirection;
 
+	// stderr
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		*stderr_file_name_id = program->config.stderr_file_name->base.id;
 	} else {
 		*stderr_file_name_id = OBJECT_ID_ZERO;
 	}
 
-	*stdin_redirection = program->config.stdin_redirection;
-	*stdout_redirection = program->config.stdout_redirection;
 	*stderr_redirection = program->config.stderr_redirection;
 
-	return API_E_SUCCESS;
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
+		if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			object_remove_external_reference(&program->config.stdout_file_name->base, session);
+		}
+
+	case 1:
+		if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			object_remove_external_reference(&program->config.stdin_file_name->base, session);
+		}
+
+	default:
+		break;
+	}
+
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -945,8 +1043,10 @@ APIE program_get_schedule(Program *program,
 }
 
 // public API
-APIE program_get_last_spawned_process(Program *program, ObjectID *process_id,
-                                      uint64_t *timestamp) {
+APIE program_get_last_spawned_process(Program *program, Session *session,
+                                      ObjectID *process_id, uint64_t *timestamp) {
+	APIE error_code;
+
 	if (program->scheduler.last_spawned_process == NULL) {
 		log_warn("No process was spawned for program object (id: %u, identifier: %s) yet",
 		         program->base.id, program->identifier->buffer);
@@ -954,7 +1054,11 @@ APIE program_get_last_spawned_process(Program *program, ObjectID *process_id,
 		return API_E_DOES_NOT_EXIST;
 	}
 
-	object_add_external_reference(&program->scheduler.last_spawned_process->base);
+	error_code = object_add_external_reference(&program->scheduler.last_spawned_process->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*process_id = program->scheduler.last_spawned_process->base.id;
 	*timestamp = program->scheduler.last_spawn_timestamp;
@@ -963,8 +1067,10 @@ APIE program_get_last_spawned_process(Program *program, ObjectID *process_id,
 }
 
 // public API
-APIE program_get_last_scheduler_error(Program *program, ObjectID *message_id,
-                                      uint64_t *timestamp) {
+APIE program_get_last_scheduler_error(Program *program, Session *session,
+                                      ObjectID *message_id, uint64_t *timestamp) {
+	APIE error_code;
+
 	if (program->scheduler.last_error_internal) {
 		return API_E_INTERNAL_ERROR;
 	}
@@ -976,7 +1082,11 @@ APIE program_get_last_scheduler_error(Program *program, ObjectID *message_id,
 		return API_E_DOES_NOT_EXIST;
 	}
 
-	object_add_external_reference(&program->scheduler.last_error_message->base);
+	error_code = object_add_external_reference(&program->scheduler.last_error_message->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*message_id = program->scheduler.last_error_message->base.id;
 	*timestamp = program->scheduler.last_error_timestamp;
@@ -985,14 +1095,16 @@ APIE program_get_last_scheduler_error(Program *program, ObjectID *message_id,
 }
 
 // public API
-APIE program_get_custom_option_names(Program *program, ObjectID *names_id) {
+APIE program_get_custom_option_names(Program *program, Session *session,
+                                     ObjectID *names_id) {
 	List *names;
 	APIE error_code;
 	int i;
 	ProgramCustomOption *custom_option;
 
 	error_code = list_allocate(program->config.custom_options->count,
-	                           OBJECT_CREATE_FLAG_EXTERNAL, NULL, &names);
+	                           session, OBJECT_CREATE_FLAG_EXTERNAL,
+	                           NULL, &names);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -1003,7 +1115,7 @@ APIE program_get_custom_option_names(Program *program, ObjectID *names_id) {
 		error_code = list_append_to(names, custom_option->name->base.id);
 
 		if (error_code != API_E_SUCCESS) {
-			object_remove_external_reference(&names->base);
+			object_remove_external_reference(&names->base, session);
 
 			return error_code;
 		}
@@ -1089,8 +1201,8 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 }
 
 // public API
-APIE program_get_custom_option_value(Program *program, ObjectID name_id,
-                                     ObjectID *value_id) {
+APIE program_get_custom_option_value(Program *program, Session *session,
+                                     ObjectID name_id, ObjectID *value_id) {
 	String *name;
 	APIE error_code;
 	ProgramCustomOption *custom_option;
@@ -1110,7 +1222,11 @@ APIE program_get_custom_option_value(Program *program, ObjectID name_id,
 		return API_E_DOES_NOT_EXIST;
 	}
 
-	object_add_external_reference(&custom_option->value->base);
+	error_code = object_add_external_reference(&custom_option->value->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
 
 	*value_id = custom_option->value->base.id;
 

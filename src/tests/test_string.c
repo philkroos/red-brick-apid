@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "ip_connection.h"
 #include "brick_red.h"
@@ -30,8 +31,13 @@ int main() {
 		return -1;
 	}
 
+	uint16_t session_id;
+	if (create_session(&red, 5, &session_id) < 0) {
+		return -1;
+	}
+
 	uint16_t sid;
-	rc = red_allocate_string(&red, 20, "", &ec, &sid);
+	rc = red_allocate_string(&red, 20, "", session_id, &ec, &sid);
 	if (rc < 0) {
 		printf("red_acquire_string -> rc %d\n", rc);
 	}
@@ -77,7 +83,23 @@ int main() {
 	buffer[63] = '\0';
 	printf("red_get_string_chunk -> buffer '%s'\n", buffer);
 
-	release_object(&red, sid, "string");
+#if 1
+	release_object(&red, sid, session_id, "string");
+	expire_session(&red, session_id);
+#else
+	int i;
+	for (i = 0; i < 5; ++i) {
+		rc = red_keep_session_alive(&red, session_id, 5, &ec);
+		if (rc < 0) {
+			printf("red_keep_session_alive -> rc %d\n", rc);
+		}
+		if (ec != 0) {
+			printf("red_keep_session_alive -> ec %u\n", ec);
+		}
+
+		sleep(2);
+	}
+#endif
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);

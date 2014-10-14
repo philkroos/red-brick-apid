@@ -171,7 +171,7 @@ static APIE program_config_get_string(ProgramConfig *program_config,
 		return API_E_SUCCESS;
 	}
 
-	error_code = string_wrap(string,
+	error_code = string_wrap(string, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, value);
@@ -447,7 +447,7 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 	}
 
 	// create list object
-	error_code = list_allocate(length,
+	error_code = list_allocate(length, NULL,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_LOCKED,
 	                           NULL, value);
@@ -505,7 +505,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	Array *custom_options;
 
 	// create executable string object
-	error_code = string_wrap("",
+	error_code = string_wrap("", NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
 	                         NULL, &executable);
@@ -517,7 +517,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	phase = 1;
 
 	// create arguments list object
-	error_code = list_allocate(0,
+	error_code = list_allocate(0, NULL,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_LOCKED,
 	                           NULL, &arguments);
@@ -529,7 +529,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	phase = 2;
 
 	// create environment list object
-	error_code = list_allocate(0,
+	error_code = list_allocate(0, NULL,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_LOCKED,
 	                           NULL, &environment);
@@ -998,7 +998,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 				goto cleanup;
 			}
 
-			error_code = string_wrap(custom_name,
+			error_code = string_wrap(custom_name, NULL,
 			                         OBJECT_CREATE_FLAG_INTERNAL |
 			                         OBJECT_CREATE_FLAG_LOCKED,
 			                         NULL, &custom_option->name);
@@ -1012,7 +1012,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 				goto cleanup;
 			}
 
-			error_code = string_wrap(custom_value,
+			error_code = string_wrap(custom_value, NULL,
 			                         OBJECT_CREATE_FLAG_INTERNAL |
 			                         OBJECT_CREATE_FLAG_LOCKED,
 			                         NULL, &custom_option->value);

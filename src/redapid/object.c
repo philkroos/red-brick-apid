@@ -39,6 +39,7 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
 
 #include <daemonlib/log.h>
 
@@ -47,29 +48,6 @@
 #include "inventory.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_OBJECT
-
-static void object_add_reference(Object *object, int *reference_count,
-                                 const char *reference_count_name) {
-	log_debug("Adding an %s %s object (id: %u) reference (count: %d +1)",
-	          reference_count_name, object_get_type_name(object->type),
-	          object->id, *reference_count);
-
-	++(*reference_count);
-}
-
-static void object_remove_reference(Object *object, int *reference_count,
-                                    const char *reference_count_name) {
-	log_debug("Removing an %s %s object (id: %u) reference (count: %d -1)",
-	          reference_count_name, object_get_type_name(object->type),
-	          object->id, *reference_count);
-
-	--(*reference_count);
-
-	// destroy object if last reference was removed
-	if (object->internal_reference_count == 0 && object->external_reference_count == 0) {
-		inventory_remove_object(object); // calls object_destroy
-	}
-}
 
 const char *object_get_type_name(ObjectType type) {
 	switch (type) {
@@ -99,17 +77,29 @@ bool object_is_valid_type(ObjectType type) {
 	}
 }
 
-APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
-                   ObjectDestroyFunction destroy) {
+APIE object_create(Object *object, ObjectType type, Session *session,
+                   uint16_t create_flags, ObjectDestroyFunction destroy) {
+	APIE error_code;
+
+	object->id = OBJECT_ID_ZERO;
 	object->type = type;
 	object->destroy = destroy;
 	object->internal_reference_count = 0;
 	object->external_reference_count = 0;
 	object->lock_count = 0;
 
+	node_reset(&object->external_reference_sentinel);
+
 	// OBJECT_CREATE_FLAG_INTERNAL or OBJECT_CREATE_FLAG_EXTERNAL has to be used
 	if ((create_flags & (OBJECT_CREATE_FLAG_INTERNAL | OBJECT_CREATE_FLAG_EXTERNAL)) == 0) {
 		log_error("Invalid object create flags 0x%04X", create_flags);
+
+		return API_E_INTERNAL_ERROR;
+	}
+
+	// session has to be valied if OBJECT_CREATE_FLAG_EXTERNAL is used
+	if ((create_flags & OBJECT_CREATE_FLAG_EXTERNAL) != 0 && session == NULL) {
+		log_error("Missing session for external reference");
 
 		return API_E_INTERNAL_ERROR;
 	}
@@ -127,7 +117,11 @@ APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
 	}
 
 	if ((create_flags & OBJECT_CREATE_FLAG_EXTERNAL) != 0) {
-		++object->external_reference_count;
+		error_code = object_add_external_reference(object, session);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
 	}
 
 	if ((create_flags & OBJECT_CREATE_FLAG_LOCKED) != 0) {
@@ -138,10 +132,26 @@ APIE object_create(Object *object, ObjectType type, uint16_t create_flags,
 }
 
 void object_destroy(Object *object) {
+	ExternalReference *external_reference;
+	Session *session;
+
 	if (object->internal_reference_count != 0 || object->external_reference_count != 0) {
 		log_warn("Destroying %s object (id: %u) while there are still references (internal: %d, external: %d) to it",
 		         object_get_type_name(object->type), object->id,
 		         object->internal_reference_count, object->external_reference_count);
+	}
+
+	while (object->external_reference_sentinel.next != &object->external_reference_sentinel) {
+		external_reference = containerof(object->external_reference_sentinel.next, ExternalReference, object_node);
+		session = external_reference->session;
+
+		node_remove(&external_reference->object_node);
+		node_remove(&external_reference->session_node);
+
+		object->external_reference_count -= external_reference->count;
+		session->external_reference_count -= external_reference->count;
+
+		free(external_reference);
 	}
 
 	if (object->lock_count > 0) {
@@ -155,7 +165,7 @@ void object_destroy(Object *object) {
 }
 
 // public API
-APIE object_release(Object *object) {
+APIE object_release(Object *object, Session *session) {
 	if (object->external_reference_count == 0) {
 		log_warn("Cannot remove external %s object (id: %u) reference, external reference count is already zero",
 		         object_get_type_name(object->type), object->id);
@@ -163,13 +173,17 @@ APIE object_release(Object *object) {
 		return API_E_INVALID_OPERATION;
 	}
 
-	object_remove_external_reference(object);
+	object_remove_external_reference(object, session);
 
 	return API_E_SUCCESS;
 }
 
 void object_add_internal_reference(Object *object) {
-	object_add_reference(object, &object->internal_reference_count, "internal");
+	log_debug("Adding an internal %s object (id: %u) reference (count: %d +1)",
+	          object_get_type_name(object->type), object->id,
+	          object->internal_reference_count);
+
+	++object->internal_reference_count;
 }
 
 void object_remove_internal_reference(Object *object) {
@@ -180,14 +194,86 @@ void object_remove_internal_reference(Object *object) {
 		return;
 	}
 
-	object_remove_reference(object, &object->internal_reference_count, "internal");
+	log_debug("Removing an internal %s object (id: %u) reference (count: %d -1)",
+	          object_get_type_name(object->type), object->id,
+	          object->internal_reference_count);
+
+	--object->internal_reference_count;
+
+	// destroy object if last reference was removed
+	if (object->internal_reference_count == 0 && object->external_reference_count == 0) {
+		inventory_remove_object(object); // calls object_destroy
+	}
 }
 
-void object_add_external_reference(Object *object) {
-	object_add_reference(object, &object->external_reference_count, "external");
+APIE object_add_external_reference(Object *object, Session *session) {
+	Node *external_reference_object_node = object->external_reference_sentinel.next;
+	ExternalReference *external_reference;
+	APIE error_code;
+
+	// check if there is already an external reference
+	while (external_reference_object_node != &object->external_reference_sentinel) {
+		external_reference = containerof(external_reference_object_node, ExternalReference, object_node);
+
+		if (external_reference->session == session) {
+			if (object->id != OBJECT_ID_ZERO) {
+				// only log a message if this is not the initial call from
+				// object_create were the object is not fully initialized yet
+				log_debug("Adding an external %s object (id: %u) reference (count: %d +1) to session (id: %u)",
+				          object_get_type_name(object->type), object->id,
+				          object->external_reference_count, session->id);
+			}
+
+			++external_reference->count;
+			++object->external_reference_count;
+			++session->external_reference_count;
+
+			return API_E_SUCCESS;
+		}
+
+		external_reference_object_node = external_reference_object_node->next;
+	}
+
+	// create new external reference
+	external_reference = calloc(1, sizeof(ExternalReference));
+
+	if (external_reference == NULL) {
+		error_code = API_E_NO_FREE_MEMORY;
+
+		log_error("Could not allocate external reference: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		return error_code;
+	}
+
+	if (object->id != OBJECT_ID_ZERO) {
+		// only log a message if this is not the initial call from
+		// object_create were the object is not fully initialized yet
+		log_debug("Adding an external %s object (id: %u) reference (count: %d +1) to session (id: %u)",
+		          object_get_type_name(object->type), object->id,
+		          object->external_reference_count, session->id);
+	}
+
+	node_reset(&external_reference->object_node);
+	node_insert_before(&object->external_reference_sentinel, &external_reference->object_node);
+
+	node_reset(&external_reference->session_node);
+	node_insert_before(&session->external_reference_sentinel, &external_reference->session_node);
+
+	external_reference->object = object;
+	external_reference->session = session;
+	external_reference->count = 1;
+
+	++object->external_reference_count;
+	++session->external_reference_count;
+
+	return API_E_SUCCESS;
 }
 
-void object_remove_external_reference(Object *object) {
+void object_remove_external_reference(Object *object, Session *session) {
+	Node *external_reference_object_node;
+	ExternalReference *external_reference;
+
 	if (object->external_reference_count == 0) {
 		log_warn("Cannot remove external %s object (id: %u) reference, external reference count is already zero",
 		         object_get_type_name(object->type), object->id);
@@ -195,7 +281,40 @@ void object_remove_external_reference(Object *object) {
 		return;
 	}
 
-	object_remove_reference(object, &object->external_reference_count, "external");
+	external_reference_object_node = object->external_reference_sentinel.next;
+
+	while (external_reference_object_node != &object->external_reference_sentinel) {
+		external_reference = containerof(external_reference_object_node, ExternalReference, object_node);
+
+		if (external_reference->session == session) {
+			log_debug("Removing an internal %s object (id: %u) reference (count: %d -1) from session (id: %u)",
+			          object_get_type_name(object->type), object->id,
+			          object->external_reference_count, session->id);
+
+			--external_reference->count;
+			--object->external_reference_count;
+			--session->external_reference_count;
+
+			if (external_reference->count == 0) {
+				node_remove(&external_reference->object_node);
+				node_remove(&external_reference->session_node);
+
+				free(external_reference);
+			}
+
+			// destroy object if last reference was removed
+			if (object->internal_reference_count == 0 && object->external_reference_count == 0) {
+				inventory_remove_object(object); // calls object_destroy
+			}
+
+			return;
+		}
+
+		external_reference_object_node = external_reference_object_node->next;
+	}
+
+	log_error("Could not find external %s object (id: %u) reference in session (id: %u)",
+	          object_get_type_name(object->type), object->id, session->id);
 }
 
 void object_lock(Object *object) {
