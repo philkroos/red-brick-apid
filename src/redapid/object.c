@@ -59,14 +59,6 @@ static void object_add_reference(Object *object, int *reference_count,
 
 static void object_remove_reference(Object *object, int *reference_count,
                                     const char *reference_count_name) {
-	if (*reference_count == 0) {
-		log_warn("Cannot remove %s %s object (id: %u) reference, %s reference count is already zero",
-		         reference_count_name, object_get_type_name(object->type),
-		         object->id, reference_count_name);
-
-		return;
-	}
-
 	log_debug("Removing an %s %s object (id: %u) reference (count: %d -1)",
 	          reference_count_name, object_get_type_name(object->type),
 	          object->id, *reference_count);
@@ -181,6 +173,13 @@ void object_add_internal_reference(Object *object) {
 }
 
 void object_remove_internal_reference(Object *object) {
+	if (object->internal_reference_count == 0) {
+		log_error("Cannot remove internal %s object (id: %u) reference, internal reference count is already zero",
+		          object_get_type_name(object->type), object->id);
+
+		return;
+	}
+
 	object_remove_reference(object, &object->internal_reference_count, "internal");
 }
 
@@ -189,6 +188,13 @@ void object_add_external_reference(Object *object) {
 }
 
 void object_remove_external_reference(Object *object) {
+	if (object->external_reference_count == 0) {
+		log_warn("Cannot remove external %s object (id: %u) reference, external reference count is already zero",
+		         object_get_type_name(object->type), object->id);
+
+		return;
+	}
+
 	object_remove_reference(object, &object->external_reference_count, "external");
 }
 
