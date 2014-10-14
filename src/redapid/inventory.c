@@ -55,7 +55,7 @@
 
 static char _programs_directory[1024]; // <home>/programs
 static ObjectID _next_id = 1; // don't use object ID zero
-static Array _objects[MAX_OBJECT_TYPES];
+static Array _objects[OBJECT_TYPE_PROGRAM - OBJECT_TYPE_STRING + 1];
 
 static void inventory_destroy_object(void *item) {
 	Object *object = *(Object **)item;

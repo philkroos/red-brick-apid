@@ -47,8 +47,6 @@ typedef enum { // bitmask
 	OBJECT_CREATE_FLAG_LOCKED   = 0x0004, // can only be used in combination with OBJECT_CREATE_FLAG_INTERNAL
 } ObjectCreateFlag;
 
-#define MAX_OBJECT_TYPES 7
-
 typedef struct _Object Object;
 
 typedef void (*ObjectDestroyFunction)(Object *object);
