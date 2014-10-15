@@ -521,7 +521,9 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 		goto cleanup;
 	}
 
-	object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
+	if (program_scheduler->last_spawned_process != NULL) {
+		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
+	}
 
 	program_scheduler->reboot = false;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION;
