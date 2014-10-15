@@ -204,6 +204,9 @@ int inventory_init(void) {
 void inventory_exit(void) {
 	log_debug("Shutting down inventory subsystem");
 
+	// destroy all sessions to ensure that all external references are released
+	// before starting to destroy the remaining objects. then all remaining
+	// relations between objects that constrains the destruction order are known
 	array_destroy(&_sessions, inventory_destroy_session);
 
 	// object types have to be destroyed in a specific order. if objects of
