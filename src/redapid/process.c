@@ -474,7 +474,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	if (*working_directory->buffer != '/') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Cannot use relative working directory '%s'",
+		log_warn("Cannot use working directory with relative name '%s'",
 		         working_directory->buffer);
 
 		goto cleanup;

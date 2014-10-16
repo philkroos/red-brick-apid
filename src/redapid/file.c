@@ -412,8 +412,13 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not open file '%s' as %u:%u: %s (%d)",
-			         name, uid, gid, get_errno_name(errno), errno);
+			if (errno == ENOENT) {
+				log_debug("Could not open non-existing file '%s' as %u:%u",
+				          name, uid, gid);
+			} else {
+				log_warn("Could not open file '%s' as %u:%u: %s (%d)",
+				         name, uid, gid, get_errno_name(errno), errno);
+			}
 
 			goto child_cleanup;
 		}
@@ -687,7 +692,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	if (*name->buffer != '/') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Cannot open/create relative file '%s'", name->buffer);
+		log_warn("Cannot open/create file with relative name '%s'", name->buffer);
 
 		goto cleanup;
 	}
@@ -699,8 +704,13 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		if (fd < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not open file '%s' as %u:%u: %s (%d)",
-			         name->buffer, uid, gid, get_errno_name(errno), errno);
+			if (errno == ENOENT) {
+				log_debug("Could not open non-existing file '%s' as %u:%u",
+				          name->buffer, uid, gid);
+			} else {
+				log_warn("Could not open file '%s' as %u:%u: %s (%d)",
+				         name->buffer, uid, gid, get_errno_name(errno), errno);
+			}
 
 			goto cleanup;
 		}
@@ -1340,7 +1350,7 @@ APIE file_lookup_info(const char *name, bool follow_symlink,
 	}
 
 	if (*name != '/') {
-		log_warn("Cannot get information for relative file '%s'", name);
+		log_warn("Cannot get information for file with relative name '%s'", name);
 
 		return API_E_INVALID_PARAMETER;
 	}

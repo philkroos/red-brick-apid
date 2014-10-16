@@ -146,7 +146,7 @@ APIE directory_open(ObjectID name_id, Session *session, ObjectID *id) {
 	if (*name->buffer != '/') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Cannot open relative directory '%s'", name->buffer);
+		log_warn("Cannot open directory with relative name '%s'", name->buffer);
 
 		goto cleanup;
 	}
@@ -329,7 +329,7 @@ APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,
 	}
 
 	if (*name != '/') {
-		log_warn("Cannot create relative directory '%s'", name);
+		log_warn("Cannot create directory with relative name '%s'", name);
 
 		return API_E_INVALID_PARAMETER;
 	}
