@@ -1319,7 +1319,7 @@ IOHandle file_get_write_handle(File *file) {
 }
 
 APIE file_get_locked(ObjectID id, File **file) {
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_FILE, id, (Object **)file);
+	APIE error_code = inventory_get_object(OBJECT_TYPE_FILE, id, (Object **)file);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

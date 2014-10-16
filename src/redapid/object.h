@@ -37,6 +37,7 @@ typedef uint16_t ObjectID;
 #define OBJECT_ID_ZERO 0
 
 typedef enum {
+	OBJECT_TYPE_ANY = -1,
 	OBJECT_TYPE_STRING = 0,
 	OBJECT_TYPE_LIST,
 	OBJECT_TYPE_FILE,

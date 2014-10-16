@@ -39,8 +39,7 @@ APIE inventory_get_session(SessionID id, Session **session);
 
 APIE inventory_add_object(Object *object);
 void inventory_remove_object(Object *object);
-APIE inventory_get_object(ObjectID id, Object **object);
-APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object);
+APIE inventory_get_object(ObjectType type, ObjectID id, Object **object);
 
 APIE inventory_get_processes(Session *session, ObjectID *processes_id);
 APIE inventory_get_defined_programs(Session *session, ObjectID *programs_id);

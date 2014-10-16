@@ -458,14 +458,24 @@ void inventory_remove_object(Object *object) {
 	          object_get_type_name(object->type), object->id);
 }
 
-APIE inventory_get_object(ObjectID id, Object **object) {
-	int type;
+APIE inventory_get_object(ObjectType type, ObjectID id, Object **object) {
+	ObjectType start_type;
+	ObjectType end_type;
+	ObjectType t;
 	int i;
 	Object *candidate;
 
-	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
-		for (i = 0; i < _objects[type].count; ++i) {
-			candidate = *(Object **)array_get(&_objects[type], i);
+	if (type == OBJECT_TYPE_ANY) {
+		start_type = OBJECT_TYPE_STRING;
+		end_type = OBJECT_TYPE_PROGRAM;
+	} else {
+		start_type = type;
+		end_type = type;
+	}
+
+	for (t = start_type; t <= end_type; ++t) {
+		for (i = 0; i < _objects[t].count; ++i) {
+			candidate = *(Object **)array_get(&_objects[t], i);
 
 			if (candidate->id == id) {
 				*object = candidate;
@@ -475,26 +485,11 @@ APIE inventory_get_object(ObjectID id, Object **object) {
 		}
 	}
 
-	log_warn("Could not find object (id: %u)", id);
-
-	return API_E_UNKNOWN_OBJECT_ID;
-}
-
-APIE inventory_get_typed_object(ObjectType type, ObjectID id, Object **object) {
-	int i;
-	Object *candidate;
-
-	for (i = 0; i < _objects[type].count; ++i) {
-		candidate = *(Object **)array_get(&_objects[type], i);
-
-		if (candidate->id == id) {
-			*object = candidate;
-
-			return API_E_SUCCESS;
-		}
+	if (type == OBJECT_TYPE_ANY) {
+		log_warn("Could not find object (id: %u)", id);
+	} else {
+		log_warn("Could not find %s object (id: %u)", object_get_type_name(type), id);
 	}
-
-	log_warn("Could not find %s object (id: %u)", object_get_type_name(type), id);
 
 	return API_E_UNKNOWN_OBJECT_ID;
 }

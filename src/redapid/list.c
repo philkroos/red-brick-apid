@@ -171,7 +171,7 @@ APIE list_append_to(List *list, ObjectID item_id) {
 		return API_E_INVALID_OPERATION;
 	}
 
-	error_code = inventory_get_object(item_id, &item);
+	error_code = inventory_get_object(OBJECT_TYPE_ANY, item_id, &item);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -238,7 +238,7 @@ APIE list_ensure_item_type(List *list, ObjectType type) {
 }
 
 APIE list_get_locked(ObjectID id, ObjectType item_type, List **list) {
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_LIST, id, (Object **)list);
+	APIE error_code = inventory_get_object(OBJECT_TYPE_LIST, id, (Object **)list);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

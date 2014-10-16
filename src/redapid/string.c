@@ -330,11 +330,11 @@ APIE string_get_chunk(String *string, uint32_t offset, char *buffer) {
 }
 
 APIE string_get(ObjectID id, String **string) {
-	return inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+	return inventory_get_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
 APIE string_get_locked(ObjectID id, String **string) {
-	APIE error_code = inventory_get_typed_object(OBJECT_TYPE_STRING, id, (Object **)string);
+	APIE error_code = inventory_get_object(OBJECT_TYPE_STRING, id, (Object **)string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
