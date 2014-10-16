@@ -49,6 +49,7 @@ endif
 endif
 
 SOURCES := ../daemonlib/array.c \
+           ../daemonlib/base58.c \
            ../daemonlib/config.c \
            ../daemonlib/conf_file.c \
            ../daemonlib/daemon.c \
@@ -57,6 +58,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/io.c \
            ../daemonlib/log.c \
            ../daemonlib/log_posix.c \
+           ../daemonlib/node.c \
            ../daemonlib/packet.c \
            ../daemonlib/pid_file.c \
            ../daemonlib/pipe_posix.c \
