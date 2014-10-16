@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <daemonlib/packet.h>
 #include <daemonlib/timer.h>
 #include <daemonlib/utils.h>
 
@@ -58,6 +59,7 @@ APIE session_create(uint32_t lifetime, SessionID *id);
 void session_destroy(Session *session);
 
 APIE session_expire(Session *session);
+PacketE session_expire_unchecked(Session *session);
 APIE session_keep_alive(Session *session, uint32_t lifetime);
 
 #endif // REDAPID_SESSION_H

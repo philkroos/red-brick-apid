@@ -181,6 +181,11 @@ APIE session_expire(Session *session) {
 }
 
 // public API
+PacketE session_expire_unchecked(Session *session) {
+	return session_expire(session) == API_E_SUCCESS ? PACKET_E_SUCCESS : PACKET_E_UNKNOWN_ERROR;
+}
+
+// public API
 APIE session_keep_alive(Session *session, uint32_t lifetime) {
 	APIE error_code;
 

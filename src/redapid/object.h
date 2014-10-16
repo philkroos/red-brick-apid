@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <daemonlib/packet.h>
 #include <daemonlib/utils.h>
 
 #include "api_error.h"
@@ -72,6 +73,7 @@ APIE object_create(Object *object, ObjectType type, Session *session,
 void object_destroy(Object *object);
 
 APIE object_release(Object *object, Session *session);
+PacketE object_release_unchecked(Object *object, Session *session);
 
 void object_add_internal_reference(Object *object);
 void object_remove_internal_reference(Object *object);

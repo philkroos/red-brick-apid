@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-14.      *
+ * This file was automatically generated on 2014-10-16.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -71,6 +71,11 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t session_id;
+} ATTRIBUTE_PACKED ExpireSessionUnchecked_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t session_id;
 	uint32_t lifetime;
 } ATTRIBUTE_PACKED KeepSessionAlive_;
 
@@ -89,6 +94,12 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseObjectResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t object_id;
+	uint16_t session_id;
+} ATTRIBUTE_PACKED ReleaseObjectUnchecked_;
 
 typedef struct {
 	PacketHeader header;
@@ -894,8 +905,10 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 
 	device_p->response_expected[RED_FUNCTION_CREATE_SESSION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_EXPIRE_SESSION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_EXPIRE_SESSION_UNCHECKED] = DEVICE_RESPONSE_EXPECTED_FALSE;
 	device_p->response_expected[RED_FUNCTION_KEEP_SESSION_ALIVE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_RELEASE_OBJECT] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_RELEASE_OBJECT_UNCHECKED] = DEVICE_RESPONSE_EXPECTED_FALSE;
 	device_p->response_expected[RED_FUNCTION_ALLOCATE_STRING] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_TRUNCATE_STRING] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_STRING_LENGTH] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -1039,6 +1052,25 @@ int red_expire_session(RED *red, uint16_t session_id, uint8_t *ret_error_code) {
 	return ret;
 }
 
+int red_expire_session_unchecked(RED *red, uint16_t session_id) {
+	DevicePrivate *device_p = red->p;
+	ExpireSessionUnchecked_ request;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_EXPIRE_SESSION_UNCHECKED, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.session_id = leconvert_uint16_to(session_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, NULL);
+
+
+	return ret;
+}
+
 int red_keep_session_alive(RED *red, uint16_t session_id, uint32_t lifetime, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	KeepSessionAlive_ request;
@@ -1088,6 +1120,26 @@ int red_release_object(RED *red, uint16_t object_id, uint16_t session_id, uint8_
 	}
 	*ret_error_code = response.error_code;
 
+
+
+	return ret;
+}
+
+int red_release_object_unchecked(RED *red, uint16_t object_id, uint16_t session_id) {
+	DevicePrivate *device_p = red->p;
+	ReleaseObjectUnchecked_ request;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_RELEASE_OBJECT_UNCHECKED, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.object_id = leconvert_uint16_to(object_id);
+	request.session_id = leconvert_uint16_to(session_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, NULL);
 
 
 	return ret;

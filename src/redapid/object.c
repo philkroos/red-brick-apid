@@ -178,6 +178,11 @@ APIE object_release(Object *object, Session *session) {
 	return API_E_SUCCESS;
 }
 
+// public API
+PacketE object_release_unchecked(Object *object, Session *session) {
+	return object_release(object, session) == API_E_SUCCESS ? PACKET_E_SUCCESS : PACKET_E_UNKNOWN_ERROR;
+}
+
 void object_add_internal_reference(Object *object) {
 	log_debug("Adding an internal %s object (id: %u) reference (count: %d +1)",
 	          object_get_type_name(object->type), object->id,

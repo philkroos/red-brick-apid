@@ -45,9 +45,11 @@
 typedef enum {
 	FUNCTION_CREATE_SESSION = 1,
 	FUNCTION_EXPIRE_SESSION,
+	FUNCTION_EXPIRE_SESSION_UNCHECKED,
 	FUNCTION_KEEP_SESSION_ALIVE,
 
 	FUNCTION_RELEASE_OBJECT,
+	FUNCTION_RELEASE_OBJECT_UNCHECKED,
 
 	FUNCTION_ALLOCATE_STRING,
 	FUNCTION_TRUNCATE_STRING,
@@ -271,12 +273,34 @@ static PacketE api_get_packet_error_code(APIE error_code) {
 		network_dispatch_response((Packet *)&response); \
 	}
 
+#define CALL_SESSION_PROCEDURE(packet_prefix, function_suffix, error_handler, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		Session *session; \
+		APIE api_error_code = inventory_get_session(request->session_id, &session); \
+		PacketE packet_error_code; \
+		if (api_error_code != API_E_SUCCESS) { \
+			APIE error_code = api_error_code; \
+			(void)error_code; \
+			error_handler \
+			packet_error_code = api_get_packet_error_code(api_error_code); \
+		} else { \
+			PacketE error_code; \
+			body \
+			packet_error_code = error_code; \
+		} \
+		api_send_response_if_expected((Packet *)request, packet_error_code); \
+	}
+
 CALL_FUNCTION(CreateSession, create_session, {
 	response.error_code = session_create(request->lifetime, &response.session_id);
 })
 
 CALL_SESSION_FUNCTION(ExpireSession, expire_session, {
 	response.error_code = session_expire(session);
+})
+
+CALL_SESSION_PROCEDURE(ExpireSessionUnchecked, expire_session_unchecked, {}, {
+	error_code = session_expire_unchecked(session);
 })
 
 CALL_SESSION_FUNCTION(KeepSessionAlive, keep_session_alive, {
@@ -303,10 +327,42 @@ CALL_SESSION_FUNCTION(KeepSessionAlive, keep_session_alive, {
 		network_dispatch_response((Packet *)&response); \
 	}
 
+#define CALL_OBJECT_PROCEDURE_WITH_SESSION(packet_prefix, function_suffix, error_handler, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		Object *object; \
+		APIE api_error_code = inventory_get_object(request->object_id, &object); \
+		PacketE packet_error_code; \
+		Session *session; \
+		if (api_error_code != API_E_SUCCESS) { \
+			APIE error_code = api_error_code; \
+			(void)error_code; \
+			error_handler \
+			packet_error_code = api_get_packet_error_code(api_error_code); \
+		} else { \
+			api_error_code = inventory_get_session(request->session_id, &session); \
+			if (api_error_code != API_E_SUCCESS) { \
+				APIE error_code = api_error_code; \
+				(void)error_code; \
+				error_handler \
+				packet_error_code = api_get_packet_error_code(api_error_code); \
+			} else { \
+				PacketE error_code; \
+				body \
+				packet_error_code = error_code; \
+			} \
+		} \
+		api_send_response_if_expected((Packet *)request, packet_error_code); \
+	}
+
 CALL_OBJECT_FUNCTION_WITH_SESSION(ReleaseObject, release_object, {
 	response.error_code = object_release(object, session);
 })
 
+CALL_OBJECT_PROCEDURE_WITH_SESSION(ReleaseObjectUnchecked, release_object_unchecked, {}, {
+	error_code = object_release_unchecked(object, session);
+})
+
+#undef CALL_OBJECT_PROCEDURE_WITH_SESSION
 #undef CALL_OBJECT_FUNCTION_WITH_SESSION
 
 //
@@ -845,10 +901,12 @@ void api_handle_request(Packet *request) {
 	// session
 	DISPATCH_FUNCTION(CREATE_SESSION,                   CreateSession,                create_session)
 	DISPATCH_FUNCTION(EXPIRE_SESSION,                   ExpireSession,                expire_session)
+	DISPATCH_FUNCTION(EXPIRE_SESSION_UNCHECKED,         ExpireSessionUnchecked,       expire_session_unchecked)
 	DISPATCH_FUNCTION(KEEP_SESSION_ALIVE,               KeepSessionAlive,             keep_session_alive)
 
 	// object
 	DISPATCH_FUNCTION(RELEASE_OBJECT,                   ReleaseObject,                release_object)
+	DISPATCH_FUNCTION(RELEASE_OBJECT_UNCHECKED,         ReleaseObjectUnchecked,       release_object_unchecked)
 
 	// string
 	DISPATCH_FUNCTION(ALLOCATE_STRING,                  AllocateString,               allocate_string)
@@ -933,10 +991,12 @@ const char *api_get_function_name(int function_id) {
 	// string
 	case FUNCTION_CREATE_SESSION:                   return "create-session";
 	case FUNCTION_EXPIRE_SESSION:                   return "expire-session";
+	case FUNCTION_EXPIRE_SESSION_UNCHECKED:         return "expire-session-unchecked";
 	case FUNCTION_KEEP_SESSION_ALIVE:               return "keep-session-alive";
 
 	// object
 	case FUNCTION_RELEASE_OBJECT:                   return "release-object";
+	case FUNCTION_RELEASE_OBJECT_UNCHECKED:         return "release-object-unchecked";
 
 	// string
 	case FUNCTION_ALLOCATE_STRING:                  return "allocate-string";

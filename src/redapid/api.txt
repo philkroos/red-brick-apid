@@ -41,9 +41,10 @@ enum api_e {
  * session
  */
 
-+ create_session     (uint32_t lifetime)                      -> uint8_t error_code, uint16_t session_id
-+ expire_session     (uint16_t session_id)                    -> uint8_t error_code
-+ keep_session_alive (uint16_t session_id, uint32_t lifetime) -> uint8_t error_code
++ create_session           (uint32_t lifetime)                      -> uint8_t error_code, uint16_t session_id
++ expire_session           (uint16_t session_id)                    -> uint8_t error_code
++ expire_session_unchecked (uint16_t session_id)                    // no response
++ keep_session_alive       (uint16_t session_id, uint32_t lifetime) -> uint8_t error_code
 
 
 /*
@@ -59,7 +60,8 @@ enum object_type {
 	OBJECT_TYPE_PROGRAM
 }
 
-+ release_object (uint16_t object_id, uint16_t session_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
++ release_object           (uint16_t object_id, uint16_t session_id) -> uint8_t error_code // decreases object reference count by one, frees it if reference count gets zero
++ release_object_unchecked (uint16_t object_id, uint16_t session_id) // no response
 
 
 /*

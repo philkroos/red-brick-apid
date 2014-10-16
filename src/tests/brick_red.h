@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-14.      *
+ * This file was automatically generated on 2014-10-16.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -41,272 +41,282 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KEEP_SESSION_ALIVE 3
+#define RED_FUNCTION_EXPIRE_SESSION_UNCHECKED 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_RELEASE_OBJECT 4
+#define RED_FUNCTION_KEEP_SESSION_ALIVE 4
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_STRING 5
+#define RED_FUNCTION_RELEASE_OBJECT 5
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_TRUNCATE_STRING 6
+#define RED_FUNCTION_RELEASE_OBJECT_UNCHECKED 6
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_LENGTH 7
+#define RED_FUNCTION_ALLOCATE_STRING 7
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_STRING_CHUNK 8
+#define RED_FUNCTION_TRUNCATE_STRING 8
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_STRING_CHUNK 9
+#define RED_FUNCTION_GET_STRING_LENGTH 9
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ALLOCATE_LIST 10
+#define RED_FUNCTION_SET_STRING_CHUNK 10
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_LENGTH 11
+#define RED_FUNCTION_GET_STRING_CHUNK 11
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LIST_ITEM 12
+#define RED_FUNCTION_ALLOCATE_LIST 12
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_APPEND_TO_LIST 13
+#define RED_FUNCTION_GET_LIST_LENGTH 13
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_FROM_LIST 14
+#define RED_FUNCTION_GET_LIST_ITEM 14
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_FILE 15
+#define RED_FUNCTION_APPEND_TO_LIST 15
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_PIPE 16
+#define RED_FUNCTION_REMOVE_FROM_LIST 16
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_INFO 17
+#define RED_FUNCTION_OPEN_FILE 17
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE 18
+#define RED_FUNCTION_CREATE_PIPE 18
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_READ_FILE_ASYNC 19
+#define RED_FUNCTION_GET_FILE_INFO 19
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 20
+#define RED_FUNCTION_READ_FILE 20
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE 21
+#define RED_FUNCTION_READ_FILE_ASYNC 21
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_UNCHECKED 22
+#define RED_FUNCTION_ABORT_ASYNC_FILE_READ 22
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_WRITE_FILE_ASYNC 23
+#define RED_FUNCTION_WRITE_FILE 23
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_FILE_POSITION 24
+#define RED_FUNCTION_WRITE_FILE_UNCHECKED 24
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_FILE_POSITION 25
+#define RED_FUNCTION_WRITE_FILE_ASYNC 25
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_FILE_INFO 28
+#define RED_FUNCTION_SET_FILE_POSITION 26
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 29
+#define RED_FUNCTION_GET_FILE_POSITION 27
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 30
+#define RED_FUNCTION_LOOKUP_FILE_INFO 30
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 31
+#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 32
+#define RED_FUNCTION_OPEN_DIRECTORY 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 33
+#define RED_FUNCTION_GET_DIRECTORY_NAME 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_DIRECTORY 34
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESSES 35
+#define RED_FUNCTION_REWIND_DIRECTORY 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 36
+#define RED_FUNCTION_CREATE_DIRECTORY 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 37
+#define RED_FUNCTION_GET_PROCESSES 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 38
+#define RED_FUNCTION_SPAWN_PROCESS 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_IDENTITY 39
+#define RED_FUNCTION_KILL_PROCESS 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIO 40
+#define RED_FUNCTION_GET_PROCESS_COMMAND 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 41
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DEFINED_PROGRAMS 43
+#define RED_FUNCTION_GET_PROCESS_STDIO 42
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 44
+#define RED_FUNCTION_GET_PROCESS_STATE 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 45
+#define RED_FUNCTION_GET_DEFINED_PROGRAMS 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 46
+#define RED_FUNCTION_DEFINE_PROGRAM 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 47
+#define RED_FUNCTION_UNDEFINE_PROGRAM 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 48
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 49
+#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 50
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 50
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 51
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 52
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 52
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 53
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 53
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 54
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 54
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 55
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 55
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 56
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 56
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 57
+#define RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR 57
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 58
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 58
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 59
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 59
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 60
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 61
 
 /**
  * \ingroup BrickRED
@@ -321,7 +331,7 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_read_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 26
+#define RED_CALLBACK_ASYNC_FILE_READ 28
 
 /**
  * \ingroup BrickRED
@@ -331,28 +341,28 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_write_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 27
+#define RED_CALLBACK_ASYNC_FILE_WRITE 29
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 42
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 44
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 60
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 62
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 61
+#define RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED 63
 
 
 /**
@@ -853,6 +863,13 @@ int red_expire_session(RED *red, uint16_t session_id, uint8_t *ret_error_code);
  *
  * 
  */
+int red_expire_session_unchecked(RED *red, uint16_t session_id);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
 int red_keep_session_alive(RED *red, uint16_t session_id, uint32_t lifetime, uint8_t *ret_error_code);
 
 /**
@@ -862,6 +879,13 @@ int red_keep_session_alive(RED *red, uint16_t session_id, uint32_t lifetime, uin
  * error code. If the reference count reaches zero the object gets destroyed.
  */
 int red_release_object(RED *red, uint16_t object_id, uint16_t session_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_release_object_unchecked(RED *red, uint16_t object_id, uint16_t session_id);
 
 /**
  * \ingroup BrickRED

@@ -61,6 +61,11 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t session_id;
+} ATTRIBUTE_PACKED ExpireSessionUncheckedRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t session_id;
 	uint32_t lifetime;
 } ATTRIBUTE_PACKED KeepSessionAliveRequest;
 
@@ -83,6 +88,12 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseObjectResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t object_id;
+	uint16_t session_id;
+} ATTRIBUTE_PACKED ReleaseObjectUncheckedRequest;
 
 //
 // string
