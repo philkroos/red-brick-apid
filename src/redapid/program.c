@@ -37,20 +37,23 @@
 #define LOG_CATEGORY LOG_CATEGORY_API
 
 static const char *_identifier_alphabet =
-	"abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789._-";
+	"abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789_.-";
 
+// identifier format: ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{2,}$
 static bool program_is_valid_identifier(const char *identifier) {
-	// identifier cannot start with a dash
-	if (*identifier == '-') {
+	// identifiers cannot start with a hyphen or a dot to avoid confusing them
+	// for options in command lines or result in hidden directories
+	if (*identifier == '-' || *identifier == '.') {
 		return false;
 	}
 
-	// identifier cannot be equal to . or ..
-	if (strcmp(identifier, ".") == 0 || strcmp(identifier, "..") == 0) {
+	// identifiers have to be at least 3 characters long. this also excludes
+	// . and .. as valid identifiers, they cannot be used as directory names
+	if (strlen(identifier) < 3) {
 		return false;
 	}
 
-	// identifier must not contain characters outside its alphabet
+	// identifiers must not contain characters outside their alphabet
 	return identifier[strspn(identifier, _identifier_alphabet)] == '\0';
 }
 
