@@ -196,15 +196,15 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 
 		return file;
 
-	case PROGRAM_STDIO_REDIRECTION_STDOUT: // should never be reachable
-		program_scheduler_handle_error(program_scheduler, true,
-		                               "Cannot redirect stdin to stdout");
-
-		return NULL;
-
 	case PROGRAM_STDIO_REDIRECTION_LOG: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Cannot redirect stdin to a log file");
+
+		return NULL;
+
+	case PROGRAM_STDIO_REDIRECTION_STDOUT: // should never be reachable
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Cannot redirect stdin to stdout");
 
 		return NULL;
 
@@ -362,14 +362,14 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 		return file;
 
+	case PROGRAM_STDIO_REDIRECTION_LOG:
+		return program_scheduler_prepare_log(program_scheduler, timestamp, "stdout");
+
 	case PROGRAM_STDIO_REDIRECTION_STDOUT: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Cannot redirect stdout to stdout");
 
 		return NULL;
-
-	case PROGRAM_STDIO_REDIRECTION_LOG:
-		return program_scheduler_prepare_log(program_scheduler, timestamp, "stdout");
 
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
@@ -433,13 +433,13 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 		return file;
 
+	case PROGRAM_STDIO_REDIRECTION_LOG:
+		return program_scheduler_prepare_log(program_scheduler, timestamp, "stderr");
+
 	case PROGRAM_STDIO_REDIRECTION_STDOUT:
 		object_add_internal_reference(&stdout->base);
 
 		return stdout;
-
-	case PROGRAM_STDIO_REDIRECTION_LOG:
-		return program_scheduler_prepare_log(program_scheduler, timestamp, "stderr");
 
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,

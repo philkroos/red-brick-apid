@@ -62,8 +62,8 @@ static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirecti
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 	case PROGRAM_STDIO_REDIRECTION_PIPE:
 	case PROGRAM_STDIO_REDIRECTION_FILE:
-	case PROGRAM_STDIO_REDIRECTION_STDOUT:
 	case PROGRAM_STDIO_REDIRECTION_LOG:
+	case PROGRAM_STDIO_REDIRECTION_STDOUT:
 		return true;
 
 	default:
@@ -672,8 +672,8 @@ APIE program_set_stdio_redirection(Program *program,
 	ProgramConfig backup;
 
 	if (!program_is_valid_stdio_redirection(stdin_redirection) ||
-	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT ||
-	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG) {
+	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG ||
+	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
 		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("Invalid stdin redirection %d", stdin_redirection);

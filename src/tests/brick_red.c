@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-16.      *
+ * This file was automatically generated on 2014-10-20.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
