@@ -53,6 +53,7 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/config.c \
            ../daemonlib/conf_file.c \
            ../daemonlib/daemon.c \
+           ../daemonlib/enum.c \
            ../daemonlib/event.c \
            ../daemonlib/event_linux.c \
            ../daemonlib/io.c \
