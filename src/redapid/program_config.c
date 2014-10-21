@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <daemonlib/conf_file.h>
+#include <daemonlib/enum.h>
 #include <daemonlib/log.h>
 #include <daemonlib/utils.h>
 
@@ -36,6 +37,30 @@
 typedef const char *(*ProgramConfigGetNameFunction)(int value);
 typedef int (*ProgramConfigGetValueFunction)(const char *name, int *value);
 
+static EnumValueName _stdio_redirection_enum_value_names[] = {
+	{ PROGRAM_STDIO_REDIRECTION_DEV_NULL, "/dev/null" },
+	{ PROGRAM_STDIO_REDIRECTION_PIPE,     "pipe" },
+	{ PROGRAM_STDIO_REDIRECTION_FILE,     "file" },
+	{ PROGRAM_STDIO_REDIRECTION_LOG,      "log" },
+	{ PROGRAM_STDIO_REDIRECTION_STDOUT,   "stdout" },
+	{ -1,                                 NULL }
+};
+
+static EnumValueName _start_condition_enum_value_names[] = {
+	{ PROGRAM_START_CONDITION_NEVER,     "never" },
+	{ PROGRAM_START_CONDITION_NOW,       "now" },
+	{ PROGRAM_START_CONDITION_REBOOT,    "reboot" },
+	{ PROGRAM_START_CONDITION_TIMESTAMP, "timestamp" },
+	{ -1,                                NULL }
+};
+
+static EnumValueName _repeat_mode_enum_value_names[] = {
+	{ PROGRAM_REPEAT_MODE_NEVER,     "never" },
+	{ PROGRAM_REPEAT_MODE_INTERVAL,  "interval" },
+	{ PROGRAM_REPEAT_MODE_SELECTION, "selection" },
+	{ -1,                            NULL }
+};
+
 static void program_custom_option_unlock(void *item) {
 	ProgramCustomOption *custom_option = item;
 
@@ -44,86 +69,27 @@ static void program_custom_option_unlock(void *item) {
 }
 
 static const char *program_config_get_stdio_redirection_name(int redirection) {
-	switch (redirection) {
-	case PROGRAM_STDIO_REDIRECTION_DEV_NULL: return "/dev/null";
-	case PROGRAM_STDIO_REDIRECTION_PIPE:     return "pipe";
-	case PROGRAM_STDIO_REDIRECTION_FILE:     return "file";
-	case PROGRAM_STDIO_REDIRECTION_LOG:      return "log";
-	case PROGRAM_STDIO_REDIRECTION_STDOUT:   return "stdout";
-
-	default:                                 return "<unknown>";
-	}
+	return enum_get_name(_stdio_redirection_enum_value_names, redirection, "<unknown>");
 }
 
-static int program_config_get_stdio_redirection_value(const char *name,
-                                                      int *redirection) {
-	if (strcasecmp(name, "/dev/null") == 0) {
-		*redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	} else if (strcasecmp(name, "pipe") == 0) {
-		*redirection = PROGRAM_STDIO_REDIRECTION_PIPE;
-	} else if (strcasecmp(name, "file") == 0) {
-		*redirection = PROGRAM_STDIO_REDIRECTION_FILE;
-	} else if (strcasecmp(name, "log") == 0) {
-		*redirection = PROGRAM_STDIO_REDIRECTION_LOG;
-	} else if (strcasecmp(name, "stdout") == 0) {
-		*redirection = PROGRAM_STDIO_REDIRECTION_STDOUT;
-	} else {
-		return -1;
-	}
-
-	return 0;
+static int program_config_get_stdio_redirection_value(const char *name, int *redirection) {
+	return enum_get_value(_stdio_redirection_enum_value_names, name, redirection, true);
 }
 
 static const char *program_config_get_start_condition_name(int condition) {
-	switch (condition) {
-	case PROGRAM_START_CONDITION_NEVER:     return "never";
-	case PROGRAM_START_CONDITION_NOW:       return "now";
-	case PROGRAM_START_CONDITION_REBOOT:    return "reboot";
-	case PROGRAM_START_CONDITION_TIMESTAMP: return "timestamp";
-
-	default:                                return "<unknown>";
-	}
+	return enum_get_name(_start_condition_enum_value_names, condition, "<unknown>");
 }
 
-static int program_config_get_start_condition_value(const char *name,
-                                                    int *condition) {
-	if (strcasecmp(name, "never") == 0) {
-		*condition = PROGRAM_START_CONDITION_NEVER;
-	} else if (strcasecmp(name, "now") == 0) {
-		*condition = PROGRAM_START_CONDITION_NOW;
-	} else if (strcasecmp(name, "reboot") == 0) {
-		*condition = PROGRAM_START_CONDITION_REBOOT;
-	} else if (strcasecmp(name, "timestamp") == 0) {
-		*condition = PROGRAM_START_CONDITION_TIMESTAMP;
-	} else {
-		return -1;
-	}
-
-	return 0;
+static int program_config_get_start_condition_value(const char *name, int *condition) {
+	return enum_get_value(_stdio_redirection_enum_value_names, name, condition, true);
 }
 
 static const char *program_config_get_repeat_mode_name(int mode) {
-	switch (mode) {
-	case PROGRAM_REPEAT_MODE_NEVER:     return "never";
-	case PROGRAM_REPEAT_MODE_INTERVAL:  return "interval";
-	case PROGRAM_REPEAT_MODE_SELECTION: return "selection";
-
-	default:                            return "<unknown>";
-	}
+	return enum_get_name(_repeat_mode_enum_value_names, mode, "<unknown>");
 }
 
 static int program_config_get_repeat_mode_value(const char *name, int *mode) {
-	if (strcasecmp(name, "never") == 0) {
-		*mode = PROGRAM_REPEAT_MODE_NEVER;
-	} else if (strcasecmp(name, "interval") == 0) {
-		*mode = PROGRAM_REPEAT_MODE_INTERVAL;
-	} else if (strcasecmp(name, "selection") == 0) {
-		*mode = PROGRAM_REPEAT_MODE_SELECTION;
-	} else {
-		return -1;
-	}
-
-	return 0;
+	return enum_get_value(_repeat_mode_enum_value_names, name, mode, true);
 }
 
 static APIE program_config_set_empty(ProgramConfig *program_config,

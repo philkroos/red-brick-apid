@@ -288,6 +288,7 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
 		string_append(directory->buffer, sizeof(directory->buffer), dirent->d_name);
 
 		switch (dirent->d_type) {
+		default:      *type = DIRECTORY_ENTRY_TYPE_UNKNOWN;   break;
 		case DT_REG:  *type = DIRECTORY_ENTRY_TYPE_REGULAR;   break;
 		case DT_DIR:  *type = DIRECTORY_ENTRY_TYPE_DIRECTORY; break;
 		case DT_CHR:  *type = DIRECTORY_ENTRY_TYPE_CHARACTER; break;
@@ -295,8 +296,6 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
 		case DT_FIFO: *type = DIRECTORY_ENTRY_TYPE_FIFO;      break;
 		case DT_LNK:  *type = DIRECTORY_ENTRY_TYPE_SYMLINK;   break;
 		case DT_SOCK: *type = DIRECTORY_ENTRY_TYPE_SOCKET;    break;
-
-		default:      *type = DIRECTORY_ENTRY_TYPE_UNKNOWN;   break;
 		}
 
 		return string_wrap(directory->buffer,
