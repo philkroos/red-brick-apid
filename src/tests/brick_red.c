@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-20.      *
+ * This file was automatically generated on 2014-10-22.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -622,6 +622,7 @@ typedef struct {
 	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED SetProgramCommand_;
 
 typedef struct {
@@ -641,6 +642,7 @@ typedef struct {
 	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED GetProgramCommandResponse_;
 
 typedef struct {
@@ -2274,7 +2276,7 @@ int red_get_program_root_directory(RED *red, uint16_t program_id, uint16_t sessi
 	return ret;
 }
 
-int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint8_t *ret_error_code) {
+int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	SetProgramCommand_ request;
 	SetProgramCommandResponse_ response;
@@ -2290,6 +2292,7 @@ int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_s
 	request.executable_string_id = leconvert_uint16_to(executable_string_id);
 	request.arguments_list_id = leconvert_uint16_to(arguments_list_id);
 	request.environment_list_id = leconvert_uint16_to(environment_list_id);
+	request.working_directory_string_id = leconvert_uint16_to(working_directory_string_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2303,7 +2306,7 @@ int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_s
 	return ret;
 }
 
-int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id) {
+int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id, uint16_t *ret_working_directory_string_id) {
 	DevicePrivate *device_p = red->p;
 	GetProgramCommand_ request;
 	GetProgramCommandResponse_ response;
@@ -2327,6 +2330,7 @@ int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, 
 	*ret_executable_string_id = leconvert_uint16_from(response.executable_string_id);
 	*ret_arguments_list_id = leconvert_uint16_from(response.arguments_list_id);
 	*ret_environment_list_id = leconvert_uint16_from(response.environment_list_id);
+	*ret_working_directory_string_id = leconvert_uint16_from(response.working_directory_string_id);
 
 
 

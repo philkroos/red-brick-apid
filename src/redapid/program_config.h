@@ -63,6 +63,7 @@ typedef struct {
 	String *executable;
 	List *arguments;
 	List *environment;
+	String *working_directory; // used in <home>/programs/<identifier>/bin/<working_directory>
 	ProgramStdioRedirection stdin_redirection;
 	String *stdin_file_name; // only != NULL if stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE
 	ProgramStdioRedirection stdout_redirection;

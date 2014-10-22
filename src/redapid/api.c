@@ -703,14 +703,16 @@ CALL_PROGRAM_FUNCTION(SetProgramCommand, set_program_command, {
 	response.error_code = program_set_command(program,
 	                                          request->executable_string_id,
 	                                          request->arguments_list_id,
-	                                          request->environment_list_id);
+	                                          request->environment_list_id,
+	                                          request->working_directory_string_id);
 })
 
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramCommand, get_program_command, {
 	response.error_code = program_get_command(program, session,
 	                                          &response.executable_string_id,
 	                                          &response.arguments_list_id,
-	                                          &response.environment_list_id);
+	                                          &response.environment_list_id,
+	                                          &response.working_directory_string_id);
 })
 
 CALL_PROGRAM_FUNCTION(SetProgramStdioRedirection, set_program_stdio_redirection, {

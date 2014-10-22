@@ -51,9 +51,11 @@ APIE program_get_root_directory(Program *program, Session *session,
                                 ObjectID *root_directory_id);
 
 APIE program_set_command(Program *program, ObjectID executable_id,
-                         ObjectID arguments_id, ObjectID environment_id);
+                         ObjectID arguments_id, ObjectID environment_id,
+                         ObjectID working_directory_id);
 APIE program_get_command(Program *program, Session *session, ObjectID *executable_id,
-                         ObjectID *arguments_id, ObjectID *environment_id);
+                         ObjectID *arguments_id, ObjectID *environment_id,
+                         ObjectID *working_directory_id);
 
 APIE program_set_stdio_redirection(Program *program,
                                    ProgramStdioRedirection stdin_redirection,

@@ -327,12 +327,15 @@ enum program_repeat_mode {
 + set_program_command             (uint16_t program_id,
                                    uint16_t executable_string_id,
                                    uint16_t arguments_list_id,
-                                   uint16_t environment_list_id)  -> uint8_t error_code
+                                   uint16_t environment_list_id,
+                                   uint16_t working_directory_string_id)
+                                                                  -> uint8_t error_code
 + get_program_command             (uint16_t program_id,
                                    uint16_t session_id)           -> uint8_t error_code,
                                                                      uint16_t executable_string_id,
                                                                      uint16_t arguments_list_id,
-                                                                     uint16_t environment_list_id
+                                                                     uint16_t environment_list_id,
+                                                                     uint16_t working_directory_string_id
 + set_program_stdio_redirection   (uint16_t program_id,
                                    uint8_t stdin_redirection,
                                    uint16_t stdin_file_name_string_id,

@@ -468,6 +468,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	String *executable;
 	List *arguments;
 	List *environment;
+	String *working_directory;
 	Array *custom_options;
 
 	// create executable string object
@@ -506,6 +507,18 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 
 	phase = 3;
 
+	// create working directory string object
+	error_code = string_wrap(".", NULL,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, &working_directory);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	// create custom options array
 	custom_options = calloc(1, sizeof(Array));
 
@@ -518,7 +531,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 5;
 
 	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -529,7 +542,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 6;
 
 	// initalize all members
 	program_config->filename = strdup(filename);
@@ -547,6 +560,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->executable = executable;
 	program_config->arguments = arguments;
 	program_config->environment = environment;
+	program_config->working_directory = working_directory;
 	program_config->stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	program_config->stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	program_config->stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
@@ -566,15 +580,18 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->repeat_weekday_mask = 0;
 	program_config->custom_options = custom_options;
 
-	phase = 6;
+	phase = 7;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 5:
+	case 6:
 		array_destroy(custom_options, program_custom_option_unlock);
 
-	case 4:
+	case 5:
 		free(custom_options);
+
+	case 4:
+		string_unlock(working_directory);
 
 	case 3:
 		list_unlock(environment);
@@ -589,7 +606,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 6 ? API_E_SUCCESS : error_code;
+	return phase == 7 ? API_E_SUCCESS : error_code;
 }
 
 void program_config_destroy(ProgramConfig *program_config) {
@@ -608,6 +625,7 @@ void program_config_destroy(ProgramConfig *program_config) {
 		string_unlock(program_config->stdin_file_name);
 	}
 
+	string_unlock(program_config->working_directory);
 	list_unlock(program_config->environment);
 	list_unlock(program_config->arguments);
 	string_unlock(program_config->executable);
@@ -623,6 +641,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	String *executable;
 	List *arguments;
 	List *environment;
+	String *working_directory;
 	int stdin_redirection;
 	String *stdin_file_name;
 	int stdout_redirection;
@@ -726,6 +745,16 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	phase = 4;
 
+	// get working_directory
+	error_code = program_config_get_string(program_config, &conf_file,
+	                                       "working_directory", &working_directory);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 5;
+
 	// get stdin.redirection
 	error_code = program_config_get_symbol(program_config, &conf_file,
 	                                       "stdin.redirection",
@@ -760,7 +789,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		stdin_file_name = NULL;
 	}
 
-	phase = 5;
+	phase = 6;
 
 	// get stdout.redirection
 	error_code = program_config_get_symbol(program_config, &conf_file,
@@ -795,7 +824,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		stdout_file_name = NULL;
 	}
 
-	phase = 6;
+	phase = 7;
 
 	// get stderr.redirection
 	error_code = program_config_get_symbol(program_config, &conf_file,
@@ -821,7 +850,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		stderr_file_name = NULL;
 	}
 
-	phase = 7;
+	phase = 8;
 
 	// get start.condition
 	error_code = program_config_get_symbol(program_config, &conf_file,
@@ -934,7 +963,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 8;
+	phase = 9;
 
 	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -945,7 +974,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 9;
+	phase = 10;
 
 	if (conf_file_get_first_option(&conf_file, &custom_name, &custom_value, &cookie)) {
 		do {
@@ -1000,6 +1029,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	string_unlock(program_config->executable);
 	list_unlock(program_config->arguments);
 	list_unlock(program_config->environment);
+	string_unlock(program_config->working_directory);
 
 	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stdin_file_name);
@@ -1021,6 +1051,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->executable          = executable;
 	program_config->arguments           = arguments;
 	program_config->environment         = environment;
+	program_config->working_directory   = working_directory;
 	program_config->stdin_redirection   = stdin_redirection;
 	program_config->stdin_file_name     = stdin_file_name;
 	program_config->stdout_redirection  = stdout_redirection;
@@ -1040,32 +1071,35 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
 	program_config->custom_options      = custom_options;
 
-	phase = 10;
+	phase = 11;
 
 	conf_file_destroy(&conf_file);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 9:
+	case 10:
 		array_destroy(custom_options, program_custom_option_unlock);
 
-	case 8:
+	case 9:
 		free(custom_options);
 
-	case 7:
+	case 8:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_unlock(stderr_file_name);
 		}
 
-	case 6:
+	case 7:
 		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_unlock(stdout_file_name);
 		}
 
-	case 5:
+	case 6:
 		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_unlock(stdin_file_name);
 		}
+
+	case 5:
+		string_unlock(working_directory);
 
 	case 4:
 		list_unlock(environment);
@@ -1083,7 +1117,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 10 ? API_E_SUCCESS : error_code;
+	return phase == 11 ? API_E_SUCCESS : error_code;
 }
 
 APIE program_config_save(ProgramConfig *program_config) {
@@ -1131,7 +1165,7 @@ APIE program_config_save(ProgramConfig *program_config) {
 	// set executable
 	error_code = program_config_set_string(program_config, &conf_file,
 	                                       "executable",
-	                                        program_config->executable);
+	                                       program_config->executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -1140,7 +1174,7 @@ APIE program_config_save(ProgramConfig *program_config) {
 	// set arguments
 	error_code = program_config_set_string_list(program_config, &conf_file,
 	                                            "arguments",
-	                                             program_config->arguments);
+	                                            program_config->arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -1149,7 +1183,16 @@ APIE program_config_save(ProgramConfig *program_config) {
 	// set environment
 	error_code = program_config_set_string_list(program_config, &conf_file,
 	                                            "environment",
-	                                             program_config->environment);
+	                                            program_config->environment);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// set working directory
+	error_code = program_config_set_string(program_config, &conf_file,
+	                                       "working_directory",
+	                                       program_config->working_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

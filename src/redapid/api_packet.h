@@ -640,6 +640,7 @@ typedef struct {
 	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED SetProgramCommandRequest;
 
 typedef struct {
@@ -659,6 +660,7 @@ typedef struct {
 	uint16_t executable_string_id;
 	uint16_t arguments_list_id;
 	uint16_t environment_list_id;
+	uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED GetProgramCommandResponse;
 
 typedef struct {

@@ -239,8 +239,8 @@ APIE program_load(const char *identifier, const char *root_directory,
 	memcpy(&program->config, &program_config, sizeof(program->config));
 
 	error_code = program_scheduler_create(&program->scheduler,
-	                                      program->identifier->buffer,
-	                                      program->root_directory->buffer,
+	                                      program->identifier,
+	                                      program->root_directory,
 	                                      &program->config, true,
 	                                      program_report_process_spawn,
 	                                      program_report_scheduler_error,
@@ -396,8 +396,8 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	}
 
 	error_code = program_scheduler_create(&program->scheduler,
-	                                      program->identifier->buffer,
-	                                      program->root_directory->buffer,
+	                                      program->identifier,
+	                                      program->root_directory,
 	                                      &program->config, false,
 	                                      program_report_process_spawn,
 	                                      program_report_scheduler_error,
@@ -517,12 +517,14 @@ APIE program_get_root_directory(Program *program, Session *session,
 
 // public API
 APIE program_set_command(Program *program, ObjectID executable_id,
-                         ObjectID arguments_id, ObjectID environment_id) {
+                         ObjectID arguments_id, ObjectID environment_id,
+                         ObjectID working_directory_id) {
 	int phase = 0;
 	APIE error_code;
 	String *executable;
 	List *arguments;
 	List *environment;
+	String *working_directory;
 	ProgramConfig backup;
 
 	// lock new executable string object
@@ -558,6 +560,26 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 		goto cleanup;
 	}
 
+	phase = 3;
+
+	// lock new working directory string object
+	error_code = string_get_locked(working_directory_id, &working_directory);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	if (*working_directory->buffer == '\0') {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("Working directory cannot be empty");
+
+		goto cleanup;
+	}
+
+	// FIXME: check that working_directory is relative and stays inside
+	//        of <home>/programs/<identifier>/bin
+
 	// backup config
 	memcpy(&backup, &program->config, sizeof(backup));
 
@@ -565,8 +587,9 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	program->config.executable = executable;
 	program->config.arguments = arguments;
 	program->config.environment = environment;
+	program->config.working_directory = working_directory;
 
-	phase = 3;
+	phase = 4;
 
 	// save modified config
 	error_code = program_config_save(&program->config);
@@ -579,16 +602,20 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	string_unlock(backup.executable);
 	list_unlock(backup.arguments);
 	list_unlock(backup.environment);
+	string_unlock(backup.working_directory);
 
-	phase = 4;
+	phase = 5;
 
 	program_scheduler_update(&program->scheduler);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 3:
+	case 4:
 		memcpy(&program->config, &backup, sizeof(program->config));
 
+		string_unlock(working_directory);
+
+	case 3:
 		list_unlock(environment);
 
 	case 2:
@@ -601,12 +628,13 @@ cleanup:
 		break;
 	}
 
-	return phase == 4 ? API_E_SUCCESS : error_code;
+	return phase == 5 ? API_E_SUCCESS : error_code;
 }
 
 // public API
 APIE program_get_command(Program *program, Session *session, ObjectID *executable_id,
-                         ObjectID *arguments_id, ObjectID *environment_id) {
+                         ObjectID *arguments_id, ObjectID *environment_id,
+                         ObjectID *working_directory_id) {
 	int phase = 0;
 	APIE error_code;
 
@@ -637,12 +665,25 @@ APIE program_get_command(Program *program, Session *session, ObjectID *executabl
 
 	phase = 3;
 
+	// working directory
+	error_code = object_add_external_reference(&program->config.working_directory->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	*executable_id = program->config.executable->base.id;
 	*arguments_id = program->config.arguments->base.id;
 	*environment_id = program->config.environment->base.id;
+	*working_directory_id = program->config.working_directory->base.id;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 3:
+		object_remove_external_reference(&program->config.environment->base, session);
+
 	case 2:
 		object_remove_external_reference(&program->config.arguments->base, session);
 
@@ -653,7 +694,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 3 ? API_E_SUCCESS : error_code;
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 // public API

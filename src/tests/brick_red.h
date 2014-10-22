@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-20.      *
+ * This file was automatically generated on 2014-10-22.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -1421,16 +1421,16 @@ int red_get_program_root_directory(RED *red, uint16_t program_id, uint16_t sessi
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: working directory is relative to <home>/programs/<identifier>/bin
  */
-int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint8_t *ret_error_code);
+int red_set_program_command(RED *red, uint16_t program_id, uint16_t executable_string_id, uint16_t arguments_list_id, uint16_t environment_list_id, uint16_t working_directory_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: working directory is relative to <home>/programs/<identifier>/bin
  */
-int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id);
+int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_executable_string_id, uint16_t *ret_arguments_list_id, uint16_t *ret_environment_list_id, uint16_t *ret_working_directory_string_id);
 
 /**
  * \ingroup BrickRED

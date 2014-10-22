@@ -57,10 +57,10 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 
 	if (log_as_error) {
 		log_error("Scheduler error for program object (identifier: %s) occurred: %s",
-		          program_scheduler->identifier, buffer);
+		          program_scheduler->identifier->buffer, buffer);
 	} else {
 		log_debug("Scheduler error for program object (identifier: %s) occurred: %s",
-		          program_scheduler->identifier, buffer);
+		          program_scheduler->identifier->buffer, buffer);
 	}
 
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED;
@@ -100,7 +100,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	}
 
 	log_debug("Started scheduling timer for program object (identifier: %s)",
-	          program_scheduler->identifier);
+	          program_scheduler->identifier->buffer);
 
 	program_scheduler->timer_active = true;
 }
@@ -125,7 +125,7 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler) {
 	}
 
 	log_debug("Stopped scheduling timer for program object (identifier: %s)",
-	          program_scheduler->identifier);
+	          program_scheduler->identifier->buffer);
 
 	program_scheduler->timer_active = false;
 
@@ -505,7 +505,7 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	error_code = process_spawn(program_scheduler->config->executable->base.id,
 	                           program_scheduler->config->arguments->base.id,
 	                           program_scheduler->config->environment->base.id,
-	                           program_scheduler->working_directory->base.id,
+	                           program_scheduler->absolute_working_directory->base.id,
 	                           1000, 1000,
 	                           stdin->base.id, stdout->base.id, stderr->base.id,
 	                           NULL, OBJECT_CREATE_FLAG_INTERNAL, false,
@@ -648,36 +648,24 @@ static void program_scheduler_tick(void *opaque) {
 }
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
-                              const char *identifier, const char *root_directory,
+                              String *identifier, String *root_directory,
                               ProgramConfig *config, bool reboot,
                               ProgramSchedulerSpawnFunction spawn,
                               ProgramSchedulerErrorFunction error, void *opaque) {
 	int phase = 0;
 	APIE error_code;
 	char buffer[1024];
-	String *working_directory;
+	String *absolute_working_directory;
 	char *log_directory;
 	String *dev_null_file_name;
 
-	// duplicate identifier string
-	program_scheduler->identifier = strdup(identifier);
-
-	if (program_scheduler->identifier == NULL) {
-		error_code = API_E_NO_FREE_MEMORY;
-
-		log_error("Could not duplicate program identifier: %s (%d)",
-		          get_errno_name(ENOMEM), ENOMEM);
-
-		goto cleanup;
-	}
-
-	phase = 1;
-
-	// format working directory name
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin", root_directory) < 0) {
+	// format absolute working directory name
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin/%s",
+	                    root_directory->buffer,
+	                    config->working_directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not format program working directory name: %s (%d)",
+		log_error("Could not format absolute program working directory name: %s (%d)",
 		          get_errno_name(errno), errno);
 
 		goto cleanup;
@@ -687,16 +675,16 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	error_code = string_wrap(buffer, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
 	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &working_directory);
+	                         NULL, &absolute_working_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	phase = 2;
+	phase = 1;
 
 	// create working directory as default user (UID 1000, GID 1000)
-	error_code = directory_create(working_directory->buffer,
+	error_code = directory_create(absolute_working_directory->buffer,
 	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
 
 	if (error_code != API_E_SUCCESS) {
@@ -704,7 +692,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	}
 
 	// format log directory name
-	if (asprintf(&log_directory, "%s/log", root_directory) < 0) {
+	if (asprintf(&log_directory, "%s/log", root_directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program log directory name: %s (%d)",
@@ -713,7 +701,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 3;
+	phase = 2;
 
 	// create log directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(log_directory, DIRECTORY_FLAG_RECURSIVE,
@@ -733,14 +721,16 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 3;
 
+	program_scheduler->identifier = identifier;
+	program_scheduler->root_directory = root_directory;
 	program_scheduler->config = config;
 	program_scheduler->reboot = reboot;
 	program_scheduler->spawn = spawn;
 	program_scheduler->error = error;
 	program_scheduler->opaque = opaque;
-	program_scheduler->working_directory = working_directory;
+	program_scheduler->absolute_working_directory = absolute_working_directory;
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION;
@@ -762,27 +752,24 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 4;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 4:
+	case 3:
 		string_unlock(dev_null_file_name);
 
-	case 3:
+	case 2:
 		free(log_directory);
 
-	case 2:
-		string_unlock(working_directory);
-
 	case 1:
-		free(program_scheduler->identifier);
+		string_unlock(absolute_working_directory);
 
 	default:
 		break;
 	}
 
-	return phase == 5 ? API_E_SUCCESS : error_code;
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
@@ -800,11 +787,58 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 
 	string_unlock(program_scheduler->dev_null_file_name);
 	free(program_scheduler->log_directory);
-	string_unlock(program_scheduler->working_directory);
-	free(program_scheduler->identifier);
+	string_unlock(program_scheduler->absolute_working_directory);
 }
 
 void program_scheduler_update(ProgramScheduler *program_scheduler) {
+	char buffer[1024];
+	APIE error_code;
+	String *absolute_working_directory;
+
+	// format absolute working directory name
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin/%s",
+	                    program_scheduler->root_directory->buffer,
+	                    program_scheduler->config->working_directory->buffer) < 0) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not format absolute program working directory name: %s (%d)",
+		                               get_errno_name(errno), errno);
+
+		return;
+	}
+
+	// wrap working directory string
+	error_code = string_wrap(buffer, NULL,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, &absolute_working_directory);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not wrap absolute program working directory name into string object: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		return;
+	}
+
+	// create working directory as default user (UID 1000, GID 1000)
+	error_code = directory_create(absolute_working_directory->buffer,
+	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not create absolute program working directory: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		string_unlock(absolute_working_directory);
+
+		return;
+	}
+
+	string_unlock(program_scheduler->absolute_working_directory);
+
+	program_scheduler->absolute_working_directory = absolute_working_directory;
+
+	// update state
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION;
 
 	if (program_scheduler->config->start_condition == PROGRAM_START_CONDITION_NEVER) {

@@ -38,13 +38,14 @@ typedef enum {
 } ProgramSchedulerState;
 
 typedef struct {
-	char *identifier;
+	String *identifier;
+	String *root_directory;
 	ProgramConfig *config;
 	bool reboot;
 	ProgramSchedulerSpawnFunction spawn;
 	ProgramSchedulerErrorFunction error;
 	void *opaque;
-	String *working_directory; // <home>/programs/<identifier>/bin
+	String *absolute_working_directory; // <home>/programs/<identifier>/bin/<working_directory>
 	char *log_directory; // <home>/programs/<identifier>/log
 	String *dev_null_file_name; // /dev/null
 	ProgramSchedulerState state;
@@ -60,7 +61,7 @@ typedef struct {
 } ProgramScheduler;
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
-                              const char *identifier, const char *root_directory,
+                              String *identifier, String *root_directory,
                               ProgramConfig *config, bool reboot,
                               ProgramSchedulerSpawnFunction spawn,
                               ProgramSchedulerErrorFunction error, void *opaque);
