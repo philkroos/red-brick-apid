@@ -81,7 +81,7 @@ static const char *program_config_get_start_condition_name(int condition) {
 }
 
 static int program_config_get_start_condition_value(const char *name, int *condition) {
-	return enum_get_value(_stdio_redirection_enum_value_names, name, condition, true);
+	return enum_get_value(_start_condition_enum_value_names, name, condition, true);
 }
 
 static const char *program_config_get_repeat_mode_name(int mode) {
