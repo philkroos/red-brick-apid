@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-22.      *
+ * This file was automatically generated on 2014-10-23.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -1414,7 +1414,7 @@ int red_get_program_identifier(RED *red, uint16_t program_id, uint16_t session_i
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: root directory is absolute: <home>/programs/<identifier>
  */
 int red_get_program_root_directory(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_root_directory_string_id);
 
@@ -1435,14 +1435,14 @@ int red_get_program_command(RED *red, uint16_t program_id, uint16_t session_id, 
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: stdio file names are relative to <home>/programs/<identifier>/bin
  */
 int red_set_program_stdio_redirection(RED *red, uint16_t program_id, uint8_t stdin_redirection, uint16_t stdin_file_name_string_id, uint8_t stdout_redirection, uint16_t stdout_file_name_string_id, uint8_t stderr_redirection, uint16_t stderr_file_name_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
- * 
+ * FIXME: stdio file names are relative to <home>/programs/<identifier>/bin
  */
 int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_stdin_redirection, uint16_t *ret_stdin_file_name_string_id, uint8_t *ret_stdout_redirection, uint16_t *ret_stdout_file_name_string_id, uint8_t *ret_stderr_redirection, uint16_t *ret_stderr_file_name_string_id);
 

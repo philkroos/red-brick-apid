@@ -46,6 +46,15 @@ typedef struct {
 	ProgramSchedulerErrorFunction error;
 	void *opaque;
 	String *absolute_working_directory; // <home>/programs/<identifier>/bin/<working_directory>
+	String *absolute_stdin_file_name; // <home>/programs/<identifier>/bin/<stdin_file_name>
+	                                  // only != NULL after an program_scheduler_update call
+	                                  // if stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	String *absolute_stdout_file_name; // <home>/programs/<identifier>/bin/<stdout_file_name>
+	                                   // only != NULL after an program_scheduler_update call
+	                                   // if stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	String *absolute_stderr_file_name; // <home>/programs/<identifier>/bin/<stderr_file_name>
+	                                   // only != NULL after an program_scheduler_update call
+	                                   // if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
 	char *log_directory; // <home>/programs/<identifier>/log
 	String *dev_null_file_name; // /dev/null
 	ProgramSchedulerState state;

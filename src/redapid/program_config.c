@@ -525,7 +525,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	if (program_config->filename == NULL) {
 		error_code = API_E_NO_FREE_MEMORY;
 
-		log_error("Could not duplicate program config filename: %s (%d)",
+		log_error("Could not duplicate program config file name: %s (%d)",
 		          get_errno_name(ENOMEM), ENOMEM);
 
 		goto cleanup;
@@ -729,6 +729,17 @@ APIE program_config_load(ProgramConfig *program_config) {
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
+
+		if (*stdin_file_name->buffer == '\0') {
+			log_warn("Cannot redirect stdin to empty file name, redirecting to /dev/null instead");
+
+			string_unlock(stdin_file_name);
+
+			stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+		} else {
+			// FIXME: check that stdin_file_name is relative and stays inside
+			//        of <home>/programs/<identifier>/bin
+		}
 	} else {
 		stdin_file_name = NULL;
 	}
@@ -758,6 +769,16 @@ APIE program_config_load(ProgramConfig *program_config) {
 			goto cleanup;
 		}
 
+		if (*stdout_file_name->buffer == '\0') {
+			log_warn("Cannot redirect stdout to empty file name, redirecting to /dev/null instead");
+
+			string_unlock(stdout_file_name);
+
+			stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+		} else {
+			// FIXME: check that stdout_file_name is relative and stays inside
+			//        of <home>/programs/<identifier>/bin
+		}
 	} else {
 		stdout_file_name = NULL;
 	}
@@ -778,6 +799,17 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
+		}
+
+		if (*stderr_file_name->buffer == '\0') {
+			log_warn("Cannot redirect stderr to empty file name, redirecting to /dev/null instead");
+
+			string_unlock(stderr_file_name);
+
+			stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+		} else {
+			// FIXME: check that stderr_file_name is relative and stays inside
+			//        of <home>/programs/<identifier>/bin
 		}
 	} else {
 		stderr_file_name = NULL;

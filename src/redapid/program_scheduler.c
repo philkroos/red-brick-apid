@@ -181,14 +181,21 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 		return file;
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
-		error_code = file_open(program_scheduler->config->stdin_file_name->base.id,
+		if (program_scheduler->absolute_stdin_file_name == NULL) { // should never be reachable
+			program_scheduler_handle_error(program_scheduler, true,
+			                               "Absolute stdin file name not set");
+
+			return NULL;
+		}
+
+		error_code = file_open(program_scheduler->absolute_stdin_file_name->base.id,
 		                       FILE_FLAG_READ_ONLY, 0, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not open '%s' for reading: %s (%d)",
-			                               program_scheduler->config->stdin_file_name->buffer,
+			                               program_scheduler->absolute_stdin_file_name->buffer,
 			                               api_get_error_code_name(error_code), error_code);
 
 			return NULL;
@@ -346,7 +353,14 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 		return file;
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
-		error_code = file_open(program_scheduler->config->stdout_file_name->base.id,
+		if (program_scheduler->absolute_stdout_file_name == NULL) { // should never be reachable
+			program_scheduler_handle_error(program_scheduler, true,
+			                               "Absolute stdout file name not set");
+
+			return NULL;
+		}
+
+		error_code = file_open(program_scheduler->absolute_stdout_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE,
 		                       0755, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
@@ -354,7 +368,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not open/create '%s' for writing: %s (%d)",
-			                               program_scheduler->config->stdout_file_name->buffer,
+			                               program_scheduler->absolute_stdout_file_name->buffer,
 			                               api_get_error_code_name(error_code), error_code);
 
 			return NULL;
@@ -417,7 +431,14 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 		return file;
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
-		error_code = file_open(program_scheduler->config->stderr_file_name->base.id,
+		if (program_scheduler->absolute_stderr_file_name == NULL) { // should never be reachable
+			program_scheduler_handle_error(program_scheduler, true,
+			                               "Absolute stderr file name not set");
+
+			return NULL;
+		}
+
+		error_code = file_open(program_scheduler->absolute_stderr_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE,
 		                       0755, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
@@ -425,7 +446,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not open/create '%s' for writing: %s (%d)",
-			                               program_scheduler->config->stderr_file_name->buffer,
+			                               program_scheduler->absolute_stderr_file_name->buffer,
 			                               api_get_error_code_name(error_code), error_code);
 
 			return NULL;
@@ -521,6 +542,8 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 		goto cleanup;
 	}
 
+	phase = 4;
+
 	if (program_scheduler->last_spawned_process != NULL) {
 		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
 	}
@@ -533,8 +556,6 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 	program_scheduler_stop(program_scheduler);
 
 	program_scheduler->spawn(program_scheduler->opaque);
-
-	phase = 4;
 
 	object_remove_internal_reference(&stdin->base);
 	object_remove_internal_reference(&stdout->base);
@@ -655,28 +676,24 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               void *opaque) {
 	int phase = 0;
 	APIE error_code;
-	String *absolute_working_directory;
+	char bin_directory[1024];
 	char *log_directory;
 	String *dev_null_file_name;
 
-	// create absolute working directory string object
-	error_code = string_asprintf(NULL,
-	                             OBJECT_CREATE_FLAG_INTERNAL |
-	                             OBJECT_CREATE_FLAG_LOCKED,
-	                             NULL, &absolute_working_directory,
-	                             "%s/bin/%s",
-	                             root_directory->buffer,
-	                             config->working_directory->buffer);
+	// format bin directory name
+	if (robust_snprintf(bin_directory, sizeof(bin_directory), "%s/bin",
+	                    root_directory->buffer) < 0) {
+		error_code = api_get_error_code_from_errno();
 
-	if (error_code != API_E_SUCCESS) {
+		log_error("Could not format program bin directory name: %s (%d)",
+		          get_errno_name(errno), errno);
+
 		goto cleanup;
 	}
 
-	phase = 1;
-
-	// create absolute working directory as default user (UID 1000, GID 1000)
-	error_code = directory_create(absolute_working_directory->buffer,
-	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
+	// create bin directory as default user (UID 1000, GID 1000)
+	error_code = directory_create(bin_directory, DIRECTORY_FLAG_RECURSIVE,
+	                              0755, 1000, 1000);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -692,7 +709,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 2;
+	phase = 1;
 
 	// create log directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(log_directory, DIRECTORY_FLAG_RECURSIVE,
@@ -712,7 +729,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 3;
+	phase = 2;
 
 	program_scheduler->identifier = identifier;
 	program_scheduler->root_directory = root_directory;
@@ -721,7 +738,10 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->spawn = spawn;
 	program_scheduler->error = error;
 	program_scheduler->opaque = opaque;
-	program_scheduler->absolute_working_directory = absolute_working_directory;
+	program_scheduler->absolute_working_directory = NULL;
+	program_scheduler->absolute_stdin_file_name = NULL;
+	program_scheduler->absolute_stdout_file_name = NULL;
+	program_scheduler->absolute_stderr_file_name = NULL;
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION;
@@ -743,24 +763,21 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 3;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 3:
+	case 2:
 		string_unlock(dev_null_file_name);
 
-	case 2:
-		free(log_directory);
-
 	case 1:
-		string_unlock(absolute_working_directory);
+		free(log_directory);
 
 	default:
 		break;
 	}
 
-	return phase == 4 ? API_E_SUCCESS : error_code;
+	return phase == 3 ? API_E_SUCCESS : error_code;
 }
 
 void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
@@ -778,12 +795,31 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 
 	string_unlock(program_scheduler->dev_null_file_name);
 	free(program_scheduler->log_directory);
-	string_unlock(program_scheduler->absolute_working_directory);
+
+	if (program_scheduler->absolute_stderr_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stderr_file_name);
+	}
+
+	if (program_scheduler->absolute_stdout_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stdout_file_name);
+	}
+
+	if (program_scheduler->absolute_stdin_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stdin_file_name);
+	}
+
+	if (program_scheduler->absolute_working_directory != NULL) {
+		string_unlock(program_scheduler->absolute_working_directory);
+	}
 }
 
 void program_scheduler_update(ProgramScheduler *program_scheduler) {
+	int phase = 0;
 	APIE error_code;
 	String *absolute_working_directory;
+	String *absolute_stdin_file_name;
+	String *absolute_stdout_file_name;
+	String *absolute_stderr_file_name;
 
 	// create absolute working directory string object
 	error_code = string_asprintf(NULL,
@@ -799,8 +835,10 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 		                               "Could not wrap absolute program working directory name into string object: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
-		return;
+		goto cleanup;
 	}
+
+	phase = 1;
 
 	// create absolute working directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(absolute_working_directory->buffer,
@@ -813,12 +851,96 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 
 		string_unlock(absolute_working_directory);
 
-		return;
+		goto cleanup;
 	}
 
-	string_unlock(program_scheduler->absolute_working_directory);
+	// create absolute stdin filename string object
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &absolute_stdin_file_name,
+	                             "%s/bin/%s",
+	                             program_scheduler->root_directory->buffer,
+	                             program_scheduler->config->stdin_file_name->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not wrap absolute stdin file name into string object: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// FIXME: need to ensure that directory part of stdin file name exists
+
+	// create absolute stdout filename string object
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &absolute_stdout_file_name,
+	                             "%s/bin/%s",
+	                             program_scheduler->root_directory->buffer,
+	                             program_scheduler->config->stdout_file_name->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not wrap absolute stdout file name into string object: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		goto cleanup;
+	}
+
+	phase = 3;
+
+	// FIXME: need to ensure that directory part of stdout file name exists
+
+	// create absolute stderr filename string object
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &absolute_stderr_file_name,
+	                             "%s/bin/%s",
+	                             program_scheduler->root_directory->buffer,
+	                             program_scheduler->config->stderr_file_name->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not wrap absolute stderr file name into string object: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		goto cleanup;
+	}
+
+	phase = 4;
+
+	// FIXME: need to ensure that directory part of stderr file name exists
+
+	// update stored string objects
+	if (program_scheduler->absolute_working_directory != NULL) {
+		string_unlock(program_scheduler->absolute_working_directory);
+	}
 
 	program_scheduler->absolute_working_directory = absolute_working_directory;
+
+	if (program_scheduler->absolute_stdin_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stdin_file_name);
+	}
+
+	program_scheduler->absolute_stdin_file_name = absolute_stdin_file_name;
+
+	if (program_scheduler->absolute_stdout_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stdout_file_name);
+	}
+
+	program_scheduler->absolute_stdout_file_name = absolute_stdout_file_name;
+
+	if (program_scheduler->absolute_stderr_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stderr_file_name);
+	}
+
+	program_scheduler->absolute_stderr_file_name = absolute_stderr_file_name;
 
 	// update state
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION;
@@ -827,6 +949,21 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 		program_scheduler_stop(program_scheduler);
 	} else {
 		program_scheduler_start(program_scheduler);
+	}
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 3:
+		string_unlock(absolute_stdout_file_name);
+
+	case 2:
+		string_unlock(absolute_stdin_file_name);
+
+	case 1:
+		string_unlock(absolute_working_directory);
+
+	default:
+		break;
 	}
 }
 

@@ -66,10 +66,13 @@ typedef struct {
 	String *working_directory; // used in <home>/programs/<identifier>/bin/<working_directory>
 	ProgramStdioRedirection stdin_redirection;
 	String *stdin_file_name; // only != NULL if stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	                         // used in <home>/programs/<identifier>/bin/<stdin_file_name>
 	ProgramStdioRedirection stdout_redirection;
 	String *stdout_file_name; // only != NULL if stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	                          // used in <home>/programs/<identifier>/bin/<stdout_file_name>
 	ProgramStdioRedirection stderr_redirection;
 	String *stderr_file_name; // only != NULL if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	                          // used in <home>/programs/<identifier>/bin/<stderr_file_name>
 	ProgramStartCondition start_condition;
 	uint64_t start_timestamp;
 	uint32_t start_delay; // seconds

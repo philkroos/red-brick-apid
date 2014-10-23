@@ -751,14 +751,8 @@ APIE program_set_stdio_redirection(Program *program,
 			goto cleanup;
 		}
 
-		if (*stdin_file_name->buffer != '/') {
-			error_code = API_E_INVALID_PARAMETER;
-
-			log_warn("Cannot redirect stdin to relative file name '%s'",
-			         stdin_file_name->buffer);
-
-			goto cleanup;
-		}
+		// FIXME: check that stdin_file_name is relative and stays inside
+		//        of <home>/programs/<identifier>/bin
 	}
 
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
@@ -781,14 +775,8 @@ APIE program_set_stdio_redirection(Program *program,
 			goto cleanup;
 		}
 
-		if (*stdout_file_name->buffer != '/') {
-			error_code = API_E_INVALID_PARAMETER;
-
-			log_warn("Cannot redirect stdout to relative file name '%s'",
-			         stdout_file_name->buffer);
-
-			goto cleanup;
-		}
+		// FIXME: check that stdout_file_name is relative and stays inside
+		//        of <home>/programs/<identifier>/bin
 	}
 
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
@@ -811,14 +799,8 @@ APIE program_set_stdio_redirection(Program *program,
 			goto cleanup;
 		}
 
-		if (*stderr_file_name->buffer != '/') {
-			error_code = API_E_INVALID_PARAMETER;
-
-			log_warn("Cannot redirect stderr to relative file name '%s'",
-			         stderr_file_name->buffer);
-
-			goto cleanup;
-		}
+		// FIXME: check that stderr_file_name is relative and stays inside
+		//        of <home>/programs/<identifier>/bin
 	}
 
 	// backup config

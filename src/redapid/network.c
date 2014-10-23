@@ -92,7 +92,7 @@ int network_init(const char *socket_filename) {
 	log_debug("Initializing network subsystem");
 
 	if (strlen(socket_filename) >= sizeof(address.sun_path)) {
-		log_error("UNIX domain socket filename '%s' is too long", socket_filename);
+		log_error("UNIX domain socket file name '%s' is too long", socket_filename);
 
 		return -1;
 	}
