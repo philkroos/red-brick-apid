@@ -636,7 +636,6 @@ APIE program_config_load(ProgramConfig *program_config) {
 	int phase = 0;
 	APIE error_code = API_E_UNKNOWN_ERROR;
 	ConfFile conf_file;
-	uint64_t version;
 	bool defined;
 	String *executable;
 	List *arguments;
@@ -685,24 +684,6 @@ APIE program_config_load(ProgramConfig *program_config) {
 			log_error("Could not read from '%s': %s (%d)",
 			          program_config->filename, get_errno_name(errno), errno);
 		}
-
-		goto cleanup;
-	}
-
-	// get version
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "version", &version, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// check version
-	if (version != 1) {
-		error_code = API_E_MALFORMED_PROGRAM_CONFIG;
-
-		log_error("Invalid version value %llu in '%s'",
-		          (unsigned long long int)version, program_config->filename);
 
 		goto cleanup;
 	}
@@ -1143,14 +1124,6 @@ APIE program_config_save(ProgramConfig *program_config) {
 		log_error("Could not read from '%s': %s (%d)",
 		          program_config->filename, get_errno_name(errno), errno);
 
-		goto cleanup;
-	}
-
-	// set version
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "version", 1, 10, 0);
-
-	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
