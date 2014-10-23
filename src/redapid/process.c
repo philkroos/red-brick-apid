@@ -336,7 +336,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	if (*executable->buffer == '\0') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Executable cannot be empty");
+		log_warn("Cannot spawn child process using empty executable name");
 
 		goto cleanup;
 	}
@@ -466,7 +466,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	if (*working_directory->buffer == '\0') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Working directory cannot be empty");
+		log_warn("Cannot spawn child process (executable: %s) using empty working directory name",
+		         executable->buffer);
 
 		goto cleanup;
 	}
@@ -474,8 +475,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	if (*working_directory->buffer != '/') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Cannot use working directory with relative name '%s'",
-		         working_directory->buffer);
+		log_warn("Cannot spawn child process (executable: %s) using working directory with relative name '%s'",
+		         executable->buffer, working_directory->buffer);
 
 		goto cleanup;
 	}
