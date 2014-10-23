@@ -38,6 +38,8 @@ typedef struct {
 
 APIE string_wrap(const char *buffer, Session *session,
                  uint16_t object_create_flags, ObjectID *id, String **object);
+APIE string_asprintf(Session *session, uint16_t object_create_flags,
+                     ObjectID *id, String **object, const char *format, ...) ATTRIBUTE_FMT_PRINTF(5, 6);
 APIE string_allocate(uint32_t reserve, char *buffer, Session *session, ObjectID *id);
 
 APIE string_truncate(String *string, uint32_t length);

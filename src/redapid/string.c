@@ -19,7 +19,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#define _GNU_SOURCE // for asprintf from stdio.h
+
 #include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -73,32 +77,48 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 	return API_E_SUCCESS;
 }
 
-static APIE string_create(uint32_t reserve, Session *session,
+static APIE string_create(uint32_t reserve, char *buffer, Session *session,
                           uint16_t object_create_flags, String **string) {
 	int phase = 0;
-	APIE error_code;
+	bool external = buffer != NULL;
+	uint32_t length;
 	uint32_t allocated;
-	char *buffer;
+	APIE error_code;
 
-	if (reserve > INT32_MAX) {
-		log_warn("Cannot reserve %u bytes, exceeds maximum length of string object", reserve);
+	if (!external) {
+		if (reserve > INT32_MAX) {
+			log_warn("Cannot reserve %u bytes, exceeds maximum length of string object", reserve);
 
-		return API_E_OUT_OF_RANGE;
-	}
+			return API_E_OUT_OF_RANGE;
+		}
 
-	++reserve; // one extra byte for the NULL-terminator
+		++reserve; // one extra byte for the NULL-terminator
 
-	// allocate buffer
-	allocated = GROW_ALLOCATION(reserve);
-	buffer = malloc(allocated);
+		// allocate buffer
+		length = 0;
+		allocated = GROW_ALLOCATION(reserve);
+		buffer = malloc(allocated);
 
-	if (buffer == NULL) {
-		error_code = API_E_NO_FREE_MEMORY;
+		if (buffer == NULL) {
+			error_code = API_E_NO_FREE_MEMORY;
 
-		log_error("Could not allocate buffer for %u bytes: %s (%d)",
-		          allocated, get_errno_name(ENOMEM), ENOMEM);
+			log_error("Could not allocate buffer for %u bytes: %s (%d)",
+			          allocated, get_errno_name(ENOMEM), ENOMEM);
 
-		goto cleanup;
+			goto cleanup;
+		}
+	} else {
+		length = strlen(buffer);
+
+		if (length > INT32_MAX) {
+			error_code = API_E_OUT_OF_RANGE;
+
+			log_warn("Length of %u bytes exceeds maximum length of string object", length);
+
+			goto cleanup;
+		}
+
+		allocated = length + 1;
 	}
 
 	phase = 1;
@@ -119,7 +139,7 @@ static APIE string_create(uint32_t reserve, Session *session,
 
 	// create string object
 	(*string)->buffer = buffer;
-	(*string)->length = 0;
+	(*string)->length = length;
 	(*string)->allocated = allocated;
 
 	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING,
@@ -137,7 +157,9 @@ cleanup:
 		free(*string);
 
 	case 1:
-		free(buffer);
+		if (!external) {
+			free(buffer);
+		}
 
 	default:
 		break;
@@ -158,7 +180,7 @@ APIE string_wrap(const char *buffer, Session *session,
 		return API_E_OUT_OF_RANGE;
 	}
 
-	error_code = string_create(length, session, object_create_flags, &string);
+	error_code = string_create(length, NULL, session, object_create_flags, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -177,7 +199,47 @@ APIE string_wrap(const char *buffer, Session *session,
 		*object = string;
 	}
 
-	return error_code;
+	return API_E_SUCCESS;
+}
+
+APIE string_asprintf(Session *session, uint16_t object_create_flags,
+                     ObjectID *id, String **object, const char *format, ...) {
+	va_list arguments;
+	char *buffer;
+	int rc;
+	APIE error_code;
+	String *string;
+
+	va_start(arguments, format);
+
+	rc = vasprintf(&buffer, format, arguments);
+
+	va_end(arguments);
+
+	if (rc < 0) {
+		log_error("Could not allocate string object: %s (%d)",
+		          get_errno_name(ENOMEM), ENOMEM);
+
+		return API_E_NO_FREE_MEMORY;
+	}
+
+	error_code = string_create(0, buffer, session, object_create_flags, &string);
+
+	if (error_code != API_E_SUCCESS) {
+		free(buffer);
+
+		return error_code;
+	}
+
+	if (id != NULL) {
+		*id = string->base.id;
+	}
+
+	if (object != NULL) {
+		*object = string;
+	}
+
+	return API_E_SUCCESS;
 }
 
 // public API
@@ -190,7 +252,7 @@ APIE string_allocate(uint32_t reserve, char *buffer, Session *session, ObjectID 
 		reserve = length;
 	}
 
-	error_code = string_create(reserve, session, OBJECT_CREATE_FLAG_EXTERNAL, &string);
+	error_code = string_create(reserve, NULL, session, OBJECT_CREATE_FLAG_EXTERNAL, &string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;

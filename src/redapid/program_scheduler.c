@@ -651,31 +651,22 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               String *identifier, String *root_directory,
                               ProgramConfig *config, bool reboot,
                               ProgramSchedulerSpawnFunction spawn,
-                              ProgramSchedulerErrorFunction error, void *opaque) {
+                              ProgramSchedulerErrorFunction error,
+                              void *opaque) {
 	int phase = 0;
 	APIE error_code;
-	char buffer[1024];
 	String *absolute_working_directory;
 	char *log_directory;
 	String *dev_null_file_name;
 
-	// format absolute working directory name
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin/%s",
-	                    root_directory->buffer,
-	                    config->working_directory->buffer) < 0) {
-		error_code = api_get_error_code_from_errno();
-
-		log_error("Could not format absolute program working directory name: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	// wrap working directory string
-	error_code = string_wrap(buffer, NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &absolute_working_directory);
+	// create absolute working directory string object
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &absolute_working_directory,
+	                             "%s/bin/%s",
+	                             root_directory->buffer,
+	                             config->working_directory->buffer);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -683,7 +674,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 
 	phase = 1;
 
-	// create working directory as default user (UID 1000, GID 1000)
+	// create absolute working directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(absolute_working_directory->buffer,
 	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
 
@@ -791,26 +782,17 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 }
 
 void program_scheduler_update(ProgramScheduler *program_scheduler) {
-	char buffer[1024];
 	APIE error_code;
 	String *absolute_working_directory;
 
-	// format absolute working directory name
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/bin/%s",
-	                    program_scheduler->root_directory->buffer,
-	                    program_scheduler->config->working_directory->buffer) < 0) {
-		program_scheduler_handle_error(program_scheduler, true,
-		                               "Could not format absolute program working directory name: %s (%d)",
-		                               get_errno_name(errno), errno);
-
-		return;
-	}
-
-	// wrap working directory string
-	error_code = string_wrap(buffer, NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &absolute_working_directory);
+	// create absolute working directory string object
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &absolute_working_directory,
+	                             "%s/bin/%s",
+	                             program_scheduler->root_directory->buffer,
+	                             program_scheduler->config->working_directory->buffer);
 
 	if (error_code != API_E_SUCCESS) {
 		program_scheduler_handle_error(program_scheduler, false,
@@ -820,7 +802,7 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 		return;
 	}
 
-	// create working directory as default user (UID 1000, GID 1000)
+	// create absolute working directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(absolute_working_directory->buffer,
 	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
 

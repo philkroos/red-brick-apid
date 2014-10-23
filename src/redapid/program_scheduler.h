@@ -64,7 +64,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               String *identifier, String *root_directory,
                               ProgramConfig *config, bool reboot,
                               ProgramSchedulerSpawnFunction spawn,
-                              ProgramSchedulerErrorFunction error, void *opaque);
+                              ProgramSchedulerErrorFunction error,
+                              void *opaque);
 void program_scheduler_destroy(ProgramScheduler *program_scheduler);
 
 void program_scheduler_update(ProgramScheduler *program_scheduler);

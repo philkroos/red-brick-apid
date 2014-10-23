@@ -295,7 +295,6 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	int phase = 0;
 	APIE error_code;
 	String *identifier;
-	char buffer[1024];
 	char config_filename[1024];
 	String *root_directory;
 	Program *program;
@@ -319,20 +318,13 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	}
 
 	// create root directory string object
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s",
-	                    inventory_get_programs_directory(), identifier->buffer) < 0) {
-		error_code = api_get_error_code_from_errno();
-
-		log_error("Could not format program directory name: %s (%d)",
-		          get_errno_name(errno), errno);
-
-		goto cleanup;
-	}
-
-	error_code = string_wrap(buffer, NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &root_directory);
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &root_directory,
+	                             "%s/%s",
+	                             inventory_get_programs_directory(),
+	                             identifier->buffer);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
