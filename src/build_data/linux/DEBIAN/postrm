@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "purge" ]; then
+	rm -f /var/log/redapid.log
+
+	if [ -x /etc/init.d/redapid ]; then
+		update-rc.d redapid remove > /dev/null
+	fi
+fi
+
+exit 0

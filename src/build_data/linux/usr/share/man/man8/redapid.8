@@ -1,0 +1,63 @@
+.\" Process this file with: groff -man -Tascii redapid.8
+.TH REDAPID 8 2014-01-30 Tinkerforge
+.\" Turn off justification for nroff. Always turn off hyphenation.
+.if n .ad l
+.nh
+.SH NAME
+redapid \- Tinkerforge RED Brick API Daemon
+.SH SYNOPSIS
+.B redapid
+[--help|--version|--check-config|--daemon] [--debug]
+.SH DESCRIPTION
+The
+.B redapid
+The RED Brick API Daemon program is part of the Tinkerforge software 
+infrastructure. It implements the interface of the RED Brick. Routing
+of the messages is done by the Brick Daemon, so the RED Brick API Daemon
+should always run together with the Brick Daemon.
+.PP
+.SH OPTIONS
+.IP "\fB\-\-help\fR" 4
+Print help for command line options and exit.
+.IP "\fB\-\-version\fR" 4
+Print version number and exit.
+.IP "\fB\-\-check-config\fR" 4
+Check configuration file for errors, print the result and exit.
+.IP "\fB\-\-daemon\fR" 4
+Run as daemon and write PID and log file.
+.IP "\fB\-\-debug\fR" 4
+Set all log levels to debug, overriding configuration file values.
+.SH FILES
+.SS "When run as \fBroot\fP"
+.IP "\fI/etc/redapid.conf\fR" 4
+The system wide configuration file. See
+.IR redapid.conf (5)
+for further details.
+.IP "\fI/var/log/redapid.log\fR" 4
+Per system wide log file.
+.IP "\fI/var/run/redapid.pid\fR" 4
+Per system wide PID file.
+.SS "When run as \fBnon-root\fP"
+.IP "\fI~/.redapid/redapid.conf\fR" 4
+Per user configuration file. See
+.IR redapid.conf (5)
+for further details.
+.IP "\fI~/.redapid/redapid.log\fR" 4
+Per user log file.
+.IP "\fI~/.redapid/redapid.pid\fR" 4
+Per user PID file.
+.SH BUGS
+Please report all bugs you discover to
+\fI\%https://github.com/Tinkerforge/red-brick-apid/issues\fR
+.SH AUTHOR
+Matthias Bolte <matthias@tinkerforge.com>
+.SH COPYRIGHT
+Copyright (C) 2014 Matthias Bolte
+.SH LICENSE
+redapid is distributed under the terms of the GNU GPL v2+. This is free
+software; see the source for copying conditions. There is NO warranty;
+not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+.SH "SEE ALSO"
+.IR redapid.conf (5)
+
+For further information see \fI\%http://www.tinkerforge.com\fR
