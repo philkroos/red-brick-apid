@@ -127,14 +127,12 @@ static APIE program_config_set_string(ProgramConfig *program_config,
 
 static APIE program_config_get_string(ProgramConfig *program_config,
                                       ConfFile *conf_file, const char *name,
-                                      String **value) {
+                                      String **value, const char *default_value) {
 	APIE error_code;
 	const char *string = conf_file_get_option_value(conf_file, name);
 
 	if (string == NULL) {
-		*value = NULL;
-
-		return API_E_SUCCESS;
+		string = default_value;
 	}
 
 	error_code = string_wrap(string, NULL,
@@ -143,8 +141,13 @@ static APIE program_config_get_string(ProgramConfig *program_config,
 	                         NULL, value);
 
 	if (error_code != API_E_SUCCESS) {
-		log_error("Could not create string object from '%s' option value in '%s': %s (%d)",
-		          name, program_config->filename, get_errno_name(errno), errno);
+		if (string == default_value) {
+			log_error("Could not create string object from '%s' option default value: %s (%d)",
+			          name, get_errno_name(errno), errno);
+		} else {
+			log_error("Could not create string object from '%s' option value in '%s': %s (%d)",
+			          name, program_config->filename, get_errno_name(errno), errno);
+		}
 
 		return error_code;
 	}
@@ -200,7 +203,7 @@ static APIE program_config_set_integer(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 }
 
-static APIE program_config_get_integer(ProgramConfig *program_config,
+static void program_config_get_integer(ProgramConfig *program_config,
                                        ConfFile *conf_file, const char *name,
                                        uint64_t *value, uint64_t default_value) {
 	const char *string = conf_file_get_option_value(conf_file, name);
@@ -213,7 +216,7 @@ static APIE program_config_get_integer(ProgramConfig *program_config,
 	if (string == NULL) {
 		*value = default_value;
 
-		return API_E_SUCCESS;
+		return;
 	}
 
 	string = string + strspn(string, " \f\n\r\t\v");
@@ -223,10 +226,10 @@ static APIE program_config_get_integer(ProgramConfig *program_config,
 		length = strlen(string);
 
 		if (length > 64) {
-			log_error("Value of '%s' option in '%s' is too long",
-			          name, program_config->filename);
+			log_warn("Value of '%s' option in '%s' is too long, using default value instead",
+			         name, program_config->filename);
 
-			return API_E_MALFORMED_PROGRAM_CONFIG;
+			goto error;
 		}
 
 		*value = 0;
@@ -235,43 +238,44 @@ static APIE program_config_get_integer(ProgramConfig *program_config,
 			if (*p == '1') {
 				*value += base;
 			} else if (*p != '0') {
-				log_error("Value of '%s' option in '%s' contains invalid digits",
-				          name, program_config->filename);
+				log_warn("Value of '%s' option in '%s' contains invalid digits, using default value instead",
+				         name, program_config->filename);
 
-				return API_E_MALFORMED_PROGRAM_CONFIG;
+				goto error;
 			}
 		}
-
-		return API_E_SUCCESS;
 	} else {
 		errno = 0;
 		tmp = strtoll(string, &end, 0);
 
 		if (errno != 0) {
-			log_error("Could not parse integer from value of '%s' option in '%s': %s (%d)",
-			          name, program_config->filename, get_errno_name(errno), errno);
+			log_warn("Could not parse integer from value of '%s' option in '%s', using default value instead: %s (%d)",
+			         name, program_config->filename, get_errno_name(errno), errno);
 
-			return API_E_MALFORMED_PROGRAM_CONFIG;
+			goto error;
 		}
 
 		if (end == NULL || *end != '\0') {
-			log_error("Value of '%s' option in '%s' has a non-numerical suffix",
-			          name, program_config->filename);
+			log_warn("Value of '%s' option in '%s' has a non-numerical suffix, using default value instead",
+			         name, program_config->filename);
 
-			return API_E_MALFORMED_PROGRAM_CONFIG;
+			goto error;
 		}
 
 		if (tmp < 0) {
-			log_error("Value of '%s' option in '%s' cannot be negative",
-			          name, program_config->filename);
+			log_warn("Value of '%s' option in '%s' cannot be negative, using default value instead",
+			         name, program_config->filename);
 
-			return API_E_MALFORMED_PROGRAM_CONFIG;
+			goto error;
 		}
 
 		*value = tmp;
-
-		return API_E_SUCCESS;
 	}
+
+	return;
+
+error:
+	*value = default_value;
 }
 
 static APIE program_config_set_boolean(ProgramConfig *program_config,
@@ -291,31 +295,23 @@ static APIE program_config_set_boolean(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 }
 
-static APIE program_config_get_boolean(ProgramConfig *program_config,
+static void program_config_get_boolean(ProgramConfig *program_config,
                                        ConfFile *conf_file, const char *name,
                                        bool *value, bool default_value) {
 	const char *string = conf_file_get_option_value(conf_file, name);
 
 	if (string == NULL) {
 		*value = default_value;
-
-		return API_E_SUCCESS;
-	}
-
-	if (strcasecmp(string, "true") == 0) {
+	} else if (strcasecmp(string, "true") == 0) {
 		*value = true;
-
-		return API_E_SUCCESS;
 	} else if (strcasecmp(string, "false") == 0) {
 		*value = false;
+	} else {
+		log_warn("Could not parse boolean from value of '%s' option in '%s', using default value instead: %s (%d)",
+		         name, program_config->filename, get_errno_name(errno), errno);
 
-		return API_E_SUCCESS;
+		*value = default_value;
 	}
-
-	log_error("Could not parse boolean from value of '%s' option in '%s': %s (%d)",
-	          name, program_config->filename, get_errno_name(errno), errno);
-
-	return API_E_MALFORMED_PROGRAM_CONFIG;
 }
 
 static APIE program_config_set_symbol(ProgramConfig *program_config,
@@ -336,7 +332,7 @@ static APIE program_config_set_symbol(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 }
 
-static APIE program_config_get_symbol(ProgramConfig *program_config,
+static void program_config_get_symbol(ProgramConfig *program_config,
                                       ConfFile *conf_file, const char *name,
                                       int *value, int default_value,
                                       ProgramConfigGetValueFunction function) {
@@ -344,18 +340,12 @@ static APIE program_config_get_symbol(ProgramConfig *program_config,
 
 	if (string == NULL) {
 		*value = default_value;
+	} else if (function(string, value) < 0) {
+		log_warn("Invalid symbol for '%s' option in '%s', using default value instead",
+		         name, program_config->filename);
 
-		return API_E_SUCCESS;
+		*value = default_value;
 	}
-
-	if (function(string, value) < 0) {
-		log_error("Invalid symbol for '%s' option in '%s'",
-		          name, program_config->filename);
-
-		return API_E_MALFORMED_PROGRAM_CONFIG;
-	}
-
-	return API_E_SUCCESS;
 }
 
 static APIE program_config_set_string_list(ProgramConfig *program_config,
@@ -404,13 +394,7 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 
 	// get <name>.length
 	snprintf(buffer, sizeof(buffer), "%s.length", name);
-
-	error_code = program_config_get_integer(program_config, conf_file, buffer,
-	                                        &length, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
+	program_config_get_integer(program_config, conf_file, buffer, &length, 0);
 
 	// create list object
 	error_code = list_allocate(length, NULL,
@@ -427,18 +411,9 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 		snprintf(buffer, sizeof(buffer), "%s.item%d", name, i);
 
 		error_code = program_config_get_string(program_config, conf_file,
-		                                       buffer, &item);
+		                                       buffer, &item, "");
 
 		if (error_code != API_E_SUCCESS) {
-			goto error;
-		}
-
-		if (item == NULL) {
-			error_code = API_E_MALFORMED_PROGRAM_CONFIG;
-
-			log_error("Missing item %d for '%s' option in '%s'",
-			          i, name, program_config->filename);
-
 			goto error;
 		}
 
@@ -689,16 +664,11 @@ APIE program_config_load(ProgramConfig *program_config) {
 	}
 
 	// get defined
-	error_code = program_config_get_boolean(program_config, &conf_file,
-	                                        "defined", &defined, false);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_boolean(program_config, &conf_file, "defined", &defined, false);
 
 	// get executable
 	error_code = program_config_get_string(program_config, &conf_file,
-	                                       "executable", &executable);
+	                                       "executable", &executable, "");
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -728,7 +698,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	// get working_directory
 	error_code = program_config_get_string(program_config, &conf_file,
-	                                       "working_directory", &working_directory);
+	                                       "working_directory", &working_directory, ".");
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -737,31 +707,24 @@ APIE program_config_load(ProgramConfig *program_config) {
 	phase = 5;
 
 	// get stdin.redirection
-	error_code = program_config_get_symbol(program_config, &conf_file,
-	                                       "stdin.redirection",
-	                                       &stdin_redirection,
-	                                       PROGRAM_STDIO_REDIRECTION_DEV_NULL,
-	                                       program_config_get_stdio_redirection_value);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_symbol(program_config, &conf_file,
+	                          "stdin.redirection", &stdin_redirection,
+	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
+	                          program_config_get_stdio_redirection_value);
 
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
-		error_code = API_E_MALFORMED_PROGRAM_CONFIG;
+		log_warn("Invalid 'stdin.redirection' option in '%s', using default value instead",
+		         program_config->filename);
 
-		log_error("Invalid 'stdin.redirection' option in '%s'",
-		          program_config->filename);
-
-		goto cleanup;
+		stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	}
 
 	// get stdin.file_name
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
 		                                       "stdin.file_name",
-		                                       &stdin_file_name);
+		                                       &stdin_file_name, "");
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -773,34 +736,28 @@ APIE program_config_load(ProgramConfig *program_config) {
 	phase = 6;
 
 	// get stdout.redirection
-	error_code = program_config_get_symbol(program_config, &conf_file,
-	                                       "stdout.redirection",
-	                                       &stdout_redirection,
-	                                       PROGRAM_STDIO_REDIRECTION_DEV_NULL,
-	                                       program_config_get_stdio_redirection_value);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_symbol(program_config, &conf_file,
+	                          "stdout.redirection", &stdout_redirection,
+	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
+	                          program_config_get_stdio_redirection_value);
 
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
-		error_code = API_E_MALFORMED_PROGRAM_CONFIG;
+		log_warn("Invalid 'stdout.redirection' option in '%s', using default value instead",
+		         program_config->filename);
 
-		log_error("Invalid 'stdout.redirection' option in '%s'",
-		          program_config->filename);
-
-		goto cleanup;
+		stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	}
 
 	// get stdout.file_name
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
 		                                       "stdout.file_name",
-		                                       &stdout_file_name);
+		                                       &stdout_file_name, "");
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
+
 	} else {
 		stdout_file_name = NULL;
 	}
@@ -808,21 +765,16 @@ APIE program_config_load(ProgramConfig *program_config) {
 	phase = 7;
 
 	// get stderr.redirection
-	error_code = program_config_get_symbol(program_config, &conf_file,
-	                                       "stderr.redirection",
-	                                       &stderr_redirection,
-	                                       PROGRAM_STDIO_REDIRECTION_DEV_NULL,
-	                                       program_config_get_stdio_redirection_value);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_symbol(program_config, &conf_file,
+	                          "stderr.redirection", &stderr_redirection,
+	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
+	                          program_config_get_stdio_redirection_value);
 
 	// get stderr.file_name
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
 		                                       "stderr.file_name",
-		                                       &stderr_file_name);
+		                                       &stderr_file_name, "");
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -834,103 +786,52 @@ APIE program_config_load(ProgramConfig *program_config) {
 	phase = 8;
 
 	// get start.condition
-	error_code = program_config_get_symbol(program_config, &conf_file,
-	                                       "start.condition", &start_condition,
-	                                       PROGRAM_START_CONDITION_NEVER,
-	                                       program_config_get_start_condition_value);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_symbol(program_config, &conf_file,
+	                          "start.condition", &start_condition,
+	                          PROGRAM_START_CONDITION_NEVER,
+	                          program_config_get_start_condition_value);
 
 	// get start.timestamp
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "start.timestamp", &start_timestamp, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "start.timestamp",
+	                           &start_timestamp, 0);
 
 	// get start.delay
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "start.delay", &start_delay, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "start.delay",
+	                           &start_delay, 0);
 
 	// get repeat.mode
-	error_code = program_config_get_symbol(program_config, &conf_file,
-	                                       "repeat.mode", &repeat_mode,
-	                                       PROGRAM_REPEAT_MODE_NEVER,
-	                                       program_config_get_repeat_mode_value);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_symbol(program_config, &conf_file,
+	                          "repeat.mode", &repeat_mode,
+	                          PROGRAM_REPEAT_MODE_NEVER,
+	                          program_config_get_repeat_mode_value);
 
 	// get repeat.interval
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.interval",
-	                                        &repeat_interval, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "repeat.interval",
+	                           &repeat_interval, 0);
 
 	// get repeat.second_mask
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.second_mask",
-	                                        &repeat_second_mask, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file,"repeat.second_mask",
+	                           &repeat_second_mask, 0);
 
 	// get repeat.minute_mask
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.minute_mask",
-	                                        &repeat_minute_mask, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "repeat.minute_mask",
+	                           &repeat_minute_mask, 0);
 
 	// get repeat.hour_mask
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.hour_mask",
-	                                        &repeat_hour_mask, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "repeat.hour_mask",
+	                           &repeat_hour_mask, 0);
 
 	// get repeat.day_mask
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.day_mask",
-	                                        &repeat_day_mask, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "repeat.day_mask",
+	                           &repeat_day_mask, 0);
 
 	// set repeat.month_mask
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.month_mask",
-	                                        &repeat_month_mask, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "repeat.month_mask",
+	                           &repeat_month_mask, 0);
 
 	// get repeat.weekday_mask
-	error_code = program_config_get_integer(program_config, &conf_file,
-	                                        "repeat.weekday_mask",
-	                                        &repeat_weekday_mask, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
+	program_config_get_integer(program_config, &conf_file, "repeat.weekday_mask",
+	                           &repeat_weekday_mask, 0);
 
 	// get custom.* options
 	custom_options = calloc(1, sizeof(Array));
