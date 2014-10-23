@@ -855,67 +855,85 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 	}
 
 	// create absolute stdin filename string object
-	error_code = string_asprintf(NULL,
-	                             OBJECT_CREATE_FLAG_INTERNAL |
-	                             OBJECT_CREATE_FLAG_LOCKED,
-	                             NULL, &absolute_stdin_file_name,
-	                             "%s/bin/%s",
-	                             program_scheduler->root_directory->buffer,
-	                             program_scheduler->config->stdin_file_name->buffer);
+	if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = string_asprintf(NULL,
+		                             OBJECT_CREATE_FLAG_INTERNAL |
+		                             OBJECT_CREATE_FLAG_LOCKED,
+		                             NULL, &absolute_stdin_file_name,
+		                             "%s/bin/%s",
+		                             program_scheduler->root_directory->buffer,
+		                             program_scheduler->config->stdin_file_name->buffer);
 
-	if (error_code != API_E_SUCCESS) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not wrap absolute stdin file name into string object: %s (%d)",
-		                               api_get_error_code_name(error_code), error_code);
+		if (error_code != API_E_SUCCESS) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not wrap absolute stdin file name into string object: %s (%d)",
+			                               api_get_error_code_name(error_code), error_code);
 
-		goto cleanup;
+			goto cleanup;
+		}
+	} else {
+		absolute_stdin_file_name = NULL;
 	}
 
 	phase = 2;
 
-	// FIXME: need to ensure that directory part of stdin file name exists
+	if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// FIXME: need to ensure that directory part of stdin file name exists
+	}
 
 	// create absolute stdout filename string object
-	error_code = string_asprintf(NULL,
-	                             OBJECT_CREATE_FLAG_INTERNAL |
-	                             OBJECT_CREATE_FLAG_LOCKED,
-	                             NULL, &absolute_stdout_file_name,
-	                             "%s/bin/%s",
-	                             program_scheduler->root_directory->buffer,
-	                             program_scheduler->config->stdout_file_name->buffer);
+	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = string_asprintf(NULL,
+		                             OBJECT_CREATE_FLAG_INTERNAL |
+		                             OBJECT_CREATE_FLAG_LOCKED,
+		                             NULL, &absolute_stdout_file_name,
+		                             "%s/bin/%s",
+		                             program_scheduler->root_directory->buffer,
+		                             program_scheduler->config->stdout_file_name->buffer);
 
-	if (error_code != API_E_SUCCESS) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not wrap absolute stdout file name into string object: %s (%d)",
-		                               api_get_error_code_name(error_code), error_code);
+		if (error_code != API_E_SUCCESS) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not wrap absolute stdout file name into string object: %s (%d)",
+			                               api_get_error_code_name(error_code), error_code);
 
-		goto cleanup;
+			goto cleanup;
+		}
+	} else {
+		absolute_stdout_file_name = NULL;
 	}
 
 	phase = 3;
 
-	// FIXME: need to ensure that directory part of stdout file name exists
+	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// FIXME: need to ensure that directory part of stdout file name exists
+	}
 
 	// create absolute stderr filename string object
-	error_code = string_asprintf(NULL,
-	                             OBJECT_CREATE_FLAG_INTERNAL |
-	                             OBJECT_CREATE_FLAG_LOCKED,
-	                             NULL, &absolute_stderr_file_name,
-	                             "%s/bin/%s",
-	                             program_scheduler->root_directory->buffer,
-	                             program_scheduler->config->stderr_file_name->buffer);
+	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = string_asprintf(NULL,
+		                             OBJECT_CREATE_FLAG_INTERNAL |
+		                             OBJECT_CREATE_FLAG_LOCKED,
+		                             NULL, &absolute_stderr_file_name,
+		                             "%s/bin/%s",
+		                             program_scheduler->root_directory->buffer,
+		                             program_scheduler->config->stderr_file_name->buffer);
 
-	if (error_code != API_E_SUCCESS) {
-		program_scheduler_handle_error(program_scheduler, false,
+		if (error_code != API_E_SUCCESS) {
+			program_scheduler_handle_error(program_scheduler, false,
 		                               "Could not wrap absolute stderr file name into string object: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
-		goto cleanup;
+			goto cleanup;
+		}
+	} else {
+		absolute_stdout_file_name = NULL;
 	}
 
 	phase = 4;
 
-	// FIXME: need to ensure that directory part of stderr file name exists
+	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// FIXME: need to ensure that directory part of stderr file name exists
+	}
 
 	// update stored string objects
 	if (program_scheduler->absolute_working_directory != NULL) {
@@ -954,10 +972,14 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
-		string_unlock(absolute_stdout_file_name);
+		if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_unlock(absolute_stdout_file_name);
+		}
 
 	case 2:
-		string_unlock(absolute_stdin_file_name);
+		if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_unlock(absolute_stdin_file_name);
+		}
 
 	case 1:
 		string_unlock(absolute_working_directory);
