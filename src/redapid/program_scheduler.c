@@ -926,7 +926,7 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 			goto cleanup;
 		}
 	} else {
-		absolute_stdout_file_name = NULL;
+		absolute_stderr_file_name = NULL;
 	}
 
 	phase = 4;
