@@ -137,11 +137,11 @@ APIE session_create(uint32_t lifetime, SessionID *id) {
 		goto cleanup;
 	}
 
+	phase = 3;
+
 	*id = session->id;
 
 	log_debug("Created session (id: %d, lifetime: %u)", session->id, lifetime);
-
-	phase = 3;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally

@@ -795,6 +795,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		goto cleanup;
 	}
 
+	phase = 5;
+
 	if (id != NULL) {
 		*id = file->base.id;
 	}
@@ -813,8 +815,6 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 		log_debug("Opened file object ("FILE_SIGNATURE_FORMAT", uid: %u, gid: %u, handle: %d)",
 		          file_expand_signature(file), uid, gid, fd);
 	}
-
-	phase = 5;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
@@ -913,6 +913,8 @@ APIE pipe_create_(uint16_t flags, Session *session,
 		goto cleanup;
 	}
 
+	phase = 4;
+
 	if (id != NULL) {
 		*id = file->base.id;
 	}
@@ -923,8 +925,6 @@ APIE pipe_create_(uint16_t flags, Session *session,
 
 	log_debug("Created file object ("FILE_SIGNATURE_FORMAT")",
 	          file_expand_signature(file));
-
-	phase = 4;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally

@@ -531,6 +531,8 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 		goto cleanup;
 	}
 
+	phase = 7;
+
 	program_config->defined = true;
 	program_config->executable = executable;
 	program_config->arguments = arguments;
@@ -554,8 +556,6 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->repeat_month_mask = 0;
 	program_config->repeat_weekday_mask = 0;
 	program_config->custom_options = custom_options;
-
-	phase = 7;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
@@ -939,6 +939,8 @@ APIE program_config_load(ProgramConfig *program_config) {
 		} while (conf_file_get_next_option(&conf_file, &custom_name, &custom_value, &cookie));
 	}
 
+	phase = 11;
+
 	// unlock/destroy old objects
 	string_unlock(program_config->executable);
 	list_unlock(program_config->arguments);
@@ -984,8 +986,6 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->repeat_month_mask   = repeat_month_mask   & ((1ULL << 12) - 1);
 	program_config->repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
 	program_config->custom_options      = custom_options;
-
-	phase = 11;
 
 	conf_file_destroy(&conf_file);
 

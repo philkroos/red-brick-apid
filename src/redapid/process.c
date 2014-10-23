@@ -735,6 +735,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 		goto cleanup;
 	}
 
+	phase = 15;
+
 	if (id != NULL) {
 		*id = process->base.id;
 	}
@@ -748,8 +750,6 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 	log_debug("Spawned process object (id: %u, executable: %s, pid: %u)",
 	          process->base.id, executable->buffer, process->pid);
-
-	phase = 15;
 
 	close(status_pipe[0]);
 	close(status_pipe[1]);

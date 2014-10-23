@@ -208,12 +208,12 @@ APIE directory_open(ObjectID name_id, Session *session, ObjectID *id) {
 		goto cleanup;
 	}
 
+	phase = 4;
+
 	*id = directory->base.id;
 
 	log_debug("Opened directory object (id: %u, name: %s)",
 	          directory->base.id, name->buffer);
-
-	phase = 4;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally

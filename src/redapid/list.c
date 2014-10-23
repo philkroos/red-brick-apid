@@ -85,6 +85,8 @@ APIE list_allocate(uint16_t reserve, Session *session,
 		goto cleanup;
 	}
 
+	phase = 3;
+
 	if (id != NULL) {
 		*id = list->base.id;
 	}
@@ -92,8 +94,6 @@ APIE list_allocate(uint16_t reserve, Session *session,
 	if (object != NULL) {
 		*object = list;
 	}
-
-	phase = 3;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally

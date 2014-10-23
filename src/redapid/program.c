@@ -259,12 +259,12 @@ APIE program_load(const char *identifier, const char *root_directory,
 		goto cleanup;
 	}
 
+	phase = 6;
+
 	log_debug("Loaded program object (id: %u, identifier: %s)",
 	          program->base.id, identifier);
 
 	program_scheduler_update(&program->scheduler);
-
-	phase = 6;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
@@ -412,14 +412,14 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 		goto cleanup;
 	}
 
+	phase = 7;
+
 	*id = program->base.id;
 
 	log_debug("Defined program object (id: %u, identifier: %s)",
 	          program->base.id, identifier->buffer);
 
 	program_scheduler_update(&program->scheduler);
-
-	phase = 7;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
@@ -590,13 +590,13 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 		goto cleanup;
 	}
 
+	phase = 5;
+
 	// unlock old objects
 	string_unlock(backup.executable);
 	list_unlock(backup.arguments);
 	list_unlock(backup.environment);
 	string_unlock(backup.working_directory);
-
-	phase = 5;
 
 	program_scheduler_update(&program->scheduler);
 
@@ -840,6 +840,8 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
+	phase = 5;
+
 	// unlock old objects
 	if (backup.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(backup.stdin_file_name);
@@ -852,8 +854,6 @@ APIE program_set_stdio_redirection(Program *program,
 	if (backup.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(backup.stderr_file_name);
 	}
-
-	phase = 5;
 
 	program_scheduler_update(&program->scheduler);
 
