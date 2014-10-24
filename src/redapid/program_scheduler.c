@@ -279,7 +279,7 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 
 			error_code = file_open(name->base.id,
 			                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE,
-			                       0755, 1000, 1000,
+			                       0644, 1000, 1000,
 			                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 			string_unlock(name);
@@ -356,7 +356,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 		error_code = file_open(program_scheduler->absolute_stdout_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE,
-		                       0755, 1000, 1000,
+		                       0644, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
@@ -427,7 +427,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 		error_code = file_open(program_scheduler->absolute_stderr_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE,
-		                       0755, 1000, 1000,
+		                       0644, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
 		if (error_code != API_E_SUCCESS) {
@@ -863,10 +863,6 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 	}
 
 	phase = 2;
-
-	if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// FIXME: need to ensure that directory part of stdin file name exists
-	}
 
 	// create absolute stdout filename string object
 	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
