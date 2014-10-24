@@ -562,13 +562,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t session_id;
-} ATTRIBUTE_PACKED GetDefinedPrograms_;
+} ATTRIBUTE_PACKED GetPrograms_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t programs_list_id;
-} ATTRIBUTE_PACKED GetDefinedProgramsResponse_;
+} ATTRIBUTE_PACKED GetProgramsResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -585,12 +585,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED UndefineProgram_;
+	uint32_t cookie;
+} ATTRIBUTE_PACKED PurgeProgram_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-} ATTRIBUTE_PACKED UndefineProgramResponse_;
+} ATTRIBUTE_PACKED PurgeProgramResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -949,9 +950,9 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STDIO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROCESS_STATE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_PROCESS_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
-	device_p->response_expected[RED_FUNCTION_GET_DEFINED_PROGRAMS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAMS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_DEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_UNDEFINE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_PURGE_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_IDENTIFIER] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_COMMAND] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -2139,13 +2140,13 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
 	return ret;
 }
 
-int red_get_defined_programs(RED *red, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_programs_list_id) {
+int red_get_programs(RED *red, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_programs_list_id) {
 	DevicePrivate *device_p = red->p;
-	GetDefinedPrograms_ request;
-	GetDefinedProgramsResponse_ response;
+	GetPrograms_ request;
+	GetProgramsResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_DEFINED_PROGRAMS, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAMS, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
@@ -2194,19 +2195,20 @@ int red_define_program(RED *red, uint16_t identifier_string_id, uint16_t session
 	return ret;
 }
 
-int red_undefine_program(RED *red, uint16_t program_id, uint8_t *ret_error_code) {
+int red_purge_program(RED *red, uint16_t program_id, uint32_t cookie, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
-	UndefineProgram_ request;
-	UndefineProgramResponse_ response;
+	PurgeProgram_ request;
+	PurgeProgramResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_UNDEFINE_PROGRAM, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_PURGE_PROGRAM, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;
 	}
 
 	request.program_id = leconvert_uint16_to(program_id);
+	request.cookie = leconvert_uint32_to(cookie);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 

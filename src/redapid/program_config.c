@@ -278,6 +278,8 @@ error:
 	*value = default_value;
 }
 
+#if 0 // currently unused
+
 static APIE program_config_set_boolean(ProgramConfig *program_config,
                                        ConfFile *conf_file, const char *name,
                                        bool value) {
@@ -313,6 +315,8 @@ static void program_config_get_boolean(ProgramConfig *program_config,
 		*value = default_value;
 	}
 }
+
+#endif
 
 static APIE program_config_set_symbol(ProgramConfig *program_config,
                                       ConfFile *conf_file,
@@ -547,7 +551,6 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 
 	phase = 7;
 
-	program_config->defined = true;
 	program_config->executable = executable;
 	program_config->arguments = arguments;
 	program_config->environment = environment;
@@ -625,7 +628,6 @@ APIE program_config_load(ProgramConfig *program_config) {
 	int phase = 0;
 	APIE error_code = API_E_UNKNOWN_ERROR;
 	ConfFile conf_file;
-	bool defined;
 	String *executable;
 	List *arguments;
 	List *environment;
@@ -676,9 +678,6 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 		goto cleanup;
 	}
-
-	// get defined
-	program_config_get_boolean(program_config, &conf_file, "defined", &defined, false);
 
 	// get executable
 	error_code = program_config_get_string(program_config, &conf_file,
@@ -977,7 +976,6 @@ APIE program_config_load(ProgramConfig *program_config) {
 	free(program_config->custom_options);
 
 	// set new objects
-	program_config->defined             = defined;
 	program_config->executable          = executable;
 	program_config->arguments           = arguments;
 	program_config->environment         = environment;
@@ -1071,14 +1069,6 @@ APIE program_config_save(ProgramConfig *program_config) {
 		log_error("Could not read from '%s': %s (%d)",
 		          program_config->filename, get_errno_name(errno), errno);
 
-		goto cleanup;
-	}
-
-	// set defined
-	error_code = program_config_set_boolean(program_config, &conf_file,
-	                                        "defined", program_config->defined);
-
-	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 

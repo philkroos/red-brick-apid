@@ -15,6 +15,7 @@ enum api_e {
 	API_E_OBJECT_IS_LOCKED,
 	API_E_NO_MORE_DATA,
 	API_E_WRONG_LIST_ITEM_TYPE,
+	API_E_PROGRAM_IS_PURGED,
 
 	API_E_INVALID_PARAMETER = 128, // EINVAL
 	API_E_NO_FREE_MEMORY,          // ENOMEM
@@ -311,14 +312,11 @@ enum program_repeat_mode {
 	PROGRAM_REPEAT_MODE_SELECTION
 }
 
-+ get_defined_programs            (uint16_t session_id)           -> uint8_t error_code, uint16_t programs_list_id
-? get_undefined_programs          (uint16_t session_id)           -> uint8_t error_code, uint16_t identifiers_list_id
++ get_programs                    (uint16_t session_id)           -> uint8_t error_code, uint16_t programs_list_id
 + define_program                  (uint16_t identifier_string_id,
                                    uint16_t session_id)           -> uint8_t error_code, uint16_t program_id
-+ undefine_program                (uint16_t program_id)           -> uint8_t error_code
-? recover_program                 (uint16_t identifier_string_id,
-                                   uint16_t session_id)           -> uint8_t error_code, uint16_t program_id
-? purge_program                   (uint16_t identifier_string_id) -> uint8_t error_code
++ purge_program                   (uint16_t program_id,
+                                   uint32_t cookie)               -> uint8_t error_code
 + get_program_identifier          (uint16_t program_id,
                                    uint16_t session_id)           -> uint8_t error_code, uint16_t identifier_string_id
 + get_program_root_directory      (uint16_t program_id,
@@ -386,7 +384,7 @@ enum program_repeat_mode {
                                     uint16_t value_string_id)     -> uint8_t error_code
 + get_custom_program_option_value  (uint16_t program_id,
                                     uint16_t name_string_id,
-                                    uint16_t session_id)      -> uint8_t error_code, uint16_t value_string_id
+                                    uint16_t session_id)          -> uint8_t error_code, uint16_t value_string_id
 + remove_custom_program_option     (uint16_t program_id,
                                     uint16_t name_string_id)      -> uint8_t error_code
 

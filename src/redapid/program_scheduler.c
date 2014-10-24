@@ -997,4 +997,9 @@ void program_scheduler_shutdown(ProgramScheduler *program_scheduler) {
 	program_scheduler->shutdown = true;
 
 	program_scheduler_stop(program_scheduler);
+
+	if (program_scheduler->last_spawned_process != NULL &&
+	    process_is_alive(program_scheduler->last_spawned_process)) {
+		process_kill(program_scheduler->last_spawned_process, PROCESS_SIGNAL_KILL);
+	}
 }

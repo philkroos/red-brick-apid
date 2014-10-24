@@ -25,8 +25,8 @@
 /*
  * API_E_INVALID_OPERATION is returned if the requested operation cannot be
  * performed because the current state of the object does not allow it. for
- * example, trying to append an item to a full list object, trying to undefine
- * an already undefined program.
+ * example, trying to append an item to a full list object, trying to purge
+ * an already purged program.
  *
  * API_E_NOT_SUPPORTED is returned if the requested operation can never be
  * performed. for example, trying to append a list object to itself, trying to
@@ -48,6 +48,7 @@ typedef enum {
 	API_E_OBJECT_IS_LOCKED,
 	API_E_NO_MORE_DATA,
 	API_E_WRONG_LIST_ITEM_TYPE,
+	API_E_PROGRAM_IS_PURGED,
 
 	API_E_INVALID_PARAMETER = 128, // EINVAL
 	API_E_NO_FREE_MEMORY,          // ENOMEM

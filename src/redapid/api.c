@@ -95,9 +95,9 @@ typedef enum {
 	FUNCTION_GET_PROCESS_STATE,
 	CALLBACK_PROCESS_STATE_CHANGED,
 
-	FUNCTION_GET_DEFINED_PROGRAMS,
+	FUNCTION_GET_PROGRAMS,
 	FUNCTION_DEFINE_PROGRAM,
-	FUNCTION_UNDEFINE_PROGRAM,
+	FUNCTION_PURGE_PROGRAM,
 	FUNCTION_GET_PROGRAM_IDENTIFIER,
 	FUNCTION_GET_PROGRAM_ROOT_DIRECTORY,
 	FUNCTION_SET_PROGRAM_COMMAND,
@@ -676,8 +676,8 @@ CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
 	CALL_TYPE_FUNCTION_WITH_SESSION(packet_prefix, function_suffix, body, \
 	                                OBJECT_TYPE_PROGRAM, Program, program)
 
-CALL_FUNCTION_WITH_SESSION(GetDefinedPrograms, get_defined_programs, {
-	response.error_code = inventory_get_defined_programs(session, &response.programs_list_id);
+CALL_FUNCTION_WITH_SESSION(GetPrograms, get_programs, {
+	response.error_code = inventory_get_programs(session, &response.programs_list_id);
 })
 
 CALL_FUNCTION_WITH_SESSION(DefineProgram, define_program, {
@@ -685,8 +685,8 @@ CALL_FUNCTION_WITH_SESSION(DefineProgram, define_program, {
 	                                     &response.program_id);
 })
 
-CALL_PROGRAM_FUNCTION(UndefineProgram, undefine_program, {
-	response.error_code = program_undefine(program);
+CALL_PROGRAM_FUNCTION(PurgeProgram, purge_program, {
+	response.error_code = program_purge(program, request->cookie);
 })
 
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramIdentifier, get_program_identifier, {
@@ -954,9 +954,9 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROCESS_STATE,                GetProcessState,              get_process_state)
 
 	// program
-	DISPATCH_FUNCTION(GET_DEFINED_PROGRAMS,             GetDefinedPrograms,           get_defined_programs)
+	DISPATCH_FUNCTION(GET_PROGRAMS,                     GetPrograms,                  get_programs)
 	DISPATCH_FUNCTION(DEFINE_PROGRAM,                   DefineProgram,                define_program)
-	DISPATCH_FUNCTION(UNDEFINE_PROGRAM,                 UndefineProgram,              undefine_program)
+	DISPATCH_FUNCTION(PURGE_PROGRAM,                    PurgeProgram,                 purge_program)
 	DISPATCH_FUNCTION(GET_PROGRAM_IDENTIFIER,           GetProgramIdentifier,         get_program_identifier)
 	DISPATCH_FUNCTION(GET_PROGRAM_ROOT_DIRECTORY,       GetProgramRootDirectory,      get_program_root_directory)
 	DISPATCH_FUNCTION(SET_PROGRAM_COMMAND,              SetProgramCommand,            set_program_command)
@@ -1047,9 +1047,9 @@ const char *api_get_function_name(int function_id) {
 	case CALLBACK_PROCESS_STATE_CHANGED:            return "process-state-changed";
 
 	// program
-	case FUNCTION_GET_DEFINED_PROGRAMS:             return "defined-programs";
+	case FUNCTION_GET_PROGRAMS:                     return "get-programs";
 	case FUNCTION_DEFINE_PROGRAM:                   return "define-program";
-	case FUNCTION_UNDEFINE_PROGRAM:                 return "undefine-program";
+	case FUNCTION_PURGE_PROGRAM:                    return "purge-program";
 	case FUNCTION_GET_PROGRAM_IDENTIFIER:           return "get-program-identifier";
 	case FUNCTION_GET_PROGRAM_ROOT_DIRECTORY:       return "get-program-root-directory";
 	case FUNCTION_SET_PROGRAM_COMMAND:              return "set-program-command";

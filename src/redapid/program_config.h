@@ -59,7 +59,6 @@ typedef struct {
 typedef struct {
 	char *filename; // <home>/programs/<identifier>/program.conf
 
-	bool defined;
 	String *executable;
 	List *arguments;
 	List *environment;

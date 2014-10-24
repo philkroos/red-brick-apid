@@ -580,13 +580,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t session_id;
-} ATTRIBUTE_PACKED GetDefinedProgramsRequest;
+} ATTRIBUTE_PACKED GetProgramsRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint16_t programs_list_id;
-} ATTRIBUTE_PACKED GetDefinedProgramsResponse;
+} ATTRIBUTE_PACKED GetProgramsResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -603,12 +603,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED UndefineProgramRequest;
+	uint32_t cookie;
+} ATTRIBUTE_PACKED PurgeProgramRequest;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-} ATTRIBUTE_PACKED UndefineProgramResponse;
+} ATTRIBUTE_PACKED PurgeProgramResponse;
 
 typedef struct {
 	PacketHeader header;

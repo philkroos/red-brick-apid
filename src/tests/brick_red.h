@@ -236,7 +236,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DEFINED_PROGRAMS 45
+#define RED_FUNCTION_GET_PROGRAMS 45
 
 /**
  * \ingroup BrickRED
@@ -246,7 +246,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_UNDEFINE_PROGRAM 47
+#define RED_FUNCTION_PURGE_PROGRAM 47
 
 /**
  * \ingroup BrickRED
@@ -1388,7 +1388,7 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
  *
  * 
  */
-int red_get_defined_programs(RED *red, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_programs_list_id);
+int red_get_programs(RED *red, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_programs_list_id);
 
 /**
  * \ingroup BrickRED
@@ -1402,7 +1402,7 @@ int red_define_program(RED *red, uint16_t identifier_string_id, uint16_t session
  *
  * 
  */
-int red_undefine_program(RED *red, uint16_t program_id, uint8_t *ret_error_code);
+int red_purge_program(RED *red, uint16_t program_id, uint32_t cookie, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED

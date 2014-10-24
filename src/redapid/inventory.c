@@ -526,7 +526,7 @@ APIE inventory_get_processes(Session *session, ObjectID *processes_id) {
 }
 
 // public API
-APIE inventory_get_defined_programs(Session *session, ObjectID *programs_id) {
+APIE inventory_get_programs(Session *session, ObjectID *programs_id) {
 	List *programs;
 	APIE error_code;
 	int i;
@@ -543,7 +543,9 @@ APIE inventory_get_defined_programs(Session *session, ObjectID *programs_id) {
 	for (i = 0; i < _objects[OBJECT_TYPE_PROGRAM].count; ++i) {
 		program = *(Program **)array_get(&_objects[OBJECT_TYPE_PROGRAM], i);
 
-		if (!program->config.defined) {
+		if (program->base.internal_reference_count == 0) {
+			// ignore program object that are only alive because there are
+			// external references left to it
 			continue;
 		}
 

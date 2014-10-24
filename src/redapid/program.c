@@ -185,15 +185,6 @@ APIE program_load(const char *identifier, const char *root_directory,
 		goto cleanup;
 	}
 
-	// check if program is defined
-	if (!program_config.defined) {
-		log_debug("Ignoring undefined program configuration '%s'", config_filename);
-
-		program_config_destroy(&program_config);
-
-		return API_E_SUCCESS;
-	}
-
 	// wrap identifier string
 	error_code = string_wrap(identifier, NULL,
 	                         OBJECT_CREATE_FLAG_INTERNAL |
@@ -233,6 +224,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 	phase = 4;
 
 	// create program object
+	program->purged = false;
 	program->identifier = identifier_object;
 	program->root_directory = root_directory_object;
 
@@ -312,7 +304,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	if (!program_is_valid_identifier(identifier->buffer)) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_error("Invalid program identifier '%s'", identifier->buffer);
+		log_warn("Invalid program identifier '%s'", identifier->buffer);
 
 		goto cleanup;
 	}
@@ -370,6 +362,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	phase = 4;
 
 	// create program object
+	program->purged = false;
 	program->identifier = identifier;
 	program->root_directory = root_directory;
 
@@ -449,40 +442,108 @@ cleanup:
 }
 
 // public API
-APIE program_undefine(Program *program) {
+APIE program_purge(Program *program, uint32_t cookie) {
+	uint32_t expected_cookie = 0;
+	char *p;
+	uint64_t timestamp;
+	char tmp[1024];
 	APIE error_code;
+	uint32_t counter = 0;
 
-	if (!program->config.defined) {
-		log_warn("Cannot undefine already undefined program object (id: %u, identifier: %s)",
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
 		         program->base.id, program->identifier->buffer);
 
-		return API_E_INVALID_OPERATION;
+		return API_E_PROGRAM_IS_PURGED;
 	}
 
-	program->config.defined = false;
+	// check cookie
+	p = program->identifier->buffer;
 
-	error_code = program_config_save(&program->config);
+	while (*p != '\0') {
+		expected_cookie += (unsigned char)*p++;
+	}
 
-	if (error_code != API_E_SUCCESS) {
-		program->config.defined = true;
+	if (cookie != expected_cookie) {
+		log_warn("Invalid cookie value %u", cookie);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	// shutdown scheduler, this will also kill any remaining process
+	program_scheduler_shutdown(&program->scheduler);
+
+	// move program root directory to /tmp/purged-<identifier>-<timestamp>
+	timestamp = time(NULL);
+
+	if (robust_snprintf(tmp, sizeof(tmp), "/tmp/purged-%s-%llu",
+	                    program->identifier->buffer,
+	                    (unsigned long long)timestamp) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not format purged program directory name: %s (%d)",
+		          get_errno_name(errno), errno);
 
 		return error_code;
 	}
 
-	program_scheduler_shutdown(&program->scheduler);
+	while (counter < 1000) {
+		if (rename(program->root_directory->buffer, tmp) < 0) {
+			if (errno == ENOTEMPTY || errno == EEXIST) {
+				if (robust_snprintf(tmp, sizeof(tmp), "/tmp/purged-%s-%llu-%u",
+				                    program->identifier->buffer,
+				                    (unsigned long long)timestamp, ++counter) < 0) {
+					error_code = api_get_error_code_from_errno();
 
-	log_debug("Undefined program object (id: %u, identifier: %s)",
-	          program->base.id, program->identifier->buffer);
+					log_error("Could not format purged program directory name: %s (%d)",
+					          get_errno_name(errno), errno);
 
-	object_remove_internal_reference(&program->base);
+					return error_code;
+				}
 
-	return API_E_SUCCESS;
+				continue;
+			}
+
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not rename program directory from '%s' to '%s': %s (%d)",
+			          program->root_directory->buffer, tmp,
+			          get_errno_name(errno), errno);
+
+			return error_code;
+		}
+
+		program->purged = true;
+
+		// FIXME: delete /tmp/purged-<identifier>-<timestamp>
+
+		log_debug("Purged program object (id: %u, identifier: %s)",
+		          program->base.id, program->identifier->buffer);
+
+		object_remove_internal_reference(&program->base);
+
+		return API_E_SUCCESS;
+	}
+
+	log_warn("Could not move program directory '%s' to /tmp within 1000 attempts",
+	         program->root_directory->buffer);
+
+	return API_E_INTERNAL_ERROR;
 }
 
 // public API
 APIE program_get_identifier(Program *program, Session *session,
                             ObjectID *identifier_id) {
-	APIE error_code = object_add_external_reference(&program->identifier->base, session);
+	APIE error_code;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
+
+	error_code = object_add_external_reference(&program->identifier->base, session);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -496,7 +557,16 @@ APIE program_get_identifier(Program *program, Session *session,
 // public API
 APIE program_get_root_directory(Program *program, Session *session,
                                 ObjectID *root_directory_id) {
-	APIE error_code = object_add_external_reference(&program->root_directory->base, session);
+	APIE error_code;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
+
+	error_code = object_add_external_reference(&program->root_directory->base, session);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -519,6 +589,15 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	String *working_directory;
 	ProgramConfig backup;
 
+	if (program->purged) {
+		error_code = API_E_PROGRAM_IS_PURGED;
+
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		goto cleanup;
+	}
+
 	// lock new executable string object
 	error_code = string_get_locked(executable_id, &executable);
 
@@ -531,7 +610,7 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	if (*executable->buffer == '\0') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Executable cannot be empty");
+		log_warn("Program executable cannot be empty");
 
 		goto cleanup;
 	}
@@ -564,7 +643,7 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	if (*working_directory->buffer == '\0') {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("Working directory cannot be empty");
+		log_warn("Program working directory cannot be empty");
 
 		goto cleanup;
 	}
@@ -629,6 +708,15 @@ APIE program_get_command(Program *program, Session *session, ObjectID *executabl
                          ObjectID *working_directory_id) {
 	int phase = 0;
 	APIE error_code;
+
+	if (program->purged) {
+		error_code = API_E_PROGRAM_IS_PURGED;
+
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		goto cleanup;
+	}
 
 	// executable
 	error_code = object_add_external_reference(&program->config.executable->base, session);
@@ -703,6 +791,15 @@ APIE program_set_stdio_redirection(Program *program,
 	String *stdout_file_name;
 	String *stderr_file_name;
 	ProgramConfig backup;
+
+	if (program->purged) {
+		error_code = API_E_PROGRAM_IS_PURGED;
+
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		goto cleanup;
+	}
 
 	if (!program_is_valid_stdio_redirection(stdin_redirection) ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG ||
@@ -895,6 +992,15 @@ APIE program_get_stdio_redirection(Program *program, Session *session,
 	int phase = 0;
 	APIE error_code;
 
+	if (program->purged) {
+		error_code = API_E_PROGRAM_IS_PURGED;
+
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		goto cleanup;
+	}
+
 	// stdin
 	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = object_add_external_reference(&program->config.stdin_file_name->base, session);
@@ -990,6 +1096,13 @@ APIE program_set_schedule(Program *program,
 	ProgramConfig backup;
 	APIE error_code;
 
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
+
 	if (!program_is_valid_start_condition(start_condition)) {
 		log_warn("Invalid program start condition %d", start_condition);
 
@@ -1045,6 +1158,13 @@ APIE program_get_schedule(Program *program,
                           uint32_t *repeat_day_mask,
                           uint16_t *repeat_month_mask,
                           uint8_t *repeat_weekday_mask) {
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
+
 	*start_condition     = program->config.start_condition;
 	*start_timestamp     = program->config.start_timestamp;
 	*start_delay         = program->config.start_delay;
@@ -1064,6 +1184,13 @@ APIE program_get_schedule(Program *program,
 APIE program_get_last_spawned_process(Program *program, Session *session,
                                       ObjectID *process_id, uint64_t *timestamp) {
 	APIE error_code;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
 
 	if (program->scheduler.last_spawned_process == NULL) {
 		log_debug("No process was spawned for program object (id: %u, identifier: %s) yet",
@@ -1088,6 +1215,13 @@ APIE program_get_last_spawned_process(Program *program, Session *session,
 APIE program_get_last_scheduler_error(Program *program, Session *session,
                                       ObjectID *message_id, uint64_t *timestamp) {
 	APIE error_code;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
 
 	if (program->scheduler.last_error_internal) {
 		return API_E_INTERNAL_ERROR;
@@ -1119,6 +1253,13 @@ APIE program_get_custom_option_names(Program *program, Session *session,
 	APIE error_code;
 	int i;
 	ProgramCustomOption *custom_option;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
 
 	error_code = list_allocate(program->config.custom_options->count,
 	                           session, OBJECT_CREATE_FLAG_EXTERNAL,
@@ -1152,6 +1293,13 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 	String *value;
 	ProgramCustomOption *custom_option;
 	String *backup;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
 
 	error_code = string_get(name_id, &name);
 
@@ -1225,6 +1373,13 @@ APIE program_get_custom_option_value(Program *program, Session *session,
 	APIE error_code;
 	ProgramCustomOption *custom_option;
 
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
+
 	error_code = string_get(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
@@ -1258,6 +1413,13 @@ APIE program_remove_custom_option(Program *program, ObjectID name_id) {
 	int index;
 	ProgramCustomOption *custom_option;
 	ProgramCustomOption backup;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
 
 	error_code = string_get(name_id, &name);
 

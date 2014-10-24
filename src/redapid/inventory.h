@@ -42,6 +42,6 @@ void inventory_remove_object(Object *object);
 APIE inventory_get_object(ObjectType type, ObjectID id, Object **object);
 
 APIE inventory_get_processes(Session *session, ObjectID *processes_id);
-APIE inventory_get_defined_programs(Session *session, ObjectID *programs_id);
+APIE inventory_get_programs(Session *session, ObjectID *programs_id);
 
 #endif // REDAPID_INVENTORY_H

@@ -33,6 +33,7 @@
 typedef struct {
 	Object base;
 
+	bool purged;
 	String *identifier;
 	String *root_directory; // <home>/programs/<identifier>
 	ProgramConfig config;
@@ -43,7 +44,7 @@ APIE program_load(const char *identifier, const char *root_directory,
                   const char *config_filename);
 
 APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id);
-APIE program_undefine(Program *program);
+APIE program_purge(Program *program, uint32_t cookie);
 
 APIE program_get_identifier(Program *program, Session *session,
                             ObjectID *identifier_id);
