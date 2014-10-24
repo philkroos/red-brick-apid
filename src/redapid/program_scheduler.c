@@ -151,6 +151,7 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 
 	switch (program_scheduler->config->stdin_redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
+		// FIXME: maybe only open /dev/null once and share it between all schedulers
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
 		                       FILE_FLAG_READ_ONLY, 0, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
@@ -323,6 +324,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 	switch (program_scheduler->config->stdout_redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
+		// FIXME: maybe only open /dev/null once and share it between all schedulers
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY, 0, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
@@ -337,20 +339,12 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 		return file;
 
-	case PROGRAM_STDIO_REDIRECTION_PIPE:
-		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_READ,
-		                          NULL, OBJECT_CREATE_FLAG_INTERNAL,
-		                          NULL, &file);
+	case PROGRAM_STDIO_REDIRECTION_PIPE: // should never be reachable
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Invalid stdout redirection %d",
+		                               program_scheduler->config->stdout_redirection);
 
-		if (error_code != API_E_SUCCESS) {
-			program_scheduler_handle_error(program_scheduler, false,
-			                               "Could not create pipe: %s (%d)",
-			                               api_get_error_code_name(error_code), error_code);
-
-			return NULL;
-		}
-
-		return file;
+		return NULL;
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
 		if (program_scheduler->absolute_stdout_file_name == NULL) { // should never be reachable
@@ -401,6 +395,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 	switch (program_scheduler->config->stderr_redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
+		// FIXME: maybe only open /dev/null once and share it between all schedulers
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
 		                       FILE_FLAG_WRITE_ONLY, 0, 1000, 1000,
 		                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
@@ -415,20 +410,12 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 		return file;
 
-	case PROGRAM_STDIO_REDIRECTION_PIPE:
-		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_READ,
-		                          NULL, OBJECT_CREATE_FLAG_INTERNAL,
-		                          NULL, &file);
+	case PROGRAM_STDIO_REDIRECTION_PIPE: // should never be reachable
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Invalid stderr redirection %d",
+		                               program_scheduler->config->stderr_redirection);
 
-		if (error_code != API_E_SUCCESS) {
-			program_scheduler_handle_error(program_scheduler, false,
-			                               "Could not create pipe: %s (%d)",
-			                               api_get_error_code_name(error_code), error_code);
-
-			return NULL;
-		}
-
-		return file;
+		return NULL;
 
 	case PROGRAM_STDIO_REDIRECTION_FILE:
 		if (program_scheduler->absolute_stderr_file_name == NULL) { // should never be reachable

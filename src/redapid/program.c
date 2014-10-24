@@ -801,6 +801,7 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
+	// check stdin redirection
 	if (!program_is_valid_stdio_redirection(stdin_redirection) ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
@@ -811,7 +812,9 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
+	// check stdout redirection
 	if (!program_is_valid_stdio_redirection(stdout_redirection) ||
+	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_PIPE ||
 	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
 		error_code = API_E_INVALID_PARAMETER;
 
@@ -820,7 +823,9 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
-	if (!program_is_valid_stdio_redirection(stderr_redirection)) {
+	// check stderr redirection
+	if (!program_is_valid_stdio_redirection(stderr_redirection) ||
+	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_PIPE) {
 		error_code = API_E_INVALID_PARAMETER;
 
 		log_warn("Invalid stderr redirection %d", stderr_redirection);
@@ -828,6 +833,7 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
+	// lock new stdin file name
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// lock new stdin file name string object
 		error_code = string_get_locked(stdin_file_name_id, &stdin_file_name);
@@ -852,6 +858,7 @@ APIE program_set_stdio_redirection(Program *program,
 		//        of <home>/programs/<identifier>/bin
 	}
 
+	// lock new stdout file name
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// lock new stdout file name string object
 		error_code = string_get_locked(stdout_file_name_id, &stdout_file_name);
@@ -876,6 +883,7 @@ APIE program_set_stdio_redirection(Program *program,
 		//        of <home>/programs/<identifier>/bin
 	}
 
+	// lock new stderr file name
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// lock new stderr file name string object
 		error_code = string_get_locked(stderr_file_name_id, &stderr_file_name);

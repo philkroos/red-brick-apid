@@ -765,7 +765,8 @@ APIE program_config_load(ProgramConfig *program_config) {
 	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
 	                          program_config_get_stdio_redirection_value);
 
-	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
+	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_PIPE ||
+	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
 		log_warn("Invalid 'stdout.redirection' option in '%s', using default value instead",
 		         program_config->filename);
 
@@ -803,6 +804,13 @@ APIE program_config_load(ProgramConfig *program_config) {
 	                          "stderr.redirection", &stderr_redirection,
 	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
 	                          program_config_get_stdio_redirection_value);
+
+	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_PIPE) {
+		log_warn("Invalid 'stderr.redirection' option in '%s', using default value instead",
+		         program_config->filename);
+
+		stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
+	}
 
 	// get stderr.file_name
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
