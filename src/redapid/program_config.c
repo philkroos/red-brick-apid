@@ -351,13 +351,20 @@ static void program_config_get_symbol(ProgramConfig *program_config,
 static APIE program_config_set_string_list(ProgramConfig *program_config,
                                            ConfFile *conf_file,
                                            const char *name, List *value) {
-	APIE error_code;
 	char buffer[1024];
+	APIE error_code;
 	int i;
 	String *item;
 
 	// set <name>.length
-	snprintf(buffer, sizeof(buffer), "%s.length", name);
+	if (robust_snprintf(buffer, sizeof(buffer), "%s.length", name) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not format list length name: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return error_code;
+	}
 
 	error_code = program_config_set_integer(program_config, conf_file, buffer,
 	                                        value->items.count, 10, 0);
@@ -370,7 +377,14 @@ static APIE program_config_set_string_list(ProgramConfig *program_config,
 	for (i = 0; i < value->items.count; ++i) {
 		item = *(String **)array_get(&value->items, i);
 
-		snprintf(buffer, sizeof(buffer), "%s.item%d", name, i);
+		if (robust_snprintf(buffer, sizeof(buffer), "%s.item%d", name, i) < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_error("Could not format list item name: %s (%d)",
+			          get_errno_name(errno), errno);
+
+			return error_code;
+		}
 
 		error_code = program_config_set_string(program_config, conf_file, buffer, item);
 
