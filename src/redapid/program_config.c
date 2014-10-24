@@ -928,7 +928,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 				goto cleanup;
 			}
 
-			error_code = string_wrap(custom_name, NULL,
+			error_code = string_wrap(custom_name + custom_prefix_length, NULL,
 			                         OBJECT_CREATE_FLAG_INTERNAL |
 			                         OBJECT_CREATE_FLAG_LOCKED,
 			                         NULL, &custom_option->name);
