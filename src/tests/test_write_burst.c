@@ -79,12 +79,18 @@ int main() {
 		return -1;
 	}
 
-	uint16_t sid;
-	if (allocate_string(&red, "/tmp/foobar_fast", &sid)) {
+	uint16_t session_id;
+	if (create_session(&red, 300, &session_id) < 0) {
 		return -1;
 	}
 
-	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_NON_BLOCKING | RED_FILE_FLAG_TRUNCATE, 0755, 0, 0, &ec, &fid);
+	uint16_t sid;
+	if (allocate_string(&red, "/tmp/foobar_fast", session_id, &sid)) {
+		return -1;
+	}
+
+	rc = red_open_file(&red, sid, RED_FILE_FLAG_WRITE_ONLY | RED_FILE_FLAG_CREATE | RED_FILE_FLAG_NON_BLOCKING | RED_FILE_FLAG_TRUNCATE,
+	                   0755, 0, 0, session_id, &ec, &fid);
 	if (rc < 0) {
 		printf("red_open_file -> rc %d\n", rc);
 		goto cleanup;
@@ -106,10 +112,11 @@ int main() {
 	printf("waiting...\n");
 	getchar();
 
-	release_object(&red, fid, "file");
+	release_object(&red, fid, session_id, "file");
 
 cleanup:
-	release_object(&red, sid, "string");
+	release_object(&red, sid, session_id, "string");
+	expire_session(&red, session_id);
 
 	red_destroy(&red);
 	ipcon_destroy(&ipcon);
