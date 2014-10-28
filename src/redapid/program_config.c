@@ -55,10 +55,10 @@ static EnumValueName _start_condition_enum_value_names[] = {
 };
 
 static EnumValueName _repeat_mode_enum_value_names[] = {
-	{ PROGRAM_REPEAT_MODE_NEVER,     "never" },
-	{ PROGRAM_REPEAT_MODE_INTERVAL,  "interval" },
-	{ PROGRAM_REPEAT_MODE_SELECTION, "selection" },
-	{ -1,                            NULL }
+	{ PROGRAM_REPEAT_MODE_NEVER,    "never" },
+	{ PROGRAM_REPEAT_MODE_INTERVAL, "interval" },
+	{ PROGRAM_REPEAT_MODE_CRON,     "cron" },
+	{ -1,                           NULL }
 };
 
 static void program_custom_option_unlock(void *item) {
@@ -566,12 +566,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->start_delay = 0;
 	program_config->repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
 	program_config->repeat_interval = 0;
-	program_config->repeat_second_mask = 0;
-	program_config->repeat_minute_mask = 0;
-	program_config->repeat_hour_mask = 0;
-	program_config->repeat_day_mask = 0;
-	program_config->repeat_month_mask = 0;
-	program_config->repeat_weekday_mask = 0;
+	program_config->repeat_fields = NULL;
 	program_config->custom_options = custom_options;
 
 cleanup:
@@ -604,6 +599,10 @@ cleanup:
 void program_config_destroy(ProgramConfig *program_config) {
 	array_destroy(program_config->custom_options, program_custom_option_unlock);
 	free(program_config->custom_options);
+
+	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		string_unlock(program_config->repeat_fields);
+	}
 
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stderr_file_name);
@@ -643,12 +642,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	uint64_t start_delay;
 	int repeat_mode;
 	uint64_t repeat_interval;
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint64_t repeat_hour_mask;
-	uint64_t repeat_day_mask;
-	uint64_t repeat_month_mask;
-	uint64_t repeat_weekday_mask;
+	String *repeat_fields;
 	Array *custom_options;
 	const char *custom_name;
 	const char *custom_value;
@@ -862,29 +856,26 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config_get_integer(program_config, &conf_file, "repeat.interval",
 	                           &repeat_interval, 0);
 
-	// get repeat.second_mask
-	program_config_get_integer(program_config, &conf_file,"repeat.second_mask",
-	                           &repeat_second_mask, 0);
+	// get repeat.fields
+	if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		error_code = program_config_get_string(program_config, &conf_file,
+		                                       "repeat.fields",
+		                                       &repeat_fields, "* * * * *");
 
-	// get repeat.minute_mask
-	program_config_get_integer(program_config, &conf_file, "repeat.minute_mask",
-	                           &repeat_minute_mask, 0);
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
 
-	// get repeat.hour_mask
-	program_config_get_integer(program_config, &conf_file, "repeat.hour_mask",
-	                           &repeat_hour_mask, 0);
+		if (*repeat_fields->buffer == '\0') {
+			log_warn("Cannot repeat with empty cron fields, repeating never instead");
 
-	// get repeat.day_mask
-	program_config_get_integer(program_config, &conf_file, "repeat.day_mask",
-	                           &repeat_day_mask, 0);
+			string_unlock(repeat_fields);
 
-	// set repeat.month_mask
-	program_config_get_integer(program_config, &conf_file, "repeat.month_mask",
-	                           &repeat_month_mask, 0);
-
-	// get repeat.weekday_mask
-	program_config_get_integer(program_config, &conf_file, "repeat.weekday_mask",
-	                           &repeat_weekday_mask, 0);
+			repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
+		}
+	} else {
+		repeat_fields = NULL;
+	}
 
 	// get custom.* options
 	custom_options = calloc(1, sizeof(Array));
@@ -898,7 +889,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 9;
+	phase = 10;
 
 	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -909,7 +900,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 10;
+	phase = 11;
 
 	if (conf_file_get_first_option(&conf_file, &custom_name, &custom_value, &cookie)) {
 		do {
@@ -960,7 +951,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		} while (conf_file_get_next_option(&conf_file, &custom_name, &custom_value, &cookie));
 	}
 
-	phase = 11;
+	phase = 12;
 
 	// unlock/destroy old objects
 	string_unlock(program_config->executable);
@@ -978,6 +969,10 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stderr_file_name);
+	}
+
+	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		string_unlock(program_config->repeat_fields);
 	}
 
 	array_destroy(program_config->custom_options, program_custom_option_unlock);
@@ -999,23 +994,23 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->start_delay         = start_delay;
 	program_config->repeat_mode         = repeat_mode;
 	program_config->repeat_interval     = repeat_interval;
-	program_config->repeat_second_mask  = repeat_second_mask  & ((1ULL << 60) - 1);
-	program_config->repeat_minute_mask  = repeat_minute_mask  & ((1ULL << 60) - 1);
-	program_config->repeat_hour_mask    = repeat_hour_mask    & ((1ULL << 24) - 1);
-	program_config->repeat_day_mask     = repeat_day_mask     & ((1ULL << 31) - 1);
-	program_config->repeat_month_mask   = repeat_month_mask   & ((1ULL << 12) - 1);
-	program_config->repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
+	program_config->repeat_fields       = repeat_fields;
 	program_config->custom_options      = custom_options;
 
 	conf_file_destroy(&conf_file);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 10:
+	case 11:
 		array_destroy(custom_options, program_custom_option_unlock);
 
-	case 9:
+	case 10:
 		free(custom_options);
+
+	case 9:
+		if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+			string_unlock(repeat_fields);
+		}
 
 	case 8:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
@@ -1051,7 +1046,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 11 ? API_E_SUCCESS : error_code;
+	return phase == 12 ? API_E_SUCCESS : error_code;
 }
 
 APIE program_config_save(ProgramConfig *program_config) {
@@ -1235,58 +1230,14 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set repeat.second_mask
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.second_mask",
-	                                        program_config->repeat_second_mask, 2, 60);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.minute_mask
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.minute_mask",
-	                                        program_config->repeat_minute_mask, 2, 60);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.hour_mask
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.hour_mask",
-	                                        program_config->repeat_hour_mask, 2, 24);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.day_mask
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.day_mask",
-	                                        program_config->repeat_day_mask, 2, 31);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.month_mask
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.month_mask",
-	                                        program_config->repeat_month_mask, 2, 12);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.weekday_mask
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.weekday_mask",
-	                                        program_config->repeat_weekday_mask, 2, 7);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
+	// set repeat.fields
+	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		error_code = program_config_set_string(program_config, &conf_file,
+		                                       "repeat.fields",
+		                                       program_config->repeat_fields);
+	} else {
+		error_code = program_config_set_empty(program_config, &conf_file,
+		                                      "repeat.fields");
 	}
 
 	// set custom.* options

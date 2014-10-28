@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-23.      *
+ * This file was automatically generated on 2014-10-28.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -753,7 +753,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_REPEAT_MODE_SELECTION 2
+#define RED_PROGRAM_REPEAT_MODE_CRON 2
 
 /**
  * \ingroup BrickRED
@@ -1451,14 +1451,14 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t se
  *
  * FIXME: week starts on monday
  */
-int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint64_t repeat_second_mask, uint64_t repeat_minute_mask, uint32_t repeat_hour_mask, uint32_t repeat_day_mask, uint16_t repeat_month_mask, uint8_t repeat_weekday_mask, uint8_t *ret_error_code);
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint16_t repeat_fields_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * FIXME: week starts on monday
  */
-int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask);
+int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint16_t *ret_repeat_fields_string_id);
 
 /**
  * \ingroup BrickRED

@@ -742,27 +742,17 @@ CALL_PROGRAM_FUNCTION(SetProgramSchedule, set_program_schedule, {
 	                                           request->start_delay,
 	                                           request->repeat_mode,
 	                                           request->repeat_interval,
-	                                           request->repeat_second_mask,
-	                                           request->repeat_minute_mask,
-	                                           request->repeat_hour_mask,
-	                                           request->repeat_day_mask,
-	                                           request->repeat_month_mask,
-	                                           request->repeat_weekday_mask);
+	                                           request->repeat_fields_string_id);
 })
 
-CALL_PROGRAM_FUNCTION(GetProgramSchedule, get_program_schedule, {
-	response.error_code = program_get_schedule(program,
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedule, get_program_schedule, {
+	response.error_code = program_get_schedule(program, session,
 	                                           &response.start_condition,
 	                                           &response.start_timestamp,
 	                                           &response.start_delay,
 	                                           &response.repeat_mode,
 	                                           &response.repeat_interval,
-	                                           &response.repeat_second_mask,
-	                                           &response.repeat_minute_mask,
-	                                           &response.repeat_hour_mask,
-	                                           &response.repeat_day_mask,
-	                                           &response.repeat_month_mask,
-	                                           &response.repeat_weekday_mask);
+	                                           &response.repeat_fields_string_id);
 })
 
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {

@@ -48,7 +48,7 @@ typedef enum {
 typedef enum {
 	PROGRAM_REPEAT_MODE_NEVER = 0,
 	PROGRAM_REPEAT_MODE_INTERVAL,
-	PROGRAM_REPEAT_MODE_SELECTION
+	PROGRAM_REPEAT_MODE_CRON
 } ProgramRepeatMode;
 
 typedef struct {
@@ -77,12 +77,7 @@ typedef struct {
 	uint32_t start_delay; // seconds
 	ProgramRepeatMode repeat_mode;
 	uint32_t repeat_interval; // seconds
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint32_t repeat_hour_mask;
-	uint32_t repeat_day_mask;
-	uint16_t repeat_month_mask;
-	uint8_t repeat_weekday_mask; // week starts on monday
+	String *repeat_fields; // only != NULL if repeat_mode == PROGRAM_REPEAT_MODE_CRON
 	Array *custom_options;
 } ProgramConfig;
 

@@ -79,24 +79,14 @@ APIE program_set_schedule(Program *program,
                           uint32_t start_delay,
                           ProgramRepeatMode repeat_mode,
                           uint32_t repeat_interval,
-                          uint64_t repeat_second_mask,
-                          uint64_t repeat_minute_mask,
-                          uint32_t repeat_hour_mask,
-                          uint32_t repeat_day_mask,
-                          uint16_t repeat_month_mask,
-                          uint8_t repeat_weekday_mask); // week starts on monday
-APIE program_get_schedule(Program *program,
+                          ObjectID repeat_fields_id);
+APIE program_get_schedule(Program *program, Session *session,
                           uint8_t *start_condition,
                           uint64_t *start_timestamp,
                           uint32_t *start_delay,
                           uint8_t *repeat_mode,
                           uint32_t *repeat_interval,
-                          uint64_t *repeat_second_mask,
-                          uint64_t *repeat_minute_mask,
-                          uint32_t *repeat_hour_mask,
-                          uint32_t *repeat_day_mask,
-                          uint16_t *repeat_month_mask,
-                          uint8_t *repeat_weekday_mask); // week starts on monday
+                          ObjectID *repeat_fields_id);
 
 APIE program_get_last_spawned_process(Program *program, Session *session,
                                       ObjectID *process_id, uint64_t *timestamp);

@@ -309,7 +309,7 @@ enum program_start_condition {
 enum program_repeat_mode {
 	PROGRAM_REPEAT_MODE_NEVER = 0,
 	PROGRAM_REPEAT_MODE_INTERVAL,
-	PROGRAM_REPEAT_MODE_SELECTION
+	PROGRAM_REPEAT_MODE_CRON
 }
 
 + get_programs                    (uint16_t session_id)           -> uint8_t error_code, uint16_t programs_list_id
@@ -355,24 +355,15 @@ enum program_repeat_mode {
                                    uint32_t start_delay,
                                    uint8_t repeat_mode,
                                    uint32_t repeat_interval,
-                                   uint64_t repeat_second_mask,
-                                   uint64_t repeat_minute_mask,
-                                   uint32_t repeat_hour_mask,
-                                   uint32_t repeat_day_mask,
-                                   uint16_t repeat_month_mask,
-                                   uint8_t repeat_weekday_mask)   -> uint8_t error_code
+                                   uint16_t repeat_fields_string_id)
+                                                                  -> uint8_t error_code
 + get_program_schedule            (uint16_t program_id)           -> uint8_t error_code
                                                                      uint8_t start_condition,
                                                                      uint64_t start_timestamp,
                                                                      uint32_t start_delay,
                                                                      uint8_t repeat_mode,
                                                                      uint32_t repeat_interval,
-                                                                     uint64_t repeat_second_mask,
-                                                                     uint64_t repeat_minute_mask,
-                                                                     uint32_t repeat_hour_mask,
-                                                                     uint32_t repeat_day_mask,
-                                                                     uint16_t repeat_month_mask,
-                                                                     uint8_t repeat_weekday_mask
+                                                                     uint16_t repeat_fields_string_id
 + get_last_spawned_program_process (uint16_t program_id,
                                     uint16_t session_id)          -> uint8_t error_code, uint16_t process_id, uint64_t timestamp
 + get_last_program_scheduler_error (uint16_t program_id,

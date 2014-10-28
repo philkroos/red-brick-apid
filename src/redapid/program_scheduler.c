@@ -631,7 +631,7 @@ static void program_scheduler_tick(void *opaque) {
 
 			break;
 
-		case PROGRAM_REPEAT_MODE_SELECTION:
+		case PROGRAM_REPEAT_MODE_CRON:
 			// FIXME
 
 			break;

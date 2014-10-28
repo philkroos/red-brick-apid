@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-23.      *
+ * This file was automatically generated on 2014-10-28.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -687,12 +687,7 @@ typedef struct {
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint32_t repeat_hour_mask;
-	uint32_t repeat_day_mask;
-	uint16_t repeat_month_mask;
-	uint8_t repeat_weekday_mask;
+	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED SetProgramSchedule_;
 
 typedef struct {
@@ -703,6 +698,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramSchedule_;
 
 typedef struct {
@@ -713,12 +709,7 @@ typedef struct {
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint32_t repeat_hour_mask;
-	uint32_t repeat_day_mask;
-	uint16_t repeat_month_mask;
-	uint8_t repeat_weekday_mask;
+	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED GetProgramScheduleResponse_;
 
 typedef struct {
@@ -2404,7 +2395,7 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t se
 	return ret;
 }
 
-int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint64_t repeat_second_mask, uint64_t repeat_minute_mask, uint32_t repeat_hour_mask, uint32_t repeat_day_mask, uint16_t repeat_month_mask, uint8_t repeat_weekday_mask, uint8_t *ret_error_code) {
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint16_t repeat_fields_string_id, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	SetProgramSchedule_ request;
 	SetProgramScheduleResponse_ response;
@@ -2422,12 +2413,7 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
 	request.start_delay = leconvert_uint32_to(start_delay);
 	request.repeat_mode = repeat_mode;
 	request.repeat_interval = leconvert_uint32_to(repeat_interval);
-	request.repeat_second_mask = leconvert_uint64_to(repeat_second_mask);
-	request.repeat_minute_mask = leconvert_uint64_to(repeat_minute_mask);
-	request.repeat_hour_mask = leconvert_uint32_to(repeat_hour_mask);
-	request.repeat_day_mask = leconvert_uint32_to(repeat_day_mask);
-	request.repeat_month_mask = leconvert_uint16_to(repeat_month_mask);
-	request.repeat_weekday_mask = repeat_weekday_mask;
+	request.repeat_fields_string_id = leconvert_uint16_to(repeat_fields_string_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2441,7 +2427,7 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
 	return ret;
 }
 
-int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint64_t *ret_repeat_second_mask, uint64_t *ret_repeat_minute_mask, uint32_t *ret_repeat_hour_mask, uint32_t *ret_repeat_day_mask, uint16_t *ret_repeat_month_mask, uint8_t *ret_repeat_weekday_mask) {
+int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint16_t *ret_repeat_fields_string_id) {
 	DevicePrivate *device_p = red->p;
 	GetProgramSchedule_ request;
 	GetProgramScheduleResponse_ response;
@@ -2454,6 +2440,7 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_c
 	}
 
 	request.program_id = leconvert_uint16_to(program_id);
+	request.session_id = leconvert_uint16_to(session_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2466,12 +2453,7 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_c
 	*ret_start_delay = leconvert_uint32_from(response.start_delay);
 	*ret_repeat_mode = response.repeat_mode;
 	*ret_repeat_interval = leconvert_uint32_from(response.repeat_interval);
-	*ret_repeat_second_mask = leconvert_uint64_from(response.repeat_second_mask);
-	*ret_repeat_minute_mask = leconvert_uint64_from(response.repeat_minute_mask);
-	*ret_repeat_hour_mask = leconvert_uint32_from(response.repeat_hour_mask);
-	*ret_repeat_day_mask = leconvert_uint32_from(response.repeat_day_mask);
-	*ret_repeat_month_mask = leconvert_uint16_from(response.repeat_month_mask);
-	*ret_repeat_weekday_mask = response.repeat_weekday_mask;
+	*ret_repeat_fields_string_id = leconvert_uint16_from(response.repeat_fields_string_id);
 
 
 

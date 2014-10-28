@@ -705,12 +705,7 @@ typedef struct {
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint32_t repeat_hour_mask;
-	uint32_t repeat_day_mask;
-	uint16_t repeat_month_mask;
-	uint8_t repeat_weekday_mask;
+	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED SetProgramScheduleRequest;
 
 typedef struct {
@@ -721,6 +716,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramScheduleRequest;
 
 typedef struct {
@@ -731,12 +727,7 @@ typedef struct {
 	uint32_t start_delay;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
-	uint64_t repeat_second_mask;
-	uint64_t repeat_minute_mask;
-	uint32_t repeat_hour_mask;
-	uint32_t repeat_day_mask;
-	uint16_t repeat_month_mask;
-	uint8_t repeat_weekday_mask;
+	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED GetProgramScheduleResponse;
 
 typedef struct {

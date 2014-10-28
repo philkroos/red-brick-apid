@@ -88,7 +88,7 @@ static bool program_is_valid_repeat_mode(ProgramRepeatMode mode) {
 	switch (mode) {
 	case PROGRAM_REPEAT_MODE_NEVER:
 	case PROGRAM_REPEAT_MODE_INTERVAL:
-	case PROGRAM_REPEAT_MODE_SELECTION:
+	case PROGRAM_REPEAT_MODE_CRON:
 		return true;
 
 	default:
@@ -833,14 +833,15 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
-	// lock new stdin file name
+	// lock new stdin file name string object
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// lock new stdin file name string object
 		error_code = string_get_locked(stdin_file_name_id, &stdin_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
+	} else {
+		stdin_file_name = NULL;
 	}
 
 	phase = 1;
@@ -858,14 +859,15 @@ APIE program_set_stdio_redirection(Program *program,
 		//        of <home>/programs/<identifier>/bin
 	}
 
-	// lock new stdout file name
+	// lock new stdout file name string object
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// lock new stdout file name string object
 		error_code = string_get_locked(stdout_file_name_id, &stdout_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
+	} else {
+		stdout_file_name = NULL;
 	}
 
 	phase = 2;
@@ -883,14 +885,15 @@ APIE program_set_stdio_redirection(Program *program,
 		//        of <home>/programs/<identifier>/bin
 	}
 
-	// lock new stderr file name
+	// lock new stderr file name string object
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// lock new stderr file name string object
 		error_code = string_get_locked(stderr_file_name_id, &stderr_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
 		}
+	} else {
+		stderr_file_name = NULL;
 	}
 
 	phase = 3;
@@ -913,28 +916,11 @@ APIE program_set_stdio_redirection(Program *program,
 
 	// set new objects
 	program->config.stdin_redirection = stdin_redirection;
-
-	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		program->config.stdin_file_name = stdin_file_name;
-	} else {
-		program->config.stdin_file_name = NULL;
-	}
-
+	program->config.stdin_file_name = stdin_file_name;
 	program->config.stdout_redirection = stdout_redirection;
-
-	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		program->config.stdout_file_name = stdout_file_name;
-	} else {
-		program->config.stdout_file_name = NULL;
-	}
-
+	program->config.stdout_file_name = stdout_file_name;
 	program->config.stderr_redirection = stderr_redirection;
-
-	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		program->config.stderr_file_name = stderr_file_name;
-	} else {
-		program->config.stderr_file_name = NULL;
-	}
+	program->config.stderr_file_name = stderr_file_name;
 
 	phase = 4;
 
@@ -1095,14 +1081,10 @@ APIE program_set_schedule(Program *program,
                           uint32_t start_delay,
                           ProgramRepeatMode repeat_mode,
                           uint32_t repeat_interval,
-                          uint64_t repeat_second_mask,
-                          uint64_t repeat_minute_mask,
-                          uint32_t repeat_hour_mask,
-                          uint32_t repeat_day_mask,
-                          uint16_t repeat_month_mask,
-                          uint8_t repeat_weekday_mask) {
+                          ObjectID repeat_fields_id) {
 	ProgramConfig backup;
 	APIE error_code;
+	String *repeat_fields;
 
 	if (program->purged) {
 		log_warn("Program object (id: %u, identifier: %s) is purged",
@@ -1123,21 +1105,34 @@ APIE program_set_schedule(Program *program,
 		return API_E_INVALID_PARAMETER;
 	}
 
+	if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		error_code = string_get_locked(repeat_fields_id, &repeat_fields);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
+
+		if (*repeat_fields->buffer == '\0') {
+			log_warn("Cannot repeat with empty cron fields");
+
+			string_unlock(repeat_fields);
+
+			return API_E_INVALID_PARAMETER;
+		}
+	} else {
+		repeat_fields = NULL;
+	}
+
 	// backup config
 	memcpy(&backup, &program->config, sizeof(backup));
 
-	// set new values
-	program->config.start_condition     = start_condition;
-	program->config.start_timestamp     = start_timestamp;
-	program->config.start_delay         = start_delay;
-	program->config.repeat_mode         = repeat_mode;
-	program->config.repeat_interval     = repeat_interval;
-	program->config.repeat_second_mask  = repeat_second_mask  & ((1ULL << 60) - 1);
-	program->config.repeat_minute_mask  = repeat_minute_mask  & ((1ULL << 60) - 1);
-	program->config.repeat_hour_mask    = repeat_hour_mask    & ((1ULL << 24) - 1);
-	program->config.repeat_day_mask     = repeat_day_mask     & ((1ULL << 31) - 1);
-	program->config.repeat_month_mask   = repeat_month_mask   & ((1ULL << 12) - 1);
-	program->config.repeat_weekday_mask = repeat_weekday_mask & ((1ULL <<  7) - 1);
+	// set new values/objects
+	program->config.start_condition = start_condition;
+	program->config.start_timestamp = start_timestamp;
+	program->config.start_delay     = start_delay;
+	program->config.repeat_mode     = repeat_mode;
+	program->config.repeat_interval = repeat_interval;
+	program->config.repeat_fields   = repeat_fields;
 
 	// save modified config
 	error_code = program_config_save(&program->config);
@@ -1145,7 +1140,14 @@ APIE program_set_schedule(Program *program,
 	if (error_code != API_E_SUCCESS) {
 		memcpy(&program->config, &backup, sizeof(program->config));
 
+		string_unlock(repeat_fields);
+
 		return error_code;
+	}
+
+	// unlock old objects
+	if (backup.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		string_unlock(backup.repeat_fields);
 	}
 
 	program_scheduler_update(&program->scheduler);
@@ -1154,18 +1156,15 @@ APIE program_set_schedule(Program *program,
 }
 
 // public API
-APIE program_get_schedule(Program *program,
+APIE program_get_schedule(Program *program, Session *session,
                           uint8_t *start_condition,
                           uint64_t *start_timestamp,
                           uint32_t *start_delay,
                           uint8_t *repeat_mode,
                           uint32_t *repeat_interval,
-                          uint64_t *repeat_second_mask,
-                          uint64_t *repeat_minute_mask,
-                          uint32_t *repeat_hour_mask,
-                          uint32_t *repeat_day_mask,
-                          uint16_t *repeat_month_mask,
-                          uint8_t *repeat_weekday_mask) {
+                          ObjectID *repeat_fields_id) {
+	APIE error_code;
+
 	if (program->purged) {
 		log_warn("Program object (id: %u, identifier: %s) is purged",
 		         program->base.id, program->identifier->buffer);
@@ -1173,17 +1172,25 @@ APIE program_get_schedule(Program *program,
 		return API_E_PROGRAM_IS_PURGED;
 	}
 
-	*start_condition     = program->config.start_condition;
-	*start_timestamp     = program->config.start_timestamp;
-	*start_delay         = program->config.start_delay;
-	*repeat_mode         = program->config.repeat_mode;
-	*repeat_interval     = program->config.repeat_interval;
-	*repeat_second_mask  = program->config.repeat_second_mask;
-	*repeat_minute_mask  = program->config.repeat_minute_mask;
-	*repeat_hour_mask    = program->config.repeat_hour_mask;
-	*repeat_day_mask     = program->config.repeat_day_mask;
-	*repeat_month_mask   = program->config.repeat_month_mask;
-	*repeat_weekday_mask = program->config.repeat_weekday_mask;
+	if (program->config.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		error_code = object_add_external_reference(&program->config.repeat_fields->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
+	}
+
+	*start_condition = program->config.start_condition;
+	*start_timestamp = program->config.start_timestamp;
+	*start_delay     = program->config.start_delay;
+	*repeat_mode     = program->config.repeat_mode;
+	*repeat_interval = program->config.repeat_interval;
+
+	if (program->config.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
+		*repeat_fields_id = program->config.repeat_fields->base.id;
+	} else {
+		*repeat_fields_id = OBJECT_ID_ZERO;
+	}
 
 	return API_E_SUCCESS;
 }
