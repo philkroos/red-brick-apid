@@ -37,7 +37,7 @@
 #define LOG_CATEGORY LOG_CATEGORY_API
 
 static const char *_identifier_alphabet =
-	"abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789_.-";
+	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-";
 
 // identifier format: ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{2,}$
 static bool program_is_valid_identifier(const char *identifier) {
