@@ -310,10 +310,15 @@ static void file_handle_async_read(void *opaque) {
 		length_to_read = file->length_to_read_async;
 	}
 
-	length_read = file->read(file, buffer, length_to_read); // FIXME: handle EINTR
+	length_read = file->read(file, buffer, length_to_read);
 
 	if (length_read < 0) {
-		if (errno_would_block()) {
+		if (errno_interrupted()) {
+			log_debug("Reading from file object ("FILE_SIGNATURE_FORMAT") asynchronously was interrupted, retrying",
+			          file_expand_signature(file));
+
+			return;
+		} else if (errno_would_block()) {
 			// don't report an error, just return an empty buffer if there is
 			// nothing to read at this time
 			length_read = 0;
