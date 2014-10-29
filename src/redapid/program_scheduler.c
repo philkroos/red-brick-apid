@@ -167,7 +167,7 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 		return file;
 
 	case PROGRAM_STDIO_REDIRECTION_PIPE:
-		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_WRITE,
+		error_code = pipe_create_(PIPE_FLAG_NON_BLOCKING_WRITE, 0,
 		                          NULL, OBJECT_CREATE_FLAG_INTERNAL,
 		                          NULL, &file);
 

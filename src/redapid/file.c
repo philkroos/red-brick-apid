@@ -19,6 +19,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#define _GNU_SOURCE // for F_SETPIPE_SZ and F_GETPIPE_SZ from fcntl.h
+
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -840,7 +842,7 @@ cleanup:
 }
 
 // public API
-APIE pipe_create_(uint16_t flags, Session *session,
+APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
                   uint16_t object_create_flags, ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
@@ -854,6 +856,12 @@ APIE pipe_create_(uint16_t flags, Session *session,
 		log_warn("Invalid pipe flags 0x%04X", flags);
 
 		goto cleanup;
+	}
+
+	if (length > INT32_MAX) {
+		log_warn("Length of %"PRIu64" bytes exceeds maximum pipe buffer length", length);
+
+		return API_E_OUT_OF_RANGE;
 	}
 
 	// create name string object
@@ -893,6 +901,15 @@ APIE pipe_create_(uint16_t flags, Session *session,
 	}
 
 	phase = 3;
+
+	if (length > 0 && fcntl(file->pipe.read_end, F_SETPIPE_SZ, (int)length) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not change pipe buffer size to %"PRIu64": %s (%d)",
+		          length, get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
 
 	// create file object
 	file->type = FILE_TYPE_PIPE;
@@ -973,10 +990,21 @@ APIE file_get_info(File *file, Session *session, uint8_t *type,
 	*flags = file->flags;
 
 	if (file->type == FILE_TYPE_PIPE) {
+		rc = fcntl(file->pipe.read_end, F_GETPIPE_SZ);
+
+		if (rc < 0) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not get pipe buffer length for file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			         file_expand_signature(file), get_errno_name(errno), errno);
+
+			return error_code;
+		}
+
 		*permissions = 0;
 		*uid = 0;
 		*gid = 0;
-		*length = 0;
+		*length = rc;
 		*access_timestamp = 0;
 		*modification_timestamp = 0;
 		*status_change_timestamp = 0;

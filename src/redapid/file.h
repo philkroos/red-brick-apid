@@ -141,7 +141,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
                uint32_t uid, uint32_t gid, Session *session,
                uint16_t object_create_flags, ObjectID *id, File **object);
 
-APIE pipe_create_(uint16_t flags, Session *session,
+APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
                   uint16_t object_create_flags, ObjectID *id, File **object);
 
 APIE file_get_info(File *file, Session *session, uint8_t *type,

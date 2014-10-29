@@ -244,6 +244,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t flags;
+	uint64_t length;
 	uint16_t session_id;
 } ATTRIBUTE_PACKED CreatePipeRequest;
 

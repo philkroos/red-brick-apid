@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-28.      *
+ * This file was automatically generated on 2014-10-29.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -238,6 +238,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t flags;
+	uint64_t length;
 	uint16_t session_id;
 } ATTRIBUTE_PACKED CreatePipe_;
 
@@ -1451,7 +1452,7 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
 	return ret;
 }
 
-int red_create_pipe(RED *red, uint16_t flags, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id) {
+int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id) {
 	DevicePrivate *device_p = red->p;
 	CreatePipe_ request;
 	CreatePipeResponse_ response;
@@ -1464,6 +1465,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint16_t session_id, uint8_t *ret_
 	}
 
 	request.flags = leconvert_uint16_to(flags);
+	request.length = leconvert_uint64_to(length);
 	request.session_id = leconvert_uint16_to(session_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);

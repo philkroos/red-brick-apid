@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-28.      *
+ * This file was automatically generated on 2014-10-29.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -1045,9 +1045,12 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
  * * NonBlockingRead = 0x0001
  * * NonBlockingWrite = 0x0002
  * 
+ * The length of the pipe buffer can be specified with the ``length`` parameter
+ * in bytes. If length is set to zero, then the default pipe buffer length is used.
+ * 
  * Returns the object ID of the new file object and the resulting error code.
  */
-int red_create_pipe(RED *red, uint16_t flags, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
+int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -1074,7 +1077,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint16_t session_id, uint8_t *ret_
  * {@link red_open_file} or {@link red_create_pipe}. See the respective function for a list
  * of possible file and pipe flags.
  * 
- * FIXME: everything except flags is invalid if file type is *Pipe*
+ * FIXME: everything except flags and length is invalid if file type is *Pipe*
  */
 int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
 

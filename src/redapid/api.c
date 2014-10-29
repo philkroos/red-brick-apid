@@ -475,7 +475,7 @@ CALL_FUNCTION_WITH_SESSION(OpenFile, open_file, {
 })
 
 CALL_FUNCTION_WITH_SESSION(CreatePipe, create_pipe, {
-	response.error_code = pipe_create_(request->flags, session,
+	response.error_code = pipe_create_(request->flags, request->length, session,
 	                                   OBJECT_CREATE_FLAG_EXTERNAL,
 	                                   &response.file_id, NULL);
 })
