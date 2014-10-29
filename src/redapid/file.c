@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/eventfd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -187,16 +188,12 @@ static void file_destroy(Object *object) {
 		log_warn("Destroying file object ("FILE_SIGNATURE_FORMAT") while an asynchronous read for %"PRIu64" byte(s) is in progress",
 		         file_expand_signature(file), file->length_to_read_async);
 
-		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
 	if (file->type == FILE_TYPE_PIPE) {
 		pipe_destroy(&file->pipe);
 	} else {
-		if (file->type == FILE_TYPE_REGULAR) {
-			pipe_destroy(&file->async_read_pipe);
-		}
-
 		// unlink before close, this is safe on POSIX systems
 		if ((file->flags & FILE_FLAG_TEMPORARY) != 0) {
 			unlink(file->name->buffer);
@@ -204,6 +201,8 @@ static void file_destroy(Object *object) {
 
 		close(file->fd);
 	}
+
+	close(file->async_read_eventfd);
 
 	string_unlock(file->name);
 
@@ -302,7 +301,7 @@ static void file_handle_async_read(void *opaque) {
 		log_error("Got asynchronous read event for file object ("FILE_SIGNATURE_FORMAT") without an asynchronous read in progress",
 		          file_expand_signature(file));
 
-		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC);
 
 		return;
 	}
@@ -325,7 +324,7 @@ static void file_handle_async_read(void *opaque) {
 			         length_to_read, file_expand_signature(file),
 			         get_errno_name(errno), errno);
 
-			event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+			event_remove_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC);
 
 			file->async_read_in_progress = false;
 			file->length_to_read_async = 0;
@@ -347,7 +346,7 @@ static void file_handle_async_read(void *opaque) {
 		file->async_read_in_progress = false;
 		file->length_to_read_async = 0;
 
-		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC);
 	}
 
 	file_send_async_read_callback(file, API_E_SUCCESS, buffer, length_read);
@@ -360,7 +359,7 @@ static void file_handle_async_read(void *opaque) {
 
 // NOTE: assumes that name is absolute (starts with '/')
 static APIE file_open_as(const char *name, int oflags, mode_t mode,
-                         uint32_t uid, uint32_t gid, int *fd_) {
+                         uint32_t uid, uint32_t gid, IOHandle *fd_) {
 	APIE error_code;
 	int pair[2];
 	pid_t pid;
@@ -619,10 +618,10 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	String *name;
 	int oflags = O_NOCTTY;
 	mode_t mode = 0;
-	int fd;
+	IOHandle fd;
+	IOHandle async_read_eventfd;
 	File *file;
 	struct stat st;
-	uint8_t byte = 0;
 
 	// check parameters
 	if ((flags & ~FILE_FLAG_ALL) != 0) {
@@ -749,41 +748,26 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 
 	phase = 3;
 
-	// create async read pipe for regular files
-	file->type = file_get_type_from_stat_mode(st.st_mode);
+	// create async read eventfd
+	async_read_eventfd = eventfd(1, EFD_NONBLOCK);
 
-	if (file->type == FILE_TYPE_REGULAR) {
-		// (e)poll doesn't supported regular files. use a pipe with one byte in
-		// it to trigger read events for reading regular files asynchronously
-		if (pipe_create(&file->async_read_pipe, 0) < 0) {
-			error_code = api_get_error_code_from_errno();
+	if (async_read_eventfd < 0) {
+		error_code = api_get_error_code_from_errno();
 
-			log_error("Could not create asynchronous read pipe: %s (%d)",
-			          get_errno_name(errno), errno);
+		log_error("Could not create asynchronous read eventfd: %s (%d)",
+		          get_errno_name(errno), errno);
 
-			goto cleanup;
-		}
-
-		if (pipe_write(&file->async_read_pipe, &byte, sizeof(byte)) < 0) {
-			error_code = api_get_error_code_from_errno();
-
-			log_error("Could not write to asynchronous read pipe: %s (%d)",
-			          get_errno_name(errno), errno);
-
-			goto cleanup;
-		}
-
-		file->async_read_handle = file->async_read_pipe.read_end;
-	} else {
-		file->async_read_handle = fd;
+		goto cleanup;
 	}
 
 	phase = 4;
 
 	// create file object
+	file->type = file_get_type_from_stat_mode(st.st_mode);
 	file->name = name;
 	file->flags = flags;
 	file->fd = fd;
+	file->async_read_eventfd = async_read_eventfd;
 	file->async_read_in_progress = false;
 	file->length_to_read_async = 0;
 	file->read = file_handle_read;
@@ -821,9 +805,7 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 4:
-		if (file->type == FILE_TYPE_REGULAR) {
-			pipe_destroy(&file->async_read_pipe);
-		}
+		close(async_read_eventfd);
 
 	case 3:
 		free(file);
@@ -847,6 +829,7 @@ APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
 	int phase = 0;
 	APIE error_code;
 	String *name;
+	IOHandle async_read_eventfd;
 	File *file;
 
 	// check parameters
@@ -911,12 +894,26 @@ APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
 		goto cleanup;
 	}
 
+	// create async read eventfd
+	async_read_eventfd = eventfd(1, EFD_NONBLOCK);
+
+	if (async_read_eventfd < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not create asynchronous read eventfd: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	// create file object
 	file->type = FILE_TYPE_PIPE;
 	file->name = name;
 	file->flags = flags;
 	file->fd = -1;
-	file->async_read_handle = file->pipe.read_end;
+	file->async_read_eventfd = async_read_eventfd;
 	file->async_read_in_progress = false;
 	file->length_to_read_async = 0;
 	file->read = pipe_handle_read;
@@ -930,7 +927,7 @@ APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 5;
 
 	if (id != NULL) {
 		*id = file->base.id;
@@ -945,6 +942,9 @@ APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
+	case 4:
+		close(async_read_eventfd);
+
 	case 3:
 		pipe_destroy(&file->pipe);
 
@@ -958,7 +958,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 4 ? API_E_SUCCESS : error_code;
+	return phase == 5 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -1109,11 +1109,11 @@ PacketE file_read_async(File *file, uint64_t length_to_read) {
 	file->async_read_in_progress = true;
 	file->length_to_read_async = length_to_read;
 
-	// reading the whole file and generating the callbacks here could block
-	// the event loop too long. instead poll the file (or a pipe instead for
-	// regular files) for readability. when done reading asynchronously then
-	// remove the file or pipe from the event loop again
-	if (event_add_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC,
+	// reading the whole file and generating the callbacks here could block the
+	// event loop too long. instead poll a readable eventfd for readability.
+	// when done reading asynchronously then remove the eventfd from the event
+	// loop again
+	if (event_add_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC,
 	                     EVENT_READ, file_handle_async_read, file) < 0) {
 		// FIXME: this callback should be delivered after the response of this function
 		file_send_async_read_callback(file, API_E_INTERNAL_ERROR, NULL, 0);
@@ -1130,7 +1130,7 @@ PacketE file_read_async(File *file, uint64_t length_to_read) {
 // public API
 APIE file_abort_async_read(File *file) {
 	if (file->async_read_in_progress) {
-		event_remove_source(file->async_read_handle, EVENT_SOURCE_TYPE_GENERIC);
+		event_remove_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC);
 
 		file->async_read_in_progress = false;
 		file->length_to_read_async = 0;

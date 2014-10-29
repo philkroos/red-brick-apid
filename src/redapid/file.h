@@ -124,9 +124,7 @@ struct _File {
 	                // refers to FileFlag otherwise
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	Pipe pipe; // only created if type == FILE_TYPE_PIPE
-	IOHandle async_read_handle; // set to async_read_pipe.read_end if type == FILE_TYPE_REGULAR,
-	                            // set to pipe.read_end if type == FILE_TYPE_PIPE,
-	                            // set to fd otherwise
+	IOHandle async_read_eventfd;
 	Pipe async_read_pipe; // only created if type == FILE_TYPE_REGULAR
 	bool async_read_in_progress;
 	uint64_t length_to_read_async;
