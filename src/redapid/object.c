@@ -78,12 +78,14 @@ bool object_is_valid_type(ObjectType type) {
 }
 
 APIE object_create(Object *object, ObjectType type, Session *session,
-                   uint16_t create_flags, ObjectDestroyFunction destroy) {
+                   uint16_t create_flags, ObjectDestroyFunction destroy,
+                   ObjectSignatureFunction signature) {
 	APIE error_code;
 
 	object->id = OBJECT_ID_ZERO;
 	object->type = type;
 	object->destroy = destroy;
+	object->signature = signature;
 	object->internal_reference_count = 0;
 	object->external_reference_count = 0;
 	object->lock_count = 0;
@@ -162,6 +164,17 @@ void object_destroy(Object *object) {
 	if (object->destroy != NULL) {
 		object->destroy(object);
 	}
+}
+
+void object_log_signature(Object *object) {
+	char signature[OBJECT_MAX_SIGNATURE_LENGTH] = "<unknown>";
+
+	object->signature(object, signature);
+
+	log_debug("Object (id: %u, type: %s, internal-reference-count: %d, external-reference-count: %d, lock-count: %d%s%s)",
+	          object->id, object_get_type_name(object->type),
+	          object->internal_reference_count, object->external_reference_count, object->lock_count,
+	          signature != NULL ? ", " : "", signature);
 }
 
 // public API

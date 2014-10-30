@@ -209,6 +209,14 @@ static void file_destroy(Object *object) {
 	free(file);
 }
 
+static void file_signature(Object *object, char *signature) {
+	File *file = (File *)object;
+
+	// FIXME: add more info
+	snprintf(signature, OBJECT_MAX_SIGNATURE_LENGTH, "type: %s, name: %s, flags: 0x%04X",
+	         file_get_type_name(file->type), file->name->buffer, file->flags);
+}
+
 static void file_send_async_read_callback(File *file, APIE error_code,
                                           uint8_t *buffer, uint8_t length_read) {
 	// only send a async-file-read callback if there is at least one
@@ -779,8 +787,8 @@ APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
 	file->write = file_handle_write;
 	file->seek = file_handle_seek;
 
-	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           session, object_create_flags, file_destroy);
+	error_code = object_create(&file->base, OBJECT_TYPE_FILE, session,
+	                           object_create_flags, file_destroy, file_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -925,8 +933,8 @@ APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
 	file->write = pipe_handle_write;
 	file->seek = pipe_handle_seek;
 
-	error_code = object_create(&file->base, OBJECT_TYPE_FILE,
-	                           session, object_create_flags, file_destroy);
+	error_code = object_create(&file->base, OBJECT_TYPE_FILE, session,
+	                           object_create_flags, file_destroy, file_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

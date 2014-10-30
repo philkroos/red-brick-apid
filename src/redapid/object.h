@@ -36,6 +36,7 @@ typedef uint16_t ObjectID;
 
 #define OBJECT_ID_MAX UINT16_MAX
 #define OBJECT_ID_ZERO 0
+#define OBJECT_MAX_SIGNATURE_LENGTH 1024
 
 typedef enum {
 	OBJECT_TYPE_ANY = -1,
@@ -56,11 +57,13 @@ typedef enum { // bitmask
 typedef struct _Object Object;
 
 typedef void (*ObjectDestroyFunction)(Object *object);
+typedef void (*ObjectSignatureFunction)(Object *object, char *signature);
 
 struct _Object {
 	ObjectID id;
 	ObjectType type;
 	ObjectDestroyFunction destroy;
+	ObjectSignatureFunction signature;
 	int internal_reference_count;
 	Node external_reference_sentinel;
 	int external_reference_count;
@@ -71,8 +74,11 @@ const char *object_get_type_name(ObjectType type);
 bool object_is_valid_type(ObjectType type);
 
 APIE object_create(Object *object, ObjectType type, Session *session,
-                   uint16_t create_flags, ObjectDestroyFunction destro);
+                   uint16_t create_flags, ObjectDestroyFunction destroy,
+                   ObjectSignatureFunction signature);
 void object_destroy(Object *object);
+
+void object_log_signature(Object *object);
 
 APIE object_release(Object *object, Session *session);
 PacketE object_release_unchecked(Object *object, Session *session);

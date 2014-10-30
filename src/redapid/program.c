@@ -152,6 +152,14 @@ static void program_destroy(Object *object) {
 	free(program);
 }
 
+static void program_signature(Object *object, char *signature) {
+	Program *program = (Program *)object;
+
+	// FIXME: add more info
+	snprintf(signature, OBJECT_MAX_SIGNATURE_LENGTH, "purged: %s, identifier: %s",
+	         program->purged ? "true" : "false", program->identifier->buffer);
+}
+
 APIE program_load(const char *identifier, const char *root_directory,
                   const char *config_filename) {
 	int phase = 0;
@@ -245,7 +253,8 @@ APIE program_load(const char *identifier, const char *root_directory,
 	phase = 5;
 
 	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM, NULL,
-	                           OBJECT_CREATE_FLAG_INTERNAL, program_destroy);
+	                           OBJECT_CREATE_FLAG_INTERNAL, program_destroy,
+	                           program_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -399,7 +408,8 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	                           session,
 	                           OBJECT_CREATE_FLAG_INTERNAL |
 	                           OBJECT_CREATE_FLAG_EXTERNAL,
-	                           program_destroy);
+	                           program_destroy,
+	                           program_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

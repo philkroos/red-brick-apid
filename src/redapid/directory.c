@@ -49,6 +49,13 @@ static void directory_destroy(Object *object) {
 	free(directory);
 }
 
+static void directory_signature(Object *object, char *signature) {
+	Directory *directory = (Directory *)object;
+
+	snprintf(signature, OBJECT_MAX_SIGNATURE_LENGTH, "name: %s",
+	         directory->name->buffer);
+}
+
 // NOTE: assumes that name is absolute (starts with '/')
 static APIE directory_create_helper(char *name, uint16_t flags, mode_t mode) {
 	char *p;
@@ -202,7 +209,7 @@ APIE directory_open(ObjectID name_id, Session *session, ObjectID *id) {
 
 	error_code = object_create(&directory->base, OBJECT_TYPE_DIRECTORY,
 	                           session, OBJECT_CREATE_FLAG_EXTERNAL,
-	                           directory_destroy);
+	                           directory_destroy, directory_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

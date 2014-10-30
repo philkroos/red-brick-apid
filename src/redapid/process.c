@@ -116,6 +116,14 @@ static void process_destroy(Object *object) {
 	free(process);
 }
 
+static void process_signature(Object *object, char *signature) {
+	Process *process = (Process *)object;
+
+	// FIXME: add more info
+	snprintf(signature, OBJECT_MAX_SIGNATURE_LENGTH, "executable: %s",
+	         process->executable->buffer);
+}
+
 static void process_wait(void *opaque) {
 	Process *process = opaque;
 	int status;
@@ -729,7 +737,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	                           session,
 	                           object_create_flags |
 	                           OBJECT_CREATE_FLAG_INTERNAL,
-	                           process_destroy);
+	                           process_destroy,
+	                           process_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

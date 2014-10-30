@@ -47,6 +47,13 @@ static void list_destroy(Object *object) {
 	free(list);
 }
 
+static void list_signature(Object *object, char *signature) {
+	List *list = (List *)object;
+
+	snprintf(signature, OBJECT_MAX_SIGNATURE_LENGTH, "length: %u, allocated: %u",
+	         list->items.count, list->items.allocated);
+}
+
 // public API
 APIE list_allocate(uint16_t reserve, Session *session,
                    uint16_t object_create_flags, ObjectID *id, List **object) {
@@ -78,8 +85,8 @@ APIE list_allocate(uint16_t reserve, Session *session,
 
 	phase = 2;
 
-	error_code = object_create(&list->base, OBJECT_TYPE_LIST,
-	                           session, object_create_flags, list_destroy);
+	error_code = object_create(&list->base, OBJECT_TYPE_LIST, session,
+	                           object_create_flags, list_destroy, list_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

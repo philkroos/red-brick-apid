@@ -45,6 +45,13 @@ static void string_destroy(Object *object) {
 	free(string);
 }
 
+static void string_signature(Object *object, char *signature) {
+	String *string = (String *)object;
+
+	snprintf(signature, OBJECT_MAX_SIGNATURE_LENGTH, "length: %u, allocated: %u",
+	         string->length, string->allocated);
+}
+
 static APIE string_reserve(String *string, uint32_t reserve) {
 	uint32_t allocated;
 	char *buffer;
@@ -143,7 +150,8 @@ static APIE string_create(uint32_t reserve, char *buffer, Session *session,
 	(*string)->allocated = allocated;
 
 	error_code = object_create(&(*string)->base, OBJECT_TYPE_STRING,
-	                           session, object_create_flags, string_destroy);
+	                           session, object_create_flags, string_destroy,
+	                           string_signature);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

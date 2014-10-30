@@ -159,9 +159,22 @@ cleanup:
 }
 
 void session_destroy(Session *session) {
+	Node *external_reference_session_node;
+	ExternalReference *external_reference;
+
 	if (session->external_reference_count != 0) {
-		log_warn("Destroying session (id: %u) while it is still tracking %d external reference(s)",
+		log_warn("Destroying session (id: %u) while it is still tracking %d external reference(s) to the following objects (logged on debug level):",
 		         session->id, session->external_reference_count);
+
+		external_reference_session_node = session->external_reference_sentinel.next;
+
+		while (external_reference_session_node != &session->external_reference_sentinel) {
+			external_reference = containerof(external_reference_session_node, ExternalReference, session_node);
+
+			object_log_signature(external_reference->object);
+
+			external_reference_session_node = external_reference_session_node->next;
+		}
 	}
 
 	timer_destroy(&session->timer);
