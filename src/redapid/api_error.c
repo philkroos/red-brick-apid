@@ -81,6 +81,7 @@ const char *api_get_error_code_name(APIE error_code) {
 	ERROR_CODE_NAME(API_E_NAME_TOO_LONG);
 	ERROR_CODE_NAME(API_E_INVALID_SEEK);
 	ERROR_CODE_NAME(API_E_NOT_SUPPORTED);
+	ERROR_CODE_NAME(API_E_TOO_MANY_OPEN_FILES);
 
 	default: return "<unknown>";
 	}
