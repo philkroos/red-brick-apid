@@ -64,7 +64,7 @@ typedef struct {
 	bool shutdown;
 	Process *last_spawned_process; // == NULL until the first process spawned
 	uint64_t last_spawn_timestamp;
-	String *last_error_message; // == NULL until the first error occurred
+	String *last_error_message; // == NULL if there was no error since the last successful process spawn
 	uint64_t last_error_timestamp;
 	bool last_error_internal; // == true if error message wrapping failed
 } ProgramScheduler;

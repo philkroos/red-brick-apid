@@ -1243,7 +1243,7 @@ APIE program_get_last_scheduler_error(Program *program, Session *session,
 	}
 
 	if (program->scheduler.last_error_message == NULL) {
-		log_debug("No scheduler error occurred for program object (id: %u, identifier: %s) yet",
+		log_debug("No scheduler error occurred for program object (id: %u, identifier: %s) since the last successful process spawn",
 		          program->base.id, program->identifier->buffer);
 
 		return API_E_DOES_NOT_EXIST;

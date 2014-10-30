@@ -535,10 +535,17 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
 	}
 
+	if (program_scheduler->last_error_message != NULL) {
+		string_unlock(program_scheduler->last_error_message);
+	}
+
 	program_scheduler->reboot = false;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION;
 	program_scheduler->last_spawned_process = process;
 	program_scheduler->last_spawn_timestamp = timestamp.tv_sec;
+	program_scheduler->last_error_message = NULL;
+	program_scheduler->last_error_timestamp = 0;
+	program_scheduler->last_error_internal = false;
 
 	program_scheduler_stop(program_scheduler);
 
