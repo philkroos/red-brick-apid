@@ -47,7 +47,10 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 static void program_scheduler_set_state(ProgramScheduler *program_scheduler,
                                         ProgramSchedulerState state,
                                         uint64_t timestamp) {
-	if (program_scheduler->state == state) {
+	// always allow error-occured to error-occured transition because the error
+	// message might have changed and the user has to be informared about this
+	if (state != PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED &&
+	    program_scheduler->state == state) {
 		return;
 	}
 
@@ -570,6 +573,14 @@ void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
 	if (program_scheduler->config->repeat_mode != PROGRAM_REPEAT_MODE_NEVER) {
 		program_scheduler_set_state(program_scheduler,
 		                            PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION,
+		                            timestamp.tv_sec);
+	} else {
+		// program_scheduler_stop will not overwrite error-occurred with
+		// stopped, so it can be called any time. explicitly go to stopped
+		// here and overwrite error-occurred because a new attempt to start
+		// the program was made (maybe using schedule-now)
+		program_scheduler_set_state(program_scheduler,
+		                            PROGRAM_SCHEDULER_STATE_STOPPED,
 		                            timestamp.tv_sec);
 	}
 
