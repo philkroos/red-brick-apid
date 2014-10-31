@@ -27,9 +27,9 @@ typedef void (*AsyncFileWriteCallbackFunction)(uint16_t, uint8_t, uint8_t, void 
 
 typedef void (*ProcessStateChangedCallbackFunction)(uint16_t, uint8_t, uint64_t, uint8_t, void *);
 
-typedef void (*ProgramProcessSpawnedCallbackFunction)(uint16_t, void *);
+typedef void (*ProgramSchedulerStateChangedCallbackFunction)(uint16_t, void *);
 
-typedef void (*ProgramSchedulerErrorOccurredCallbackFunction)(uint16_t, void *);
+typedef void (*ProgramProcessSpawnedCallbackFunction)(uint16_t, void *);
 
 #if defined _MSC_VER || defined __BORLANDC__
 	#pragma pack(push)
@@ -719,6 +719,30 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint16_t session_id;
+} ATTRIBUTE_PACKED GetProgramSchedulerState_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t state;
+	uint64_t timestamp;
+	uint16_t message_string_id;
+} ATTRIBUTE_PACKED GetProgramSchedulerStateResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED ScheduleProgramNow_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED ScheduleProgramNowResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcess_;
 
 typedef struct {
@@ -727,19 +751,6 @@ typedef struct {
 	uint16_t process_id;
 	uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
-} ATTRIBUTE_PACKED GetLastProgramSchedulerError_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t message_string_id;
-	uint64_t timestamp;
-} ATTRIBUTE_PACKED GetLastProgramSchedulerErrorResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -792,12 +803,12 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED ProgramProcessSpawnedCallback_;
+} ATTRIBUTE_PACKED ProgramSchedulerStateChangedCallback_;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED ProgramSchedulerErrorOccurredCallback_;
+} ATTRIBUTE_PACKED ProgramProcessSpawnedCallback_;
 
 typedef struct {
 	PacketHeader header;
@@ -864,11 +875,11 @@ static void red_callback_wrapper_process_state_changed(DevicePrivate *device_p, 
 	callback_function(callback->process_id, callback->state, callback->timestamp, callback->exit_code, user_data);
 }
 
-static void red_callback_wrapper_program_process_spawned(DevicePrivate *device_p, Packet *packet) {
-	ProgramProcessSpawnedCallbackFunction callback_function;
-	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED];
-	ProgramProcessSpawnedCallback_ *callback = (ProgramProcessSpawnedCallback_ *)packet;
-	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED];
+static void red_callback_wrapper_program_scheduler_state_changed(DevicePrivate *device_p, Packet *packet) {
+	ProgramSchedulerStateChangedCallbackFunction callback_function;
+	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED];
+	ProgramSchedulerStateChangedCallback_ *callback = (ProgramSchedulerStateChangedCallback_ *)packet;
+	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED];
 
 	if (callback_function == NULL) {
 		return;
@@ -879,11 +890,11 @@ static void red_callback_wrapper_program_process_spawned(DevicePrivate *device_p
 	callback_function(callback->program_id, user_data);
 }
 
-static void red_callback_wrapper_program_scheduler_error_occurred(DevicePrivate *device_p, Packet *packet) {
-	ProgramSchedulerErrorOccurredCallbackFunction callback_function;
-	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED];
-	ProgramSchedulerErrorOccurredCallback_ *callback = (ProgramSchedulerErrorOccurredCallback_ *)packet;
-	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED];
+static void red_callback_wrapper_program_process_spawned(DevicePrivate *device_p, Packet *packet) {
+	ProgramProcessSpawnedCallbackFunction callback_function;
+	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED];
+	ProgramProcessSpawnedCallback_ *callback = (ProgramProcessSpawnedCallback_ *)packet;
+	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED];
 
 	if (callback_function == NULL) {
 		return;
@@ -956,21 +967,22 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SCHEDULE_PROGRAM_NOW] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
-	device_p->response_expected[RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_GET_IDENTITY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_WRITE] = red_callback_wrapper_async_file_write;
 	device_p->callback_wrappers[RED_CALLBACK_PROCESS_STATE_CHANGED] = red_callback_wrapper_process_state_changed;
+	device_p->callback_wrappers[RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED] = red_callback_wrapper_program_scheduler_state_changed;
 	device_p->callback_wrappers[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED] = red_callback_wrapper_program_process_spawned;
-	device_p->callback_wrappers[RED_CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED] = red_callback_wrapper_program_scheduler_error_occurred;
 }
 
 void red_destroy(RED *red) {
@@ -2466,6 +2478,62 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id,
 	return ret;
 }
 
+int red_get_program_scheduler_state(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_state, uint64_t *ret_timestamp, uint16_t *ret_message_string_id) {
+	DevicePrivate *device_p = red->p;
+	GetProgramSchedulerState_ request;
+	GetProgramSchedulerStateResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+	request.session_id = leconvert_uint16_to(session_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_state = response.state;
+	*ret_timestamp = leconvert_uint64_from(response.timestamp);
+	*ret_message_string_id = leconvert_uint16_from(response.message_string_id);
+
+
+
+	return ret;
+}
+
+int red_schedule_program_now(RED *red, uint16_t program_id, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	ScheduleProgramNow_ request;
+	ScheduleProgramNowResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SCHEDULE_PROGRAM_NOW, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
 int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_process_id, uint64_t *ret_timestamp) {
 	DevicePrivate *device_p = red->p;
 	GetLastSpawnedProgramProcess_ request;
@@ -2488,35 +2556,6 @@ int red_get_last_spawned_program_process(RED *red, uint16_t program_id, uint16_t
 	}
 	*ret_error_code = response.error_code;
 	*ret_process_id = leconvert_uint16_from(response.process_id);
-	*ret_timestamp = leconvert_uint64_from(response.timestamp);
-
-
-
-	return ret;
-}
-
-int red_get_last_program_scheduler_error(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_message_string_id, uint64_t *ret_timestamp) {
-	DevicePrivate *device_p = red->p;
-	GetLastProgramSchedulerError_ request;
-	GetLastProgramSchedulerErrorResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.program_id = leconvert_uint16_to(program_id);
-	request.session_id = leconvert_uint16_to(session_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_message_string_id = leconvert_uint16_from(response.message_string_id);
 	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 
 

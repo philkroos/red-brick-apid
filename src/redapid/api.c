@@ -106,22 +106,23 @@ typedef enum {
 	FUNCTION_GET_PROGRAM_STDIO_REDIRECTION,
 	FUNCTION_SET_PROGRAM_SCHEDULE,
 	FUNCTION_GET_PROGRAM_SCHEDULE,
+	FUNCTION_GET_PROGRAM_SCHEDULER_STATE,
+	FUNCTION_SCHEDULE_PROGRAM_NOW,
 	FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS,
-	FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR,
 	FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES,
 	FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE,
 	FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE,
 	FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION,
-	CALLBACK_PROGRAM_PROCESS_SPAWNED,
-	CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED
+	CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED,
+	CALLBACK_PROGRAM_PROCESS_SPAWNED
 } APIFunctionID;
 
 static uint32_t _uid = 0; // always little endian
 static AsyncFileReadCallback _async_file_read_callback;
 static AsyncFileWriteCallback _async_file_write_callback;
 static ProcessStateChangedCallback _process_state_changed_callback;
+static ProgramSchedulerStateChangedCallback _program_scheduler_state_changed_callback;
 static ProgramProcessSpawnedCallback _program_process_spawned_callback;
-static ProgramSchedulerErrorOccurredCallback _program_scheduler_error_occurred_callback;
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
 	// memset'ing the whole response to zero first ensures that all members
@@ -756,15 +757,20 @@ CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedule, get_program_schedule, {
 	                                           &response.repeat_fields_string_id);
 })
 
+CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedulerState, get_program_scheduler_state, {
+	response.error_code = program_get_scheduler_state(program, session,
+	                                                  &response.state,
+	                                                  &response.timestamp,
+	                                                  &response.message_string_id);
+})
+
+CALL_PROGRAM_FUNCTION(ScheduleProgramNow, schedule_program_now, {
+	response.error_code = program_schedule_now(program);
+})
+
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {
 	response.error_code = program_get_last_spawned_process(program, session,
 	                                                       &response.process_id,
-	                                                       &response.timestamp);
-})
-
-CALL_PROGRAM_FUNCTION_WITH_SESSION(GetLastProgramSchedulerError, get_last_program_scheduler_error, {
-	response.error_code = program_get_last_scheduler_error(program, session,
-	                                                       &response.message_string_id,
 	                                                       &response.timestamp);
 })
 
@@ -857,13 +863,13 @@ int api_init(void) {
 	                     sizeof(_process_state_changed_callback),
 	                     CALLBACK_PROCESS_STATE_CHANGED);
 
+	api_prepare_callback((Packet *)&_program_scheduler_state_changed_callback,
+	                     sizeof(_program_scheduler_state_changed_callback),
+	                     CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED);
+
 	api_prepare_callback((Packet *)&_program_process_spawned_callback,
 	                     sizeof(_program_process_spawned_callback),
 	                     CALLBACK_PROGRAM_PROCESS_SPAWNED);
-
-	api_prepare_callback((Packet *)&_program_scheduler_error_occurred_callback,
-	                     sizeof(_program_scheduler_error_occurred_callback),
-	                     CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED);
 
 	return 0;
 }
@@ -956,8 +962,9 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(GET_PROGRAM_STDIO_REDIRECTION,    GetProgramStdioRedirection,   get_program_stdio_redirection)
 	DISPATCH_FUNCTION(SET_PROGRAM_SCHEDULE,             SetProgramSchedule,           set_program_schedule)
 	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULE,             GetProgramSchedule,           get_program_schedule)
+	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULER_STATE,      GetProgramSchedulerState,     get_program_scheduler_state)
+	DISPATCH_FUNCTION(SCHEDULE_PROGRAM_NOW,             ScheduleProgramNow,           schedule_program_now)
 	DISPATCH_FUNCTION(GET_LAST_SPAWNED_PROGRAM_PROCESS, GetLastSpawnedProgramProcess, get_last_spawned_program_process)
-	DISPATCH_FUNCTION(GET_LAST_PROGRAM_SCHEDULER_ERROR, GetLastProgramSchedulerError, get_last_program_scheduler_error)
 	DISPATCH_FUNCTION(GET_CUSTOM_PROGRAM_OPTION_NAMES,  GetCustomProgramOptionNames,  get_custom_program_option_names)
 	DISPATCH_FUNCTION(SET_CUSTOM_PROGRAM_OPTION_VALUE,  SetCustomProgramOptionValue,  set_custom_program_option_value)
 	DISPATCH_FUNCTION(GET_CUSTOM_PROGRAM_OPTION_VALUE,  GetCustomProgramOptionValue,  get_custom_program_option_value)
@@ -1049,14 +1056,15 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_GET_PROGRAM_STDIO_REDIRECTION:    return "get-program-stdio-redirection";
 	case FUNCTION_SET_PROGRAM_SCHEDULE:             return "set-program-schedule";
 	case FUNCTION_GET_PROGRAM_SCHEDULE:             return "get-program-schedule";
+	case FUNCTION_GET_PROGRAM_SCHEDULER_STATE:      return "get-program-scheduler-state";
+	case FUNCTION_SCHEDULE_PROGRAM_NOW:             return "schedule-program-now";
 	case FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS: return "get-last-spawned-program-process";
-	case FUNCTION_GET_LAST_PROGRAM_SCHEDULER_ERROR: return "get-last-program-scheduler-error";
 	case FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES:  return "get-custom-program-option-names";
 	case FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE:  return "set-custom-program-option-value";
 	case FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE:  return "get-custom-program-option-value";
 	case FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION:     return "remove-custom-program-option";
 	case CALLBACK_PROGRAM_PROCESS_SPAWNED:          return "program-process-spawned";
-	case CALLBACK_PROGRAM_SCHEDULER_ERROR_OCCURRED: return "program-scheduler-error-occurred";
+	case CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED:  return "program-scheduler-state-changed";
 
 	// misc
 	case FUNCTION_GET_IDENTITY:                     return "get-identity";
@@ -1103,14 +1111,14 @@ void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
 	network_dispatch_response((Packet *)&_process_state_changed_callback);
 }
 
+void api_send_program_scheduler_state_changed_callback(ObjectID program_id) {
+	_program_scheduler_state_changed_callback.program_id = program_id;
+
+	network_dispatch_response((Packet *)&_program_scheduler_state_changed_callback);
+}
+
 void api_send_program_process_spawned_callback(ObjectID program_id) {
 	_program_process_spawned_callback.program_id = program_id;
 
 	network_dispatch_response((Packet *)&_program_process_spawned_callback);
-}
-
-void api_send_program_scheduler_error_occurred_callback(ObjectID program_id) {
-	_program_scheduler_error_occurred_callback.program_id = program_id;
-
-	network_dispatch_response((Packet *)&_program_scheduler_error_occurred_callback);
 }

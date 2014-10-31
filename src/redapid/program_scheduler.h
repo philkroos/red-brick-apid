@@ -27,11 +27,12 @@
 #include "process.h"
 #include "program_config.h"
 
-typedef void (*ProgramSchedulerSpawnFunction)(void *opaque);
-typedef void (*ProgramSchedulerErrorFunction)(void *opaque);
+typedef void (*ProgramSchedulerProcessSpawnedFunction)(void *opaque);
+typedef void (*ProgramSchedulerStateChangedFunction)(void *opaque);
 
 typedef enum {
-	PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION = 0,
+	PROGRAM_SCHEDULER_STATE_STOPPED = 0,
+	PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION,
 	PROGRAM_SCHEDULER_STATE_DELAYING_START,
 	PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION,
 	PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED
@@ -42,8 +43,8 @@ typedef struct {
 	String *root_directory;
 	ProgramConfig *config;
 	bool reboot;
-	ProgramSchedulerSpawnFunction spawn;
-	ProgramSchedulerErrorFunction error;
+	ProgramSchedulerProcessSpawnedFunction process_spawned;
+	ProgramSchedulerStateChangedFunction state_changed;
 	void *opaque;
 	String *absolute_working_directory; // <home>/programs/<identifier>/bin/<working_directory>
 	String *absolute_stdin_file_name; // <home>/programs/<identifier>/bin/<stdin_file_name>
@@ -57,27 +58,29 @@ typedef struct {
 	                                   // if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
 	char *log_directory; // <home>/programs/<identifier>/log
 	String *dev_null_file_name; // /dev/null
-	ProgramSchedulerState state;
 	uint64_t delayed_start_timestamp;
 	Timer timer;
 	bool timer_active;
 	bool shutdown;
 	Process *last_spawned_process; // == NULL until the first process spawned
-	uint64_t last_spawn_timestamp;
-	String *last_error_message; // == NULL if there was no error since the last successful process spawn
-	uint64_t last_error_timestamp;
-	bool last_error_internal; // == true if error message wrapping failed
+	uint64_t last_spawned_timestamp;
+	ProgramSchedulerState state;
+	uint64_t state_timestamp;
+	String *error_message; // only != NULL if state == PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED
+	bool error_internal; // == true if error message wrapping failed
 } ProgramScheduler;
 
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               String *identifier, String *root_directory,
                               ProgramConfig *config, bool reboot,
-                              ProgramSchedulerSpawnFunction spawn,
-                              ProgramSchedulerErrorFunction error,
+                              ProgramSchedulerProcessSpawnedFunction process_spawned,
+                              ProgramSchedulerStateChangedFunction state_changed,
                               void *opaque);
 void program_scheduler_destroy(ProgramScheduler *program_scheduler);
 
 void program_scheduler_update(ProgramScheduler *program_scheduler);
 void program_scheduler_shutdown(ProgramScheduler *program_scheduler);
+
+void program_scheduler_spawn_process(ProgramScheduler *program_scheduler);
 
 #endif // REDAPID_PROGRAM_SCHEDULER_H

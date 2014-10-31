@@ -313,6 +313,14 @@ enum program_repeat_mode {
 	PROGRAM_REPEAT_MODE_CRON
 }
 
+enum program_scheduler_state {
+	PROGRAM_SCHEDULER_STATE_STOPPED = 0,
+	PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION,
+	PROGRAM_SCHEDULER_STATE_DELAYING_START,
+	PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION,
+	PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED
+}
+
 + get_programs                    (uint16_t session_id)           -> uint8_t error_code, uint16_t programs_list_id
 + define_program                  (uint16_t identifier_string_id,
                                    uint16_t session_id)           -> uint8_t error_code, uint16_t program_id
@@ -365,10 +373,11 @@ enum program_repeat_mode {
                                                                      uint8_t repeat_mode,
                                                                      uint32_t repeat_interval,
                                                                      uint16_t repeat_fields_string_id
++ get_program_scheduler_state      (uint16_t program_id,
+                                    uint16_t session_id)          -> uint8_t error_code, uint8_t state, uint64_t timestamp, uint16_t message_string_id
 + get_last_spawned_program_process (uint16_t program_id,
                                     uint16_t session_id)          -> uint8_t error_code, uint16_t process_id, uint64_t timestamp
-+ get_last_program_scheduler_error (uint16_t program_id,
-                                    uint16_t session_id)          -> uint8_t error_code, uint16_t message_string_id, uint64_t timestamp
++ schedule_program_now             (uint16_t program_id)          -> uint8_t error_code
 + get_custom_program_option_names  (uint16_t program_id,
                                     uint16_t session_id)          -> uint8_t error_code, uint16_t names_list_id
 + set_custom_program_option_value  (uint16_t program_id,
@@ -380,5 +389,5 @@ enum program_repeat_mode {
 + remove_custom_program_option     (uint16_t program_id,
                                     uint16_t name_string_id)      -> uint8_t error_code
 
-+ callback: program_process_spawned          -> uint16_t program_id
-+ callback: program_scheduler_error_occurred -> uint16_t program_id
++ callback: program_scheduler_state_changed -> uint16_t program_id
++ callback: program_process_spawned         -> uint16_t program_id

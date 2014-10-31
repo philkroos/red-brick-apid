@@ -117,7 +117,7 @@ static ProgramCustomOption *program_find_custom_option(Program *program,
 	return NULL;
 }
 
-static void program_report_process_spawn(void *opaque) {
+static void program_report_process_process_spawn(void *opaque) {
 	Program *program = opaque;
 
 	// only send a program-process-spawned callback if there is at least one
@@ -128,14 +128,14 @@ static void program_report_process_spawn(void *opaque) {
 	}
 }
 
-static void program_report_scheduler_error(void *opaque) {
+static void program_report_scheduler_state_change(void *opaque) {
 	Program *program = opaque;
 
 	// only send a program-scheduler-error-occurred callback if there is at
 	// least one external reference to the program object. otherwise there is
 	// no one that could be interested in this callback anyway
 	if (program->base.external_reference_count > 0) {
-		api_send_program_scheduler_error_occurred_callback(program->base.id);
+		api_send_program_scheduler_state_changed_callback(program->base.id);
 	}
 }
 
@@ -242,8 +242,8 @@ APIE program_load(const char *identifier, const char *root_directory,
 	                                      program->identifier,
 	                                      program->root_directory,
 	                                      &program->config, true,
-	                                      program_report_process_spawn,
-	                                      program_report_scheduler_error,
+	                                      program_report_process_process_spawn,
+	                                      program_report_scheduler_state_change,
 	                                      program);
 
 	if (error_code != API_E_SUCCESS) {
@@ -393,8 +393,8 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	                                      program->identifier,
 	                                      program->root_directory,
 	                                      &program->config, false,
-	                                      program_report_process_spawn,
-	                                      program_report_scheduler_error,
+	                                      program_report_process_process_spawn,
+	                                      program_report_scheduler_state_change,
 	                                      program);
 
 	if (error_code != API_E_SUCCESS) {
@@ -1206,6 +1206,48 @@ APIE program_get_schedule(Program *program, Session *session,
 }
 
 // public API
+APIE program_get_scheduler_state(Program *program, Session *session,
+                                 uint8_t *state, uint64_t *timestamp,
+                                 ObjectID *message_id) {
+	APIE error_code;
+
+	if (program->purged) {
+		log_warn("Program object (id: %u, identifier: %s) is purged",
+		         program->base.id, program->identifier->buffer);
+
+		return API_E_PROGRAM_IS_PURGED;
+	}
+
+	*state = program->scheduler.state;
+	*timestamp = program->scheduler.state_timestamp;
+
+	if (program->scheduler.state == PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED) {
+		if (program->scheduler.error_internal) {
+			return API_E_INTERNAL_ERROR;
+		}
+
+		error_code = object_add_external_reference(&program->scheduler.error_message->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
+
+		*message_id = program->scheduler.error_message->base.id;
+	} else {
+		*message_id = OBJECT_ID_ZERO;
+	}
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_schedule_now(Program *program) {
+	program_scheduler_spawn_process(&program->scheduler);
+
+	return API_E_SUCCESS;
+}
+
+// public API
 APIE program_get_last_spawned_process(Program *program, Session *session,
                                       ObjectID *process_id, uint64_t *timestamp) {
 	APIE error_code;
@@ -1231,42 +1273,7 @@ APIE program_get_last_spawned_process(Program *program, Session *session,
 	}
 
 	*process_id = program->scheduler.last_spawned_process->base.id;
-	*timestamp = program->scheduler.last_spawn_timestamp;
-
-	return API_E_SUCCESS;
-}
-
-// public API
-APIE program_get_last_scheduler_error(Program *program, Session *session,
-                                      ObjectID *message_id, uint64_t *timestamp) {
-	APIE error_code;
-
-	if (program->purged) {
-		log_warn("Program object (id: %u, identifier: %s) is purged",
-		         program->base.id, program->identifier->buffer);
-
-		return API_E_PROGRAM_IS_PURGED;
-	}
-
-	if (program->scheduler.last_error_internal) {
-		return API_E_INTERNAL_ERROR;
-	}
-
-	if (program->scheduler.last_error_message == NULL) {
-		log_debug("No scheduler error occurred for program object (id: %u, identifier: %s) since the last successful process spawn",
-		          program->base.id, program->identifier->buffer);
-
-		return API_E_DOES_NOT_EXIST;
-	}
-
-	error_code = object_add_external_reference(&program->scheduler.last_error_message->base, session);
-
-	if (error_code != API_E_SUCCESS) {
-		return error_code;
-	}
-
-	*message_id = program->scheduler.last_error_message->base.id;
-	*timestamp = program->scheduler.last_error_timestamp;
+	*timestamp = program->scheduler.last_spawned_timestamp;
 
 	return API_E_SUCCESS;
 }

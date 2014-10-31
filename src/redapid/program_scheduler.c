@@ -44,6 +44,19 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler);
 static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) ATTRIBUTE_FMT_PRINTF(3, 4);
 
+static void program_scheduler_set_state(ProgramScheduler *program_scheduler,
+                                        ProgramSchedulerState state,
+                                        uint64_t timestamp) {
+	if (program_scheduler->state == state) {
+		return;
+	}
+
+	program_scheduler->state = state;
+	program_scheduler->state_timestamp = timestamp;
+
+	program_scheduler->state_changed(program_scheduler->opaque);
+}
+
 static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) {
 	va_list arguments;
@@ -63,27 +76,25 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 		          program_scheduler->identifier->buffer, buffer);
 	}
 
-	program_scheduler->state = PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED;
-
-	program_scheduler_stop(program_scheduler);
-
-	if (program_scheduler->last_error_message != NULL) {
-		string_unlock(program_scheduler->last_error_message);
+	if (program_scheduler->error_message != NULL) {
+		string_unlock(program_scheduler->error_message);
 	}
 
 	if (string_wrap(buffer, NULL,
 	                OBJECT_CREATE_FLAG_INTERNAL |
 	                OBJECT_CREATE_FLAG_LOCKED,
-	                NULL, &program_scheduler->last_error_message) == API_E_SUCCESS) {
-		program_scheduler->last_error_timestamp = time(NULL);
-		program_scheduler->last_error_internal = false;
+	                NULL, &program_scheduler->error_message) == API_E_SUCCESS) {
+		program_scheduler->error_internal = false;
 	} else {
-		program_scheduler->last_error_message = NULL;
-		program_scheduler->last_error_timestamp = 0;
-		program_scheduler->last_error_internal = true;
+		program_scheduler->error_message = NULL;
+		program_scheduler->error_internal = true;
 	}
 
-	program_scheduler->error(program_scheduler->opaque);
+	program_scheduler_set_state(program_scheduler,
+	                            PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED,
+	                            time(NULL));
+
+	program_scheduler_stop(program_scheduler);
 }
 
 static void program_scheduler_start(ProgramScheduler *program_scheduler) {
@@ -107,6 +118,12 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 
 static void program_scheduler_stop(ProgramScheduler *program_scheduler) {
 	static bool recursive = false;
+
+	if (program_scheduler->state != PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED) {
+		program_scheduler_set_state(program_scheduler,
+		                            PROGRAM_SCHEDULER_STATE_STOPPED,
+		                            time(NULL));
+	}
 
 	if (!program_scheduler->timer_active || recursive) {
 		return;
@@ -458,7 +475,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 	}
 }
 
-static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
+void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
 	int phase = 0;
 	APIE error_code;
 	File *stdin;
@@ -535,21 +552,26 @@ static void program_scheduler_spawn_process(ProgramScheduler *program_scheduler)
 		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
 	}
 
-	if (program_scheduler->last_error_message != NULL) {
-		string_unlock(program_scheduler->last_error_message);
+	if (program_scheduler->error_message != NULL) {
+		string_unlock(program_scheduler->error_message);
 	}
 
 	program_scheduler->reboot = false;
-	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION;
+	program_scheduler->delayed_start_timestamp = 0;
 	program_scheduler->last_spawned_process = process;
-	program_scheduler->last_spawn_timestamp = timestamp.tv_sec;
-	program_scheduler->last_error_message = NULL;
-	program_scheduler->last_error_timestamp = 0;
-	program_scheduler->last_error_internal = false;
+	program_scheduler->last_spawned_timestamp = timestamp.tv_sec;
+	program_scheduler->error_message = NULL;
+	program_scheduler->error_internal = false;
 
 	program_scheduler_stop(program_scheduler);
 
-	program_scheduler->spawn(program_scheduler->opaque);
+	program_scheduler->process_spawned(program_scheduler->opaque);
+
+	if (program_scheduler->config->repeat_mode != PROGRAM_REPEAT_MODE_NEVER) {
+		program_scheduler_set_state(program_scheduler,
+		                            PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION,
+		                            timestamp.tv_sec);
+	}
 
 	object_remove_internal_reference(&stdin->base);
 	object_remove_internal_reference(&stdout->base);
@@ -608,8 +630,11 @@ static void program_scheduler_tick(void *opaque) {
 
 		if (start) {
 			if (program_scheduler->config->start_delay > 0) {
-				program_scheduler->state = PROGRAM_SCHEDULER_STATE_DELAYING_START;
 				program_scheduler->delayed_start_timestamp = time(NULL) + program_scheduler->config->start_delay;
+
+				program_scheduler_set_state(program_scheduler,
+				                            PROGRAM_SCHEDULER_STATE_DELAYING_START,
+				                            time(NULL));
 			} else {
 				program_scheduler_spawn_process(program_scheduler);
 			}
@@ -632,7 +657,7 @@ static void program_scheduler_tick(void *opaque) {
 			break;
 
 		case PROGRAM_REPEAT_MODE_INTERVAL:
-			if (program_scheduler->last_spawn_timestamp + program_scheduler->config->repeat_interval <= (uint64_t)time(NULL)) {
+			if (program_scheduler->last_spawned_timestamp + program_scheduler->config->repeat_interval <= (uint64_t)time(NULL)) {
 				program_scheduler_spawn_process(program_scheduler);
 			}
 
@@ -665,8 +690,8 @@ static void program_scheduler_tick(void *opaque) {
 APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               String *identifier, String *root_directory,
                               ProgramConfig *config, bool reboot,
-                              ProgramSchedulerSpawnFunction spawn,
-                              ProgramSchedulerErrorFunction error,
+                              ProgramSchedulerProcessSpawnedFunction process_spawned,
+                              ProgramSchedulerStateChangedFunction state_changed,
                               void *opaque) {
 	int phase = 0;
 	APIE error_code;
@@ -729,8 +754,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->root_directory = root_directory;
 	program_scheduler->config = config;
 	program_scheduler->reboot = reboot;
-	program_scheduler->spawn = spawn;
-	program_scheduler->error = error;
+	program_scheduler->process_spawned = process_spawned;
+	program_scheduler->state_changed = state_changed;
 	program_scheduler->opaque = opaque;
 	program_scheduler->absolute_working_directory = NULL;
 	program_scheduler->absolute_stdin_file_name = NULL;
@@ -738,14 +763,14 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->absolute_stderr_file_name = NULL;
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
-	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION;
 	program_scheduler->timer_active = false;
 	program_scheduler->shutdown = false;
 	program_scheduler->last_spawned_process = NULL;
-	program_scheduler->last_spawn_timestamp = 0;
-	program_scheduler->last_error_message = NULL;
-	program_scheduler->last_error_timestamp = 0;
-	program_scheduler->last_error_internal = false;
+	program_scheduler->last_spawned_timestamp = 0;
+	program_scheduler->state = PROGRAM_SCHEDULER_STATE_STOPPED;
+	program_scheduler->state_timestamp = time(NULL);
+	program_scheduler->error_message = NULL;
+	program_scheduler->error_internal = false;
 
 	if (timer_create_(&program_scheduler->timer, program_scheduler_tick,
 	                  program_scheduler) < 0) {
@@ -781,8 +806,8 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
 	}
 
-	if (program_scheduler->last_error_message != NULL) {
-		string_unlock(program_scheduler->last_error_message);
+	if (program_scheduler->error_message != NULL) {
+		string_unlock(program_scheduler->error_message);
 	}
 
 	timer_destroy(&program_scheduler->timer);
@@ -951,11 +976,13 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 	program_scheduler->absolute_stderr_file_name = absolute_stderr_file_name;
 
 	// update state
-	program_scheduler->state = PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION;
-
 	if (program_scheduler->config->start_condition == PROGRAM_START_CONDITION_NEVER) {
 		program_scheduler_stop(program_scheduler);
 	} else {
+		program_scheduler_set_state(program_scheduler,
+		                            PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION,
+		                            time(NULL));
+
 		program_scheduler_start(program_scheduler);
 	}
 

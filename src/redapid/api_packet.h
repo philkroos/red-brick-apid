@@ -737,6 +737,29 @@ typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
 	uint16_t session_id;
+} ATTRIBUTE_PACKED GetProgramSchedulerStateRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint8_t state;
+	uint64_t timestamp;
+	uint16_t message_string_id;
+} ATTRIBUTE_PACKED GetProgramSchedulerStateResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED ScheduleProgramNowRequest;
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED ScheduleProgramNowResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+	uint16_t session_id;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessRequest;
 
 typedef struct {
@@ -745,19 +768,6 @@ typedef struct {
 	uint16_t process_id;
 	uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
-} ATTRIBUTE_PACKED GetLastProgramSchedulerErrorRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t message_string_id;
-	uint64_t timestamp;
-} ATTRIBUTE_PACKED GetLastProgramSchedulerErrorResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -810,12 +820,12 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED ProgramProcessSpawnedCallback;
+} ATTRIBUTE_PACKED ProgramSchedulerStateChangedCallback;
 
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED ProgramSchedulerErrorOccurredCallback;
+} ATTRIBUTE_PACKED ProgramProcessSpawnedCallback;
 
 //
 // misc

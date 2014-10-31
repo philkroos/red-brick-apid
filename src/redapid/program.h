@@ -88,10 +88,14 @@ APIE program_get_schedule(Program *program, Session *session,
                           uint32_t *repeat_interval,
                           ObjectID *repeat_fields_id);
 
+APIE program_get_scheduler_state(Program *program, Session *session,
+                                 uint8_t *state, uint64_t *timestamp,
+                                 ObjectID *message_id);
+
+APIE program_schedule_now(Program *program);
+
 APIE program_get_last_spawned_process(Program *program, Session *session,
                                       ObjectID *process_id, uint64_t *timestamp);
-APIE program_get_last_scheduler_error(Program *program, Session *session,
-                                      ObjectID *message_id, uint64_t *timestamp);
 
 APIE program_get_custom_option_names(Program *program, Session *session,
                                      ObjectID *names_id);
