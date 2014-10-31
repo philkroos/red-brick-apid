@@ -598,6 +598,11 @@ static void program_scheduler_tick(void *opaque) {
 	bool start = false;
 
 	switch (program_scheduler->state) {
+	case PROGRAM_SCHEDULER_STATE_STOPPED:
+		program_scheduler_stop(program_scheduler);
+
+		break;
+
 	case PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION:
 		switch (program_scheduler->config->start_condition) {
 		case PROGRAM_START_CONDITION_NEVER:
