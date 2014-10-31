@@ -43,6 +43,7 @@
 
 typedef struct {
 	ProcessState state;
+	uint64_t state_timestamp;
 	uint8_t exit_code;
 } ProcessStateChange;
 
@@ -142,6 +143,8 @@ static void process_wait(void *opaque) {
 			break;
 		}
 
+		change.state_timestamp = time(NULL);
+
 		if (WIFEXITED(status)) {
 			change.state = PROCESS_STATE_EXITED;
 			change.exit_code = WEXITSTATUS(status);
@@ -203,14 +206,15 @@ static void process_handle_state_change(void *opaque) {
 	}
 
 	process->state = change.state;
+	process->state_timestamp = change.state_timestamp;
 	process->exit_code = change.exit_code;
 
 	if (!process_is_alive(process)) {
 		process->pid = 0;
 	}
 
-	if (process->state_change != NULL) {
-		process->state_change(process->opaque);
+	if (process->state_changed != NULL) {
+		process->state_changed(process->opaque);
 	}
 
 	// only send a process-state-changed callback if there is at least one
@@ -219,6 +223,7 @@ static void process_handle_state_change(void *opaque) {
 	// sending process-state-changed callbacks for scheduled program executions
 	if (process->base.external_reference_count > 0) {
 		api_send_process_state_changed_callback(process->base.id, change.state,
+		                                        change.state_timestamp,
 		                                        change.exit_code);
 	}
 
@@ -311,7 +316,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id, Session *session,
                    uint16_t object_create_flags, bool auto_destroy,
-                   ProcessStateChangeFunction state_change, void *opaque,
+                   ProcessStateChangedFunction state_changed, void *opaque,
                    ObjectID *id, Process **object) {
 	int phase = 0;
 	APIE error_code;
@@ -703,14 +708,15 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->working_directory = working_directory;
 	process->uid = uid;
 	process->gid = gid;
+	process->pid = pid;
 	process->stdin = stdin;
 	process->stdout = stdout;
 	process->stderr = stderr;
 	process->auto_destroy = auto_destroy;
-	process->state_change = state_change;
+	process->state_changed = state_changed;
 	process->opaque = opaque;
 	process->state = PROCESS_STATE_RUNNING;
-	process->pid = pid;
+	process->state_timestamp = time(NULL);
 	process->exit_code = 0; // invalid
 
 	if (pipe_create(&process->state_change_pipe, 0) < 0) {
@@ -977,8 +983,10 @@ cleanup:
 }
 
 // public API
-APIE process_get_state(Process *process, uint8_t *state, uint8_t *exit_code) {
+APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
+                       uint8_t *exit_code) {
 	*state = process->state;
+	*timestamp = process->state_timestamp;
 	*exit_code = process->exit_code;
 
 	return API_E_SUCCESS;

@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-29.      *
+ * This file was automatically generated on 2014-10-31.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -25,7 +25,7 @@ typedef void (*AsyncFileReadCallbackFunction)(uint16_t, uint8_t, uint8_t[60], ui
 
 typedef void (*AsyncFileWriteCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
 
-typedef void (*ProcessStateChangedCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
+typedef void (*ProcessStateChangedCallbackFunction)(uint16_t, uint8_t, uint64_t, uint8_t, void *);
 
 typedef void (*ProgramProcessSpawnedCallbackFunction)(uint16_t, void *);
 
@@ -550,6 +550,7 @@ typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
 	uint8_t state;
+	uint64_t timestamp;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED GetProcessStateResponse_;
 
@@ -557,6 +558,7 @@ typedef struct {
 	PacketHeader header;
 	uint16_t process_id;
 	uint8_t state;
+	uint64_t timestamp;
 	uint8_t exit_code;
 } ATTRIBUTE_PACKED ProcessStateChangedCallback_;
 
@@ -857,8 +859,9 @@ static void red_callback_wrapper_process_state_changed(DevicePrivate *device_p, 
 	}
 
 	callback->process_id = leconvert_uint16_from(callback->process_id);
+	callback->timestamp = leconvert_uint64_from(callback->timestamp);
 
-	callback_function(callback->process_id, callback->state, callback->exit_code, user_data);
+	callback_function(callback->process_id, callback->state, callback->timestamp, callback->exit_code, user_data);
 }
 
 static void red_callback_wrapper_program_process_spawned(DevicePrivate *device_p, Packet *packet) {
@@ -2105,7 +2108,7 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint16_t session_id, ui
 	return ret;
 }
 
-int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code) {
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint64_t *ret_timestamp, uint8_t *ret_exit_code) {
 	DevicePrivate *device_p = red->p;
 	GetProcessState_ request;
 	GetProcessStateResponse_ response;
@@ -2126,6 +2129,7 @@ int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code
 	}
 	*ret_error_code = response.error_code;
 	*ret_state = response.state;
+	*ret_timestamp = leconvert_uint64_from(response.timestamp);
 	*ret_exit_code = response.exit_code;
 
 

@@ -658,6 +658,7 @@ CALL_PROCESS_FUNCTION_WITH_SESSION(GetProcessStdio, get_process_stdio, {
 CALL_PROCESS_FUNCTION(GetProcessState, get_process_state, {
 	response.error_code = process_get_state(process,
 	                                        &response.state,
+	                                        &response.timestamp,
 	                                        &response.exit_code);
 })
 
@@ -1093,9 +1094,10 @@ void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
 }
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
-                                             uint8_t exit_code) {
+                                             uint64_t timestamp, uint8_t exit_code) {
 	_process_state_changed_callback.process_id = process_id;
 	_process_state_changed_callback.state = state;
+	_process_state_changed_callback.timestamp = timestamp;
 	_process_state_changed_callback.exit_code = exit_code;
 
 	network_dispatch_response((Packet *)&_process_state_changed_callback);

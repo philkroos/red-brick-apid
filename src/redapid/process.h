@@ -58,7 +58,7 @@ typedef enum {
 	PROCESS_E_DOES_NOT_EXIST = 127  // EXIT_ENOENT: could not find executable to exec
 } ProcessE;
 
-typedef void (*ProcessStateChangeFunction)(void *opaque);
+typedef void (*ProcessStateChangedFunction)(void *opaque);
 
 typedef struct {
 	Object base;
@@ -69,14 +69,15 @@ typedef struct {
 	String *working_directory;
 	uint32_t uid;
 	uint32_t gid;
+	pid_t pid;
 	File *stdin;
 	File *stdout;
 	File *stderr;
 	bool auto_destroy; // FIXME: find a better name for this
-	ProcessStateChangeFunction state_change;
+	ProcessStateChangedFunction state_changed;
 	void *opaque;
 	ProcessState state;
-	pid_t pid;
+	uint64_t state_timestamp;
 	uint8_t exit_code;
 	Pipe state_change_pipe;
 	Thread wait_thread;
@@ -91,7 +92,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id, Session *session,
                    uint16_t object_create_flags, bool auto_destroy,
-                   ProcessStateChangeFunction state_change, void *opaque,
+                   ProcessStateChangedFunction state_changed, void *opaque,
                    ObjectID *id, Process **object);
 APIE process_kill(Process *process, ProcessSignal signal);
 
@@ -102,7 +103,8 @@ APIE process_get_identity(Process *process, uint32_t *pid, uint32_t *uid,
                           uint32_t *gid);
 APIE process_get_stdio(Process *process, Session *session, ObjectID *stdin_id,
                        ObjectID *stdout_id, ObjectID *stderr_id);
-APIE process_get_state(Process *process, uint8_t *state, uint8_t *exit_code);
+APIE process_get_state(Process *process, uint8_t *state, uint64_t *timestamp,
+                       uint8_t *exit_code);
 
 bool process_is_alive(Process *process);
 

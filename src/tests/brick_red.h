@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-29.      *
+ * This file was automatically generated on 2014-10-31.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -346,7 +346,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  *
- * Signature: \code void callback(uint16_t process_id, uint8_t state, uint8_t exit_code, void *user_data) \endcode
+ * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint8_t exit_code, void *user_data) \endcode
  */
 #define RED_CALLBACK_PROCESS_STATE_CHANGED 44
 
@@ -1355,8 +1355,8 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint16_t session_id, ui
 /**
  * \ingroup BrickRED
  *
- * Returns the current state and exit code of a process object, and the resulting
- * error code.
+ * Returns the current state, timestamp and exit code of a process object, and
+ * the resulting error code.
  * 
  * Possible process states are:
  * 
@@ -1366,6 +1366,9 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint16_t session_id, ui
  * * Exited = 3
  * * Killed = 4
  * * Stopped = 5
+ * 
+ * The timestamp represents the UNIX time since when the process is in its current
+ * state.
  * 
  * The exit code is only valid if the state is *Error*, *Exited*, *Killed* or
  * *Stopped* and has different meanings depending on the state:
@@ -1384,7 +1387,7 @@ int red_get_process_stdio(RED *red, uint16_t process_id, uint16_t session_id, ui
  * The *CannotExecute* error can be caused by the executable being opened for
  * writing.
  */
-int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint8_t *ret_exit_code);
+int red_get_process_state(RED *red, uint16_t process_id, uint8_t *ret_error_code, uint8_t *ret_state, uint64_t *ret_timestamp, uint8_t *ret_exit_code);
 
 /**
  * \ingroup BrickRED

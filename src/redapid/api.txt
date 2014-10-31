@@ -282,9 +282,10 @@ enum process_e {
                                                                          uint16_t stderr_file_id
 + get_process_state             (uint16_t process_id)                 -> uint8_t error_code,
                                                                          uint8_t state,
+                                                                         uint64_t timestamp,
                                                                          uint8_t exit_code
 
-+ callback: process_state_changed -> uint16_t process_id, uint8_t state, uint8_t exit_code
++ callback: process_state_changed -> uint16_t process_id, uint8_t state, uint64_t timestamp, uint8_t exit_code
 
 
 /*
