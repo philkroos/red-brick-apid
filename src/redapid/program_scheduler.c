@@ -360,7 +360,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 	if (localtime_r(&timestamp.tv_sec, &localized_timestamp) != NULL) {
 		// can use common ISO 8601 format YYYY-MM-DDThh:mm:ss.uuuuuu±hhmm
 		// because this timestamp is not part of a filename
-		strftime(iso8601dt, sizeof(iso8601dt), "%Y%-m%-dT%H:%M:%S", &localized_timestamp);
+		strftime(iso8601dt, sizeof(iso8601dt), "%Y-%m-%dT%H:%M:%S", &localized_timestamp);
 		snprintf(iso8601usec, sizeof(iso8601usec), ".%06d", (int)timestamp.tv_usec);
 		strftime(iso8601tz, sizeof(iso8601tz), "%z", &localized_timestamp);
 	}
@@ -389,7 +389,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 	}
 
 	// write timestamp
-	if (robust_snprintf(buffer, sizeof(buffer), "\n\n%s%s%s\n-------------------------------------------------------------------------------\n\n",
+	if (robust_snprintf(buffer, sizeof(buffer), "\n\n%s%s%s\n-------------------------------------------------------------------------------\n",
 	                    iso8601dt, iso8601usec, iso8601tz) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not format timestamp for %s log file: %s (%d)",
