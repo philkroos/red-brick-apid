@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <daemonlib/log.h>
@@ -455,7 +456,7 @@ cleanup:
 APIE program_purge(Program *program, uint32_t cookie) {
 	uint32_t expected_cookie = 0;
 	char *p;
-	uint64_t timestamp;
+	struct timeval timestamp;
 	char tmp[1024];
 	APIE error_code;
 	uint32_t counter = 0;
@@ -483,12 +484,16 @@ APIE program_purge(Program *program, uint32_t cookie) {
 	// shutdown scheduler, this will also kill any remaining process
 	program_scheduler_shutdown(&program->scheduler);
 
-	// move program root directory to /tmp/purged-<identifier>-<timestamp>
-	timestamp = time(NULL);
+	// move program root directory to /tmp/purged-program-<identifier>-<timestamp>
+	if (gettimeofday(&timestamp, NULL) < 0) {
+		timestamp.tv_sec = time(NULL);
+		timestamp.tv_usec = getpid();
+	}
 
-	if (robust_snprintf(tmp, sizeof(tmp), "/tmp/purged-%s-%llu",
+	if (robust_snprintf(tmp, sizeof(tmp), "/tmp/purged-program-%s-%llu%06llu",
 	                    program->identifier->buffer,
-	                    (unsigned long long)timestamp) < 0) {
+	                    (unsigned long long)timestamp.tv_sec,
+	                    (unsigned long long)timestamp.tv_usec) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format purged program directory name: %s (%d)",
@@ -500,9 +505,11 @@ APIE program_purge(Program *program, uint32_t cookie) {
 	while (counter < 1000) {
 		if (rename(program->root_directory->buffer, tmp) < 0) {
 			if (errno == ENOTEMPTY || errno == EEXIST) {
-				if (robust_snprintf(tmp, sizeof(tmp), "/tmp/purged-%s-%llu-%u",
+				if (robust_snprintf(tmp, sizeof(tmp), "/tmp/purged-%s-%llu%06llu-%u",
 				                    program->identifier->buffer,
-				                    (unsigned long long)timestamp, ++counter) < 0) {
+				                    (unsigned long long)timestamp.tv_sec,
+				                    (unsigned long long)timestamp.tv_usec,
+				                    ++counter) < 0) {
 					error_code = api_get_error_code_from_errno();
 
 					log_error("Could not format purged program directory name: %s (%d)",
@@ -525,7 +532,7 @@ APIE program_purge(Program *program, uint32_t cookie) {
 
 		program->purged = true;
 
-		// FIXME: delete /tmp/purged-<identifier>-<timestamp>
+		// FIXME: delete /tmp/purged-program-<identifier>-<timestamp>
 
 		log_debug("Purged program object (id: %u, identifier: %s)",
 		          program->base.id, program->identifier->buffer);
