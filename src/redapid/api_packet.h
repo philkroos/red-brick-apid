@@ -706,6 +706,7 @@ typedef struct {
 	uint8_t start_condition;
 	uint64_t start_timestamp;
 	uint32_t start_delay;
+	uint16_t start_fields_string_id;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
 	uint16_t repeat_fields_string_id;
@@ -728,6 +729,7 @@ typedef struct {
 	uint8_t start_condition;
 	uint64_t start_timestamp;
 	uint32_t start_delay;
+	uint16_t start_fields_string_id;
 	uint8_t repeat_mode;
 	uint32_t repeat_interval;
 	uint16_t repeat_fields_string_id;

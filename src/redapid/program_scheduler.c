@@ -752,6 +752,11 @@ static void program_scheduler_tick(void *opaque) {
 
 			break;
 
+		case PROGRAM_START_CONDITION_CRON:
+			// FIXME
+
+			break;
+
 		default: // should never be reachable
 			program_scheduler_handle_error(program_scheduler, true,
 			                               "Invalid start condition %d",

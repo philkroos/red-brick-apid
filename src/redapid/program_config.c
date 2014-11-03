@@ -52,6 +52,7 @@ static EnumValueName _start_condition_enum_value_names[] = {
 	{ PROGRAM_START_CONDITION_NOW,       "now" },
 	{ PROGRAM_START_CONDITION_REBOOT,    "reboot" },
 	{ PROGRAM_START_CONDITION_TIMESTAMP, "timestamp" },
+	{ PROGRAM_START_CONDITION_CRON,      "cron" },
 	{ -1,                                NULL }
 };
 
@@ -565,6 +566,7 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->start_condition = PROGRAM_START_CONDITION_NEVER;
 	program_config->start_timestamp = 0;
 	program_config->start_delay = 0;
+	program_config->start_fields = NULL;
 	program_config->repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
 	program_config->repeat_interval = 0;
 	program_config->repeat_fields = NULL;
@@ -605,6 +607,10 @@ void program_config_destroy(ProgramConfig *program_config) {
 		string_unlock(program_config->repeat_fields);
 	}
 
+	if (program_config->start_condition == PROGRAM_START_CONDITION_CRON) {
+		string_unlock(program_config->start_fields);
+	}
+
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stderr_file_name);
 	}
@@ -641,6 +647,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	int start_condition;
 	uint64_t start_timestamp;
 	uint64_t start_delay;
+	String *start_fields;
 	int repeat_mode;
 	uint64_t repeat_interval;
 	String *repeat_fields;
@@ -848,6 +855,29 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config_get_integer(program_config, &conf_file, "start.delay",
 	                           &start_delay, 0);
 
+	// get start.fields
+	if (start_condition == PROGRAM_START_CONDITION_CRON) {
+		error_code = program_config_get_string(program_config, &conf_file,
+		                                       "start.fields",
+		                                       &start_fields, "* * * * *");
+
+		if (error_code != API_E_SUCCESS) {
+			goto cleanup;
+		}
+
+		if (*start_fields->buffer == '\0') {
+			log_warn("Cannot start with empty cron fields, starting never instead");
+
+			string_unlock(start_fields);
+
+			start_condition = PROGRAM_START_CONDITION_NEVER;
+		}
+	} else {
+		start_fields = NULL;
+	}
+
+	phase = 9;
+
 	// get repeat.mode
 	program_config_get_symbol(program_config, &conf_file,
 	                          "repeat.mode", &repeat_mode,
@@ -879,6 +909,8 @@ APIE program_config_load(ProgramConfig *program_config) {
 		repeat_fields = NULL;
 	}
 
+	phase = 10;
+
 	// get custom.* options
 	custom_options = calloc(1, sizeof(Array));
 
@@ -891,7 +923,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 10;
+	phase = 11;
 
 	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -902,7 +934,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 11;
+	phase = 12;
 
 	if (conf_file_get_first_option(&conf_file, &custom_name, &custom_value, &cookie)) {
 		do {
@@ -953,7 +985,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		} while (conf_file_get_next_option(&conf_file, &custom_name, &custom_value, &cookie));
 	}
 
-	phase = 12;
+	phase = 13;
 
 	// unlock/destroy old objects
 	string_unlock(program_config->executable);
@@ -971,6 +1003,10 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(program_config->stderr_file_name);
+	}
+
+	if (program_config->start_condition == PROGRAM_START_CONDITION_CRON) {
+		string_unlock(program_config->start_fields);
 	}
 
 	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
@@ -994,6 +1030,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 	program_config->start_condition     = start_condition;
 	program_config->start_timestamp     = start_timestamp;
 	program_config->start_delay         = start_delay;
+	program_config->start_fields        = start_fields;
 	program_config->repeat_mode         = repeat_mode;
 	program_config->repeat_interval     = repeat_interval;
 	program_config->repeat_fields       = repeat_fields;
@@ -1003,15 +1040,20 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 11:
+	case 12:
 		array_destroy(custom_options, program_custom_option_unlock);
 
-	case 10:
+	case 11:
 		free(custom_options);
 
-	case 9:
+	case 10:
 		if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
 			string_unlock(repeat_fields);
+		}
+
+	case 9:
+		if (start_condition == PROGRAM_START_CONDITION_CRON) {
+			string_unlock(start_fields);
 		}
 
 	case 8:
@@ -1048,7 +1090,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 12 ? API_E_SUCCESS : error_code;
+	return phase == 13 ? API_E_SUCCESS : error_code;
 }
 
 APIE program_config_save(ProgramConfig *program_config) {
@@ -1211,6 +1253,16 @@ APIE program_config_save(ProgramConfig *program_config) {
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
+	}
+
+	// set start.fields
+	if (program_config->start_condition == PROGRAM_START_CONDITION_CRON) {
+		error_code = program_config_set_string(program_config, &conf_file,
+		                                       "start.fields",
+		                                       program_config->start_fields);
+	} else {
+		error_code = program_config_set_empty(program_config, &conf_file,
+		                                      "start.fields");
 	}
 
 	// set repeat.mode

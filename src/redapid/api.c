@@ -742,6 +742,7 @@ CALL_PROGRAM_FUNCTION(SetProgramSchedule, set_program_schedule, {
 	                                           request->start_condition,
 	                                           request->start_timestamp,
 	                                           request->start_delay,
+	                                           request->start_fields_string_id,
 	                                           request->repeat_mode,
 	                                           request->repeat_interval,
 	                                           request->repeat_fields_string_id);
@@ -752,6 +753,7 @@ CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedule, get_program_schedule, {
 	                                           &response.start_condition,
 	                                           &response.start_timestamp,
 	                                           &response.start_delay,
+	                                           &response.start_fields_string_id,
 	                                           &response.repeat_mode,
 	                                           &response.repeat_interval,
 	                                           &response.repeat_fields_string_id);

@@ -305,7 +305,8 @@ enum program_start_condition {
 	PROGRAM_START_CONDITION_NEVER = 0,
 	PROGRAM_START_CONDITION_NOW,
 	PROGRAM_START_CONDITION_REBOOT,
-	PROGRAM_START_CONDITION_TIMESTAMP
+	PROGRAM_START_CONDITION_TIMESTAMP,
+	PROGRAM_START_CONDITION_CRON
 }
 
 enum program_repeat_mode {
@@ -363,6 +364,7 @@ enum program_scheduler_state {
                                    uint8_t start_condition,
                                    uint64_t start_timestamp,
                                    uint32_t start_delay,
+                                   uint16_t start_fields_string_id,
                                    uint8_t repeat_mode,
                                    uint32_t repeat_interval,
                                    uint16_t repeat_fields_string_id)
@@ -371,6 +373,7 @@ enum program_scheduler_state {
                                                                      uint8_t start_condition,
                                                                      uint64_t start_timestamp,
                                                                      uint32_t start_delay,
+                                                                     uint16_t start_fields_string_id,
                                                                      uint8_t repeat_mode,
                                                                      uint32_t repeat_interval,
                                                                      uint16_t repeat_fields_string_id

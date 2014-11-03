@@ -79,6 +79,7 @@ static bool program_is_valid_start_condition(ProgramStartCondition condition) {
 	case PROGRAM_START_CONDITION_NOW:
 	case PROGRAM_START_CONDITION_REBOOT:
 	case PROGRAM_START_CONDITION_TIMESTAMP:
+	case PROGRAM_START_CONDITION_CRON:
 		return true;
 
 	default:
@@ -1096,11 +1097,13 @@ APIE program_set_schedule(Program *program,
                           ProgramStartCondition start_condition,
                           uint64_t start_timestamp,
                           uint32_t start_delay,
+                          ObjectID start_fields_id,
                           ProgramRepeatMode repeat_mode,
                           uint32_t repeat_interval,
                           ObjectID repeat_fields_id) {
 	ProgramConfig backup;
 	APIE error_code;
+	String *start_fields;
 	String *repeat_fields;
 
 	if (program->purged) {
@@ -1122,10 +1125,32 @@ APIE program_set_schedule(Program *program,
 		return API_E_INVALID_PARAMETER;
 	}
 
+	if (start_condition == PROGRAM_START_CONDITION_CRON) {
+		error_code = string_get_locked(start_fields_id, &start_fields);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
+
+		if (*start_fields->buffer == '\0') {
+			log_warn("Cannot start with empty cron fields");
+
+			string_unlock(start_fields);
+
+			return API_E_INVALID_PARAMETER;
+		}
+	} else {
+		start_fields = NULL;
+	}
+
 	if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
 		error_code = string_get_locked(repeat_fields_id, &repeat_fields);
 
 		if (error_code != API_E_SUCCESS) {
+			if (start_condition == PROGRAM_START_CONDITION_CRON) {
+				string_unlock(start_fields);
+			}
+
 			return error_code;
 		}
 
@@ -1133,6 +1158,10 @@ APIE program_set_schedule(Program *program,
 			log_warn("Cannot repeat with empty cron fields");
 
 			string_unlock(repeat_fields);
+
+			if (start_condition == PROGRAM_START_CONDITION_CRON) {
+				string_unlock(start_fields);
+			}
 
 			return API_E_INVALID_PARAMETER;
 		}
@@ -1147,6 +1176,7 @@ APIE program_set_schedule(Program *program,
 	program->config.start_condition = start_condition;
 	program->config.start_timestamp = start_timestamp;
 	program->config.start_delay     = start_delay;
+	program->config.start_fields    = start_fields;
 	program->config.repeat_mode     = repeat_mode;
 	program->config.repeat_interval = repeat_interval;
 	program->config.repeat_fields   = repeat_fields;
@@ -1163,6 +1193,10 @@ APIE program_set_schedule(Program *program,
 	}
 
 	// unlock old objects
+	if (backup.start_condition == PROGRAM_START_CONDITION_CRON) {
+		string_unlock(backup.start_fields);
+	}
+
 	if (backup.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
 		string_unlock(backup.repeat_fields);
 	}
@@ -1177,6 +1211,7 @@ APIE program_get_schedule(Program *program, Session *session,
                           uint8_t *start_condition,
                           uint64_t *start_timestamp,
                           uint32_t *start_delay,
+                          ObjectID *start_fields_id,
                           uint8_t *repeat_mode,
                           uint32_t *repeat_interval,
                           ObjectID *repeat_fields_id) {
@@ -1189,10 +1224,20 @@ APIE program_get_schedule(Program *program, Session *session,
 		return API_E_PROGRAM_IS_PURGED;
 	}
 
+	if (program->config.start_condition == PROGRAM_START_CONDITION_CRON) {
+		error_code = object_add_external_reference(&program->config.start_fields->base, session);
+
+		if (error_code != API_E_SUCCESS) {
+			return error_code;
+		}
+	}
+
 	if (program->config.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
 		error_code = object_add_external_reference(&program->config.repeat_fields->base, session);
 
 		if (error_code != API_E_SUCCESS) {
+			object_remove_external_reference(&program->config.start_fields->base, session);
+
 			return error_code;
 		}
 	}
@@ -1200,6 +1245,13 @@ APIE program_get_schedule(Program *program, Session *session,
 	*start_condition = program->config.start_condition;
 	*start_timestamp = program->config.start_timestamp;
 	*start_delay     = program->config.start_delay;
+
+	if (program->config.start_condition == PROGRAM_START_CONDITION_CRON) {
+		*start_fields_id = program->config.start_fields->base.id;
+	} else {
+		*start_fields_id = OBJECT_ID_ZERO;
+	}
+
 	*repeat_mode     = program->config.repeat_mode;
 	*repeat_interval = program->config.repeat_interval;
 

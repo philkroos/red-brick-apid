@@ -43,7 +43,8 @@ typedef enum {
 	PROGRAM_START_CONDITION_NEVER = 0,
 	PROGRAM_START_CONDITION_NOW,
 	PROGRAM_START_CONDITION_REBOOT,
-	PROGRAM_START_CONDITION_TIMESTAMP
+	PROGRAM_START_CONDITION_TIMESTAMP,
+	PROGRAM_START_CONDITION_CRON
 } ProgramStartCondition;
 
 typedef enum {
@@ -76,6 +77,7 @@ typedef struct {
 	ProgramStartCondition start_condition;
 	uint64_t start_timestamp;
 	uint32_t start_delay; // seconds
+	String *start_fields; // only != NULL if start_condition == PROGRAM_START_CONDITION_CRON
 	ProgramRepeatMode repeat_mode;
 	uint32_t repeat_interval; // seconds
 	String *repeat_fields; // only != NULL if repeat_mode == PROGRAM_REPEAT_MODE_CRON

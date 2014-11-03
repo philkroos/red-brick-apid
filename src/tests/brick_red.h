@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-10-31.      *
+ * This file was automatically generated on 2014-11-03.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -718,12 +718,17 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_STDIO_REDIRECTION_LOG 3
+#define RED_PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG 3
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_STDIO_REDIRECTION_STDOUT 4
+#define RED_PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG 4
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_STDIO_REDIRECTION_STDOUT 5
 
 /**
  * \ingroup BrickRED
@@ -744,6 +749,11 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_PROGRAM_START_CONDITION_TIMESTAMP 3
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_PROGRAM_START_CONDITION_CRON 4
 
 /**
  * \ingroup BrickRED
@@ -1487,14 +1497,14 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t se
  *
  * 
  */
-int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint8_t repeat_mode, uint32_t repeat_interval, uint16_t repeat_fields_string_id, uint8_t *ret_error_code);
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint16_t start_fields_string_id, uint8_t repeat_mode, uint32_t repeat_interval, uint16_t repeat_fields_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint16_t *ret_repeat_fields_string_id);
+int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint16_t *ret_start_fields_string_id, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint16_t *ret_repeat_fields_string_id);
 
 /**
  * \ingroup BrickRED
