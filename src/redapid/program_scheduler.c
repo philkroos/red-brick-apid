@@ -607,6 +607,7 @@ cleanup:
 static void program_scheduler_tick(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 	bool start = false;
+	uint32_t start_delay = 0;
 
 	switch (program_scheduler->state) {
 	case PROGRAM_SCHEDULER_STATE_STOPPED:
@@ -623,11 +624,13 @@ static void program_scheduler_tick(void *opaque) {
 
 		case PROGRAM_START_CONDITION_NOW:
 			start = true;
+			start_delay = program_scheduler->config->start_delay;
 
 			break;
 
 		case PROGRAM_START_CONDITION_REBOOT:
 			start = program_scheduler->reboot;
+			start_delay = program_scheduler->config->start_delay;
 
 			break;
 
@@ -645,8 +648,8 @@ static void program_scheduler_tick(void *opaque) {
 		}
 
 		if (start) {
-			if (program_scheduler->config->start_delay > 0) {
-				program_scheduler->delayed_start_timestamp = time(NULL) + program_scheduler->config->start_delay;
+			if (start_delay > 0) {
+				program_scheduler->delayed_start_timestamp = time(NULL) + start_delay;
 
 				program_scheduler_set_state(program_scheduler,
 				                            PROGRAM_SCHEDULER_STATE_DELAYING_START,
