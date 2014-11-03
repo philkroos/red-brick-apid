@@ -224,9 +224,15 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 
 		return file;
 
-	case PROGRAM_STDIO_REDIRECTION_LOG: // should never be reachable
+	case PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
-		                               "Cannot redirect stdin to a log file");
+		                               "Cannot redirect stdin to a individual log file");
+
+		return NULL;
+
+	case PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG: // should never be reachable
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Cannot redirect stdin to a continuous log file");
 
 		return NULL;
 
@@ -245,11 +251,11 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 	}
 }
 
-static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
-                                           struct timeval timestamp,
-                                           const char *suffix) {
+static File *program_scheduler_prepare_individual_log(ProgramScheduler *program_scheduler,
+                                                      struct timeval timestamp,
+                                                      const char *suffix) {
 	struct tm localized_timestamp;
-	char iso8601[64] = "unknown";
+	char iso8601dt[64] = "unknown";
 	char iso8601usec[16] = "";
 	char iso8601tz[16] = "";
 	char buffer[1024];
@@ -265,7 +271,7 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 		// YYYY-MM-DDThh:mm:ss.uuuuuu±hhmm because the colons in there can
 		// create problems on Windows which does not allow colons in filenames.
 		// include microseconds to reduce the chance for file name collisions
-		strftime(iso8601, sizeof(iso8601), "%Y%m%dT%H%M%S", &localized_timestamp);
+		strftime(iso8601dt, sizeof(iso8601dt), "%Y%m%dT%H%M%S", &localized_timestamp);
 		snprintf(iso8601usec, sizeof(iso8601usec), ".%06d", (int)timestamp.tv_usec);
 		strftime(iso8601tz, sizeof(iso8601tz), "%z", &localized_timestamp);
 	}
@@ -273,7 +279,7 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 	// create log file
 	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s%s%s-%s.log",
 	                    program_scheduler->log_directory,
-	                    iso8601, iso8601usec, iso8601tz, suffix) < 0) {
+	                    iso8601dt, iso8601usec, iso8601tz, suffix) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not format %s log file name: %s (%d)",
 		                               suffix, get_errno_name(errno), errno);
@@ -320,7 +326,7 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 		}
 
 		if (robust_snprintf(buffer, sizeof(buffer), "%s/%s%s%s-%s-%u.log",
-		                    program_scheduler->log_directory, iso8601,
+		                    program_scheduler->log_directory, iso8601dt,
 		                    iso8601usec, iso8601tz, suffix, ++counter) < 0) {
 			program_scheduler_handle_error(program_scheduler, true,
 			                               "Could not format %s log file name: %s (%d)",
@@ -335,6 +341,107 @@ static File *program_scheduler_prepare_log(ProgramScheduler *program_scheduler,
 	                               suffix);
 
 	return NULL;
+}
+
+static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_scheduler,
+                                                      struct timeval timestamp,
+                                                      const char *suffix) {
+	struct tm localized_timestamp;
+	char iso8601dt[64] = "unknown";
+	char iso8601usec[16] = "";
+	char iso8601tz[16] = "";
+	char buffer[1024];
+	APIE error_code;
+	String *name;
+	FILE *fp;
+	File *file;
+
+	// format ISO 8601 date and time
+	if (localtime_r(&timestamp.tv_sec, &localized_timestamp) != NULL) {
+		// can use common ISO 8601 format YYYY-MM-DDThh:mm:ss.uuuuuu±hhmm
+		// because this timestamp is not part of a filename
+		strftime(iso8601dt, sizeof(iso8601dt), "%Y%-m%-dT%H:%M:%S", &localized_timestamp);
+		snprintf(iso8601usec, sizeof(iso8601usec), ".%06d", (int)timestamp.tv_usec);
+		strftime(iso8601tz, sizeof(iso8601tz), "%z", &localized_timestamp);
+	}
+
+	// format log filename
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/continuous-%s.log",
+	                    program_scheduler->log_directory, suffix) < 0) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not format %s log file name: %s (%d)",
+		                               suffix, get_errno_name(errno), errno);
+
+		return NULL;
+	}
+
+	error_code = string_wrap(buffer, NULL,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, &name);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not wrap %s log file name into string object: %s (%d)",
+		                               suffix, api_get_error_code_name(error_code), error_code);
+
+		return NULL;
+	}
+
+	// write timestamp
+	if (robust_snprintf(buffer, sizeof(buffer), "\n\n%s%s%s\n-------------------------------------------------------------------------------\n\n",
+	                    iso8601dt, iso8601usec, iso8601tz) < 0) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not format timestamp for %s log file: %s (%d)",
+		                               suffix, get_errno_name(errno), errno);
+
+		string_unlock(name);
+
+		return NULL;
+	}
+
+	fp = fopen(name->buffer, "ab");
+
+	if (fp == NULL) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not open/create %s log file: %s (%d)",
+		                               suffix, get_errno_name(errno), errno);
+
+		string_unlock(name);
+
+		return NULL;
+	}
+
+	if (fwrite(buffer, 1, strlen(buffer), fp) != strlen(buffer)) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not write timestamp to %s log file: %s (%d)",
+		                               suffix, get_errno_name(errno), errno);
+
+		string_unlock(name);
+		fclose(fp);
+
+		return NULL;
+	}
+
+	fclose(fp);
+
+	// open log file
+	error_code = file_open(name->base.id,
+	                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE | FILE_FLAG_APPEND,
+	                       0644, 1000, 1000,
+	                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
+
+	string_unlock(name);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not open/create %s log file: %s (%d)",
+		                               suffix, api_get_error_code_name(error_code), error_code);
+
+		return NULL;
+	}
+
+	return file;
 }
 
 static File *program_scheduler_prepare_stdout(ProgramScheduler *program_scheduler,
@@ -390,8 +497,11 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 		return file;
 
-	case PROGRAM_STDIO_REDIRECTION_LOG:
-		return program_scheduler_prepare_log(program_scheduler, timestamp, "stdout");
+	case PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG:
+		return program_scheduler_prepare_individual_log(program_scheduler, timestamp, "stdout");
+
+	case PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG:
+		return program_scheduler_prepare_continuous_log(program_scheduler, timestamp, "stdout");
 
 	case PROGRAM_STDIO_REDIRECTION_STDOUT: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
@@ -461,8 +571,11 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 
 		return file;
 
-	case PROGRAM_STDIO_REDIRECTION_LOG:
-		return program_scheduler_prepare_log(program_scheduler, timestamp, "stderr");
+	case PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG:
+		return program_scheduler_prepare_individual_log(program_scheduler, timestamp, "stderr");
+
+	case PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG:
+		return program_scheduler_prepare_continuous_log(program_scheduler, timestamp, "stderr");
 
 	case PROGRAM_STDIO_REDIRECTION_STDOUT:
 		object_add_internal_reference(&stdout->base);

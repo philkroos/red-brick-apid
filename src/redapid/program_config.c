@@ -38,12 +38,13 @@ typedef const char *(*ProgramConfigGetNameFunction)(int value);
 typedef int (*ProgramConfigGetValueFunction)(const char *name, int *value);
 
 static EnumValueName _stdio_redirection_enum_value_names[] = {
-	{ PROGRAM_STDIO_REDIRECTION_DEV_NULL, "/dev/null" },
-	{ PROGRAM_STDIO_REDIRECTION_PIPE,     "pipe" },
-	{ PROGRAM_STDIO_REDIRECTION_FILE,     "file" },
-	{ PROGRAM_STDIO_REDIRECTION_LOG,      "log" },
-	{ PROGRAM_STDIO_REDIRECTION_STDOUT,   "stdout" },
-	{ -1,                                 NULL }
+	{ PROGRAM_STDIO_REDIRECTION_DEV_NULL,       "/dev/null" },
+	{ PROGRAM_STDIO_REDIRECTION_PIPE,           "pipe" },
+	{ PROGRAM_STDIO_REDIRECTION_FILE,           "file" },
+	{ PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG, "individual-log" },
+	{ PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG, "continuous-log" },
+	{ PROGRAM_STDIO_REDIRECTION_STDOUT,         "stdout" },
+	{ -1,                                       NULL }
 };
 
 static EnumValueName _start_condition_enum_value_names[] = {
@@ -719,7 +720,8 @@ APIE program_config_load(ProgramConfig *program_config) {
 	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
 	                          program_config_get_stdio_redirection_value);
 
-	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_LOG ||
+	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG ||
+	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
 		log_warn("Invalid 'stdin.redirection' option in '%s', using default value instead",
 		         program_config->filename);
