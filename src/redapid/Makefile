@@ -132,6 +132,9 @@ install: all
 	@echo "MD $(sysconfdir)"
 	$(E)$(INSTALL) -d -m 755 $(sysconfdir)
 
+	@echo "MD $(sysconfdir)/cron.d"
+	$(E)$(INSTALL) -d -m 755 $(sysconfdir)/cron.d
+
 	@echo "MD $(sysconfdir)/init.d"
 	$(E)$(INSTALL) -d -m 755 $(sysconfdir)/init.d
 
@@ -158,6 +161,9 @@ install: all
 
 	@echo "CP redapid.conf"
 	$(E)$(INSTALL) -m 644 ../build_data/linux/etc/redapid.conf $(sysconfdir)
+
+	@echo "CP redapid-delete-purged-programs (cron.d script)"
+	$(E)$(INSTALL) -m 644 ../build_data/linux/etc/cron.d/redapid-delete-purged-programs $(sysconfdir)/cron.d
 
 	@echo "CP redapid (init.d script)"
 	$(E)$(INSTALL) -m 755 ../build_data/linux/etc/init.d/redapid $(sysconfdir)/init.d

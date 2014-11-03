@@ -1,0 +1,2 @@
+# /etc/cron.d/redapid-delete-purged-programs
+12,42 * * * * root rm -rf /tmp/purged-program-* &> /dev/null

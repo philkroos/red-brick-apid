@@ -532,8 +532,6 @@ APIE program_purge(Program *program, uint32_t cookie) {
 
 		program->purged = true;
 
-		// FIXME: delete /tmp/purged-program-<identifier>-<timestamp>
-
 		log_debug("Purged program object (id: %u, identifier: %s)",
 		          program->base.id, program->identifier->buffer);
 
