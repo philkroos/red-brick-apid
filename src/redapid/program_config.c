@@ -379,6 +379,18 @@ static APIE program_config_set_string_list(ProgramConfig *program_config,
 		return error_code;
 	}
 
+	// ensure that old items are deleted if the list shrinks
+	if (robust_snprintf(buffer, sizeof(buffer), "%s.item", name) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not format list item name: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	conf_file_remove_option(conf_file, buffer, true);
+
 	// set <name>.item<i>
 	for (i = 0; i < value->items.count; ++i) {
 		item = *(String **)array_get(&value->items, i);
