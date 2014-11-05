@@ -41,8 +41,8 @@ static EnumValueName _stdio_redirection_enum_value_names[] = {
 	{ PROGRAM_STDIO_REDIRECTION_DEV_NULL,       "/dev/null" },
 	{ PROGRAM_STDIO_REDIRECTION_PIPE,           "pipe" },
 	{ PROGRAM_STDIO_REDIRECTION_FILE,           "file" },
-	{ PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG, "individual-log" },
-	{ PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG, "continuous-log" },
+	{ PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG, "individual_log" },
+	{ PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG, "continuous_log" },
 	{ PROGRAM_STDIO_REDIRECTION_STDOUT,         "stdout" },
 	{ -1,                                       NULL }
 };
