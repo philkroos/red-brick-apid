@@ -73,25 +73,12 @@ static bool program_is_valid_stdio_redirection(ProgramStdioRedirection redirecti
 	}
 }
 
-static bool program_is_valid_start_condition(ProgramStartCondition condition) {
-	switch (condition) {
-	case PROGRAM_START_CONDITION_NEVER:
-	case PROGRAM_START_CONDITION_NOW:
-	case PROGRAM_START_CONDITION_REBOOT:
-	case PROGRAM_START_CONDITION_TIMESTAMP:
-	case PROGRAM_START_CONDITION_CRON:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
-static bool program_is_valid_repeat_mode(ProgramRepeatMode mode) {
+static bool program_is_valid_start_mode(ProgramStartMode mode) {
 	switch (mode) {
-	case PROGRAM_REPEAT_MODE_NEVER:
-	case PROGRAM_REPEAT_MODE_INTERVAL:
-	case PROGRAM_REPEAT_MODE_CRON:
+	case PROGRAM_START_MODE_NEVER:
+	case PROGRAM_START_MODE_ALWAYS:
+	case PROGRAM_START_MODE_INTERVAL:
+	case PROGRAM_START_MODE_CRON:
 		return true;
 
 	default:
@@ -151,6 +138,7 @@ static void program_destroy(Object *object) {
 
 	string_unlock(program->root_directory);
 	string_unlock(program->identifier);
+	string_unlock(program->none_message);
 
 	free(program);
 }
@@ -170,6 +158,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 	ProgramConfig program_config;
 	String *identifier_object;
 	String *root_directory_object;
+	String *none_message;
 	Program *program;
 
 	// check identifier
@@ -220,6 +209,18 @@ APIE program_load(const char *identifier, const char *root_directory,
 
 	phase = 3;
 
+	// wrap empty string
+	error_code = string_wrap("None", NULL,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, &none_message);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	// allocate program object
 	program = calloc(1, sizeof(Program));
 
@@ -232,19 +233,20 @@ APIE program_load(const char *identifier, const char *root_directory,
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 5;
 
 	// create program object
 	program->purged = false;
 	program->identifier = identifier_object;
 	program->root_directory = root_directory_object;
+	program->none_message = none_message;
 
 	memcpy(&program->config, &program_config, sizeof(program->config));
 
 	error_code = program_scheduler_create(&program->scheduler,
 	                                      program->identifier,
 	                                      program->root_directory,
-	                                      &program->config, true,
+	                                      &program->config,
 	                                      program_report_process_process_spawn,
 	                                      program_report_scheduler_state_change,
 	                                      program);
@@ -253,7 +255,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 6;
 
 	error_code = object_create(&program->base, OBJECT_TYPE_PROGRAM, NULL,
 	                           OBJECT_CREATE_FLAG_INTERNAL, program_destroy,
@@ -263,7 +265,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 		goto cleanup;
 	}
 
-	phase = 6;
+	phase = 7;
 
 	log_debug("Loaded program object (id: %u, identifier: %s)",
 	          program->base.id, identifier);
@@ -272,11 +274,14 @@ APIE program_load(const char *identifier, const char *root_directory,
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 5:
+	case 6:
 		program_scheduler_destroy(&program->scheduler);
 
-	case 4:
+	case 5:
 		free(program);
+
+	case 4:
+		string_unlock(none_message);
 
 	case 3:
 		string_unlock(root_directory_object);
@@ -291,7 +296,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 6 ? API_E_SUCCESS : error_code;
+	return phase == 7 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -301,6 +306,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	String *identifier;
 	char config_filename[1024];
 	String *root_directory;
+	String *none_message;
 	Program *program;
 
 	// lock identifier string object
@@ -359,6 +365,18 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 
 	phase = 3;
 
+	// wrap empty string
+	error_code = string_wrap("None", NULL,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, &none_message);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	phase = 4;
+
 	// allocate program object
 	program = calloc(1, sizeof(Program));
 
@@ -371,12 +389,13 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 4;
+	phase = 5;
 
 	// create program object
 	program->purged = false;
 	program->identifier = identifier;
 	program->root_directory = root_directory;
+	program->none_message = none_message;
 
 	error_code = program_config_create(&program->config, config_filename);
 
@@ -384,7 +403,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 5;
+	phase = 6;
 
 	error_code = program_config_save(&program->config);
 
@@ -395,7 +414,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	error_code = program_scheduler_create(&program->scheduler,
 	                                      program->identifier,
 	                                      program->root_directory,
-	                                      &program->config, false,
+	                                      &program->config,
 	                                      program_report_process_process_spawn,
 	                                      program_report_scheduler_state_change,
 	                                      program);
@@ -404,7 +423,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 6;
+	phase = 7;
 
 	error_code = object_create(&program->base,
 	                           OBJECT_TYPE_PROGRAM,
@@ -418,7 +437,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 		goto cleanup;
 	}
 
-	phase = 7;
+	phase = 8;
 
 	*id = program->base.id;
 
@@ -429,14 +448,17 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 6:
+	case 7:
 		program_scheduler_destroy(&program->scheduler);
 
-	case 5:
+	case 6:
 		program_config_destroy(&program->config);
 
-	case 4:
+	case 5:
 		free(program);
+
+	case 4:
+		string_unlock(none_message);
 
 	case 3:
 		rmdir(root_directory->buffer); // FIXME: do a recursive remove here
@@ -451,7 +473,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 7 ? API_E_SUCCESS : error_code;
+	return phase == 8 ? API_E_SUCCESS : error_code;
 }
 
 // public API
@@ -1094,17 +1116,13 @@ cleanup:
 
 // public API
 APIE program_set_schedule(Program *program,
-                          ProgramStartCondition start_condition,
-                          uint64_t start_timestamp,
-                          uint32_t start_delay,
-                          ObjectID start_fields_id,
-                          ProgramRepeatMode repeat_mode,
-                          uint32_t repeat_interval,
-                          ObjectID repeat_fields_id) {
+                          ProgramStartMode start_mode,
+                          tfpbool continue_after_error,
+                          uint32_t start_interval,
+                          ObjectID start_fields_id) {
 	ProgramConfig backup;
 	APIE error_code;
 	String *start_fields;
-	String *repeat_fields;
 
 	if (program->purged) {
 		log_warn("Program object (id: %u, identifier: %s) is purged",
@@ -1113,19 +1131,13 @@ APIE program_set_schedule(Program *program,
 		return API_E_PROGRAM_IS_PURGED;
 	}
 
-	if (!program_is_valid_start_condition(start_condition)) {
-		log_warn("Invalid program start condition %d", start_condition);
+	if (!program_is_valid_start_mode(start_mode)) {
+		log_warn("Invalid program start mode %d", start_mode);
 
 		return API_E_INVALID_PARAMETER;
 	}
 
-	if (!program_is_valid_repeat_mode(repeat_mode)) {
-		log_warn("Invalid program repeat mode %d", repeat_mode);
-
-		return API_E_INVALID_PARAMETER;
-	}
-
-	if (start_condition == PROGRAM_START_CONDITION_CRON) {
+	if (start_mode == PROGRAM_START_MODE_CRON) {
 		error_code = string_get_locked(start_fields_id, &start_fields);
 
 		if (error_code != API_E_SUCCESS) {
@@ -1143,43 +1155,14 @@ APIE program_set_schedule(Program *program,
 		start_fields = NULL;
 	}
 
-	if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		error_code = string_get_locked(repeat_fields_id, &repeat_fields);
-
-		if (error_code != API_E_SUCCESS) {
-			if (start_condition == PROGRAM_START_CONDITION_CRON) {
-				string_unlock(start_fields);
-			}
-
-			return error_code;
-		}
-
-		if (*repeat_fields->buffer == '\0') {
-			log_warn("Cannot repeat with empty cron fields");
-
-			string_unlock(repeat_fields);
-
-			if (start_condition == PROGRAM_START_CONDITION_CRON) {
-				string_unlock(start_fields);
-			}
-
-			return API_E_INVALID_PARAMETER;
-		}
-	} else {
-		repeat_fields = NULL;
-	}
-
 	// backup config
 	memcpy(&backup, &program->config, sizeof(backup));
 
 	// set new values/objects
-	program->config.start_condition = start_condition;
-	program->config.start_timestamp = start_timestamp;
-	program->config.start_delay     = start_delay;
-	program->config.start_fields    = start_fields;
-	program->config.repeat_mode     = repeat_mode;
-	program->config.repeat_interval = repeat_interval;
-	program->config.repeat_fields   = repeat_fields;
+	program->config.start_mode = start_mode;
+	program->config.continue_after_error = continue_after_error ? true : false;
+	program->config.start_interval = start_interval;
+	program->config.start_fields = start_fields;
 
 	// save modified config
 	error_code = program_config_save(&program->config);
@@ -1187,18 +1170,14 @@ APIE program_set_schedule(Program *program,
 	if (error_code != API_E_SUCCESS) {
 		memcpy(&program->config, &backup, sizeof(program->config));
 
-		string_unlock(repeat_fields);
+		string_unlock(start_fields);
 
 		return error_code;
 	}
 
 	// unlock old objects
-	if (backup.start_condition == PROGRAM_START_CONDITION_CRON) {
+	if (backup.start_mode == PROGRAM_START_MODE_CRON) {
 		string_unlock(backup.start_fields);
-	}
-
-	if (backup.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		string_unlock(backup.repeat_fields);
 	}
 
 	program_scheduler_update(&program->scheduler);
@@ -1208,13 +1187,10 @@ APIE program_set_schedule(Program *program,
 
 // public API
 APIE program_get_schedule(Program *program, Session *session,
-                          uint8_t *start_condition,
-                          uint64_t *start_timestamp,
-                          uint32_t *start_delay,
-                          ObjectID *start_fields_id,
-                          uint8_t *repeat_mode,
-                          uint32_t *repeat_interval,
-                          ObjectID *repeat_fields_id) {
+                          uint8_t *start_mode,
+                          tfpbool *continue_after_error,
+                          uint32_t *start_interval,
+                          ObjectID *start_fields_id) {
 	APIE error_code;
 
 	if (program->purged) {
@@ -1224,7 +1200,7 @@ APIE program_get_schedule(Program *program, Session *session,
 		return API_E_PROGRAM_IS_PURGED;
 	}
 
-	if (program->config.start_condition == PROGRAM_START_CONDITION_CRON) {
+	if (program->config.start_mode == PROGRAM_START_MODE_CRON) {
 		error_code = object_add_external_reference(&program->config.start_fields->base, session);
 
 		if (error_code != API_E_SUCCESS) {
@@ -1232,33 +1208,14 @@ APIE program_get_schedule(Program *program, Session *session,
 		}
 	}
 
-	if (program->config.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		error_code = object_add_external_reference(&program->config.repeat_fields->base, session);
+	*start_mode = program->config.start_mode;
+	*continue_after_error = program->config.continue_after_error ? 1 : 0;
+	*start_interval = program->config.start_interval;
 
-		if (error_code != API_E_SUCCESS) {
-			object_remove_external_reference(&program->config.start_fields->base, session);
-
-			return error_code;
-		}
-	}
-
-	*start_condition = program->config.start_condition;
-	*start_timestamp = program->config.start_timestamp;
-	*start_delay     = program->config.start_delay;
-
-	if (program->config.start_condition == PROGRAM_START_CONDITION_CRON) {
+	if (program->config.start_mode == PROGRAM_START_MODE_CRON) {
 		*start_fields_id = program->config.start_fields->base.id;
 	} else {
 		*start_fields_id = OBJECT_ID_ZERO;
-	}
-
-	*repeat_mode     = program->config.repeat_mode;
-	*repeat_interval = program->config.repeat_interval;
-
-	if (program->config.repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		*repeat_fields_id = program->config.repeat_fields->base.id;
-	} else {
-		*repeat_fields_id = OBJECT_ID_ZERO;
 	}
 
 	return API_E_SUCCESS;
@@ -1269,6 +1226,7 @@ APIE program_get_scheduler_state(Program *program, Session *session,
                                  uint8_t *state, uint64_t *timestamp,
                                  ObjectID *message_id) {
 	APIE error_code;
+	String *message;
 
 	if (program->purged) {
 		log_warn("Program object (id: %u, identifier: %s) is purged",
@@ -1277,30 +1235,34 @@ APIE program_get_scheduler_state(Program *program, Session *session,
 		return API_E_PROGRAM_IS_PURGED;
 	}
 
-	*state = program->scheduler.state;
-	*timestamp = program->scheduler.state_timestamp;
-
-	if (program->scheduler.state == PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED) {
-		if (program->scheduler.error_internal) {
-			return API_E_INTERNAL_ERROR;
-		}
-
-		error_code = object_add_external_reference(&program->scheduler.error_message->base, session);
-
-		if (error_code != API_E_SUCCESS) {
-			return error_code;
-		}
-
-		*message_id = program->scheduler.error_message->base.id;
+	if (program->scheduler.message != NULL) {
+		message = program->scheduler.message;
 	} else {
-		*message_id = OBJECT_ID_ZERO;
+		message = program->none_message;
 	}
+
+	error_code = object_add_external_reference(&message->base, session);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	*state = program->scheduler.state;
+	*timestamp = program->scheduler.timestamp;
+	*message_id = message->base.id;
 
 	return API_E_SUCCESS;
 }
 
 // public API
-APIE program_schedule_now(Program *program) {
+APIE program_continue_schedule(Program *program) {
+	program_scheduler_continue(&program->scheduler);
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE program_start(Program *program) {
 	program_scheduler_spawn_process(&program->scheduler);
 
 	return API_E_SUCCESS;

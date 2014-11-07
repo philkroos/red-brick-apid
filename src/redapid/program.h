@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 
+#include "api.h"
 #include "list.h"
 #include "object.h"
 #include "program_config.h"
@@ -38,6 +39,7 @@ typedef struct {
 	String *root_directory; // <home>/programs/<identifier>
 	ProgramConfig config;
 	ProgramScheduler scheduler;
+	String *none_message; // FIXME: share one string object between all program objects
 } Program;
 
 APIE program_load(const char *identifier, const char *root_directory,
@@ -74,27 +76,22 @@ APIE program_get_stdio_redirection(Program *program, Session *sessio,
                                    ObjectID *stderr_file_name_id);
 
 APIE program_set_schedule(Program *program,
-                          ProgramStartCondition start_condition,
-                          uint64_t start_timestamp,
-                          uint32_t start_delay,
-                          ObjectID start_fields_id,
-                          ProgramRepeatMode repeat_mode,
-                          uint32_t repeat_interval,
-                          ObjectID repeat_fields_id);
+                          ProgramStartMode start_mode,
+                          tfpbool continue_after_error,
+                          uint32_t start_interval,
+                          ObjectID start_fields_id);
 APIE program_get_schedule(Program *program, Session *session,
-                          uint8_t *start_condition,
-                          uint64_t *start_timestamp,
-                          uint32_t *start_delay,
-                          ObjectID *start_fields_id,
-                          uint8_t *repeat_mode,
-                          uint32_t *repeat_interval,
-                          ObjectID *repeat_fields_id);
+                          uint8_t *start_mode,
+                          tfpbool *continue_after_error,
+                          uint32_t *start_interval,
+                          ObjectID *start_fields_id);
 
 APIE program_get_scheduler_state(Program *program, Session *session,
                                  uint8_t *state, uint64_t *timestamp,
                                  ObjectID *message_id);
 
-APIE program_schedule_now(Program *program);
+APIE program_continue_schedule(Program *program);
+APIE program_start(Program *program);
 
 APIE program_get_last_spawned_process(Program *program, Session *session,
                                       ObjectID *process_id, uint64_t *timestamp);

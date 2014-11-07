@@ -39,23 +39,28 @@
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
-static void program_scheduler_stop(ProgramScheduler *program_scheduler);
+static void program_scheduler_stop(ProgramScheduler *program_scheduler,
+                                   String *message);
 
 static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) ATTRIBUTE_FMT_PRINTF(3, 4);
 
 static void program_scheduler_set_state(ProgramScheduler *program_scheduler,
                                         ProgramSchedulerState state,
-                                        uint64_t timestamp) {
-	// always allow error-occured to error-occured transition because the error
-	// message might have changed and the user has to be informared about this
-	if (state != PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED &&
-	    program_scheduler->state == state) {
+                                        uint64_t timestamp, String *message) {
+	if (program_scheduler->state == state &&
+	    program_scheduler->message == message) {
 		return;
 	}
 
+	if (program_scheduler->message != NULL &&
+	    program_scheduler->message != message) {
+		string_unlock(program_scheduler->message);
+	}
+
 	program_scheduler->state = state;
-	program_scheduler->state_timestamp = timestamp;
+	program_scheduler->timestamp = timestamp;
+	program_scheduler->message = message;
 
 	program_scheduler->state_changed(program_scheduler->opaque);
 }
@@ -64,6 +69,7 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) {
 	va_list arguments;
 	char buffer[1024];
+	String *message;
 
 	va_start(arguments, format);
 
@@ -79,90 +85,283 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 		          program_scheduler->identifier->buffer, buffer);
 	}
 
-	if (program_scheduler->error_message != NULL) {
-		string_unlock(program_scheduler->error_message);
-	}
-
 	if (string_wrap(buffer, NULL,
 	                OBJECT_CREATE_FLAG_INTERNAL |
 	                OBJECT_CREATE_FLAG_LOCKED,
-	                NULL, &program_scheduler->error_message) == API_E_SUCCESS) {
-		program_scheduler->error_internal = false;
-	} else {
-		program_scheduler->error_message = NULL;
-		program_scheduler->error_internal = true;
+	                NULL, &message) != API_E_SUCCESS) {
+		message = NULL;
 	}
 
-	program_scheduler_set_state(program_scheduler,
-	                            PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED,
-	                            time(NULL));
-
-	program_scheduler_stop(program_scheduler);
+	program_scheduler_stop(program_scheduler, message);
 }
 
 static void program_scheduler_start(ProgramScheduler *program_scheduler) {
-	if (program_scheduler->shutdown || program_scheduler->timer_active) {
+	if (program_scheduler->shutdown) {
 		return;
 	}
 
-	if (timer_configure(&program_scheduler->timer, 0, 1000000) < 0) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not start scheduling timer: %s (%d)",
-		                               get_errno_name(errno), errno);
+	// FIXME: delay scheduler start after reboot for some seconds so the system has a moment to settle
 
-		return;
+	program_scheduler_set_state(program_scheduler, PROGRAM_SCHEDULER_STATE_RUNNING,
+	                            time(NULL), NULL);
+
+	switch (program_scheduler->config->start_mode) {
+	case PROGRAM_START_MODE_NEVER:
+		program_scheduler_stop(program_scheduler, NULL);
+
+		break;
+
+	case PROGRAM_START_MODE_ALWAYS:
+		program_scheduler_spawn_process(program_scheduler);
+
+		break;
+
+	case PROGRAM_START_MODE_INTERVAL:
+		if (timer_configure(&program_scheduler->timer, 0,
+		                    (uint64_t)program_scheduler->config->start_interval * 1000000) < 0) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not start interval timer: %s (%d)",
+			                               get_errno_name(errno), errno);
+
+			return;
+		}
+
+		log_debug("Started interval timer for program object (identifier: %s)",
+		          program_scheduler->identifier->buffer);
+
+		program_scheduler->timer_active = true;
+
+		break;
+
+	case PROGRAM_START_MODE_CRON:
+		// FIXME
+
+		break;
+
+	default: // should never be reachable
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Invalid start mode %d",
+		                               program_scheduler->config->start_mode);
+
+		break;
 	}
-
-	log_debug("Started scheduling timer for program object (identifier: %s)",
-	          program_scheduler->identifier->buffer);
-
-	program_scheduler->timer_active = true;
 }
 
-static void program_scheduler_stop(ProgramScheduler *program_scheduler) {
+static void program_scheduler_stop(ProgramScheduler *program_scheduler,
+                                   String *message) {
 	static bool recursive = false;
 
-	if (program_scheduler->state != PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED) {
-		program_scheduler_set_state(program_scheduler,
-		                            PROGRAM_SCHEDULER_STATE_STOPPED,
-		                            time(NULL));
-	}
-
-	if (!program_scheduler->timer_active || recursive) {
+	if (recursive) {
 		return;
 	}
 
-	if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
-		recursive = true;
+	if (program_scheduler->timer_active) {
+		if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
+			recursive = true;
 
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not stop scheduling timer: %s (%d)",
-		                               get_errno_name(errno), errno);
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not stop interval timer: %s (%d)",
+			                               get_errno_name(errno), errno);
 
-		recursive = false;
+			recursive = false;
+		} else {
+			log_debug("Stopped interval timer for program object (identifier: %s)",
+			          program_scheduler->identifier->buffer);
 
-		return;
+			program_scheduler->timer_active = false;
+		}
 	}
 
-	log_debug("Stopped scheduling timer for program object (identifier: %s)",
-	          program_scheduler->identifier->buffer);
-
-	program_scheduler->timer_active = false;
-
-	// FIXME: start 5min interval timer to retry if state == error
+	program_scheduler_set_state(program_scheduler, PROGRAM_SCHEDULER_STATE_STOPPED,
+	                            time(NULL), message);
 }
 
 static void program_scheduler_handle_process_state_change(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 
-	if (program_scheduler->last_spawned_process->state == PROCESS_STATE_ERROR) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Error while spawning process: %s (%d)",
-		                               process_get_error_code_name(program_scheduler->last_spawned_process->exit_code),
-		                               program_scheduler->last_spawned_process->exit_code);
-	} else if (!process_is_alive(program_scheduler->last_spawned_process)) {
-		program_scheduler_start(program_scheduler);
+	if (program_scheduler->state != PROGRAM_SCHEDULER_STATE_RUNNING) {
+		return;
 	}
+
+	if (program_scheduler->last_spawned_process->state == PROCESS_STATE_EXITED) {
+		if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
+			program_scheduler_spawn_process(program_scheduler);
+		}
+	} else if (program_scheduler->last_spawned_process->state == PROCESS_STATE_ERROR ||
+	           program_scheduler->last_spawned_process->state == PROCESS_STATE_KILLED) {
+		if (program_scheduler->config->continue_after_error) {
+			if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
+				program_scheduler_spawn_process(program_scheduler);
+			}
+		} else {
+			program_scheduler_stop(program_scheduler, NULL);
+		}
+	}
+}
+
+static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_scheduler) {
+	int phase = 0;
+	APIE error_code;
+	String *absolute_working_directory;
+	String *absolute_stdin_file_name;
+	String *absolute_stdout_file_name;
+	String *absolute_stderr_file_name;
+
+	// create absolute working directory string object
+	error_code = string_asprintf(NULL,
+	                             OBJECT_CREATE_FLAG_INTERNAL |
+	                             OBJECT_CREATE_FLAG_LOCKED,
+	                             NULL, &absolute_working_directory,
+	                             "%s/bin/%s",
+	                             program_scheduler->root_directory->buffer,
+	                             program_scheduler->config->working_directory->buffer);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not wrap absolute program working directory name into string object: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// create absolute working directory as default user (UID 1000, GID 1000)
+	error_code = directory_create(absolute_working_directory->buffer,
+	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not create absolute program working directory: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		string_unlock(absolute_working_directory);
+
+		goto cleanup;
+	}
+
+	// create absolute stdin filename string object
+	if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = string_asprintf(NULL,
+		                             OBJECT_CREATE_FLAG_INTERNAL |
+		                             OBJECT_CREATE_FLAG_LOCKED,
+		                             NULL, &absolute_stdin_file_name,
+		                             "%s/bin/%s",
+		                             program_scheduler->root_directory->buffer,
+		                             program_scheduler->config->stdin_file_name->buffer);
+
+		if (error_code != API_E_SUCCESS) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not wrap absolute stdin file name into string object: %s (%d)",
+			                               api_get_error_code_name(error_code), error_code);
+
+			goto cleanup;
+		}
+	} else {
+		absolute_stdin_file_name = NULL;
+	}
+
+	phase = 2;
+
+	// create absolute stdout filename string object
+	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = string_asprintf(NULL,
+		                             OBJECT_CREATE_FLAG_INTERNAL |
+		                             OBJECT_CREATE_FLAG_LOCKED,
+		                             NULL, &absolute_stdout_file_name,
+		                             "%s/bin/%s",
+		                             program_scheduler->root_directory->buffer,
+		                             program_scheduler->config->stdout_file_name->buffer);
+
+		if (error_code != API_E_SUCCESS) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not wrap absolute stdout file name into string object: %s (%d)",
+			                               api_get_error_code_name(error_code), error_code);
+
+			goto cleanup;
+		}
+	} else {
+		absolute_stdout_file_name = NULL;
+	}
+
+	phase = 3;
+
+	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// FIXME: need to ensure that directory part of stdout file name exists
+	}
+
+	// create absolute stderr filename string object
+	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		error_code = string_asprintf(NULL,
+		                             OBJECT_CREATE_FLAG_INTERNAL |
+		                             OBJECT_CREATE_FLAG_LOCKED,
+		                             NULL, &absolute_stderr_file_name,
+		                             "%s/bin/%s",
+		                             program_scheduler->root_directory->buffer,
+		                             program_scheduler->config->stderr_file_name->buffer);
+
+		if (error_code != API_E_SUCCESS) {
+			program_scheduler_handle_error(program_scheduler, false,
+		                                   "Could not wrap absolute stderr file name into string object: %s (%d)",
+		                                   api_get_error_code_name(error_code), error_code);
+
+			goto cleanup;
+		}
+	} else {
+		absolute_stderr_file_name = NULL;
+	}
+
+	phase = 4;
+
+	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		// FIXME: need to ensure that directory part of stderr file name exists
+	}
+
+	// update stored string objects
+	if (program_scheduler->absolute_working_directory != NULL) {
+		string_unlock(program_scheduler->absolute_working_directory);
+	}
+
+	program_scheduler->absolute_working_directory = absolute_working_directory;
+
+	if (program_scheduler->absolute_stdin_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stdin_file_name);
+	}
+
+	program_scheduler->absolute_stdin_file_name = absolute_stdin_file_name;
+
+	if (program_scheduler->absolute_stdout_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stdout_file_name);
+	}
+
+	program_scheduler->absolute_stdout_file_name = absolute_stdout_file_name;
+
+	if (program_scheduler->absolute_stderr_file_name != NULL) {
+		string_unlock(program_scheduler->absolute_stderr_file_name);
+	}
+
+	program_scheduler->absolute_stderr_file_name = absolute_stderr_file_name;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 3:
+		if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_unlock(absolute_stdout_file_name);
+		}
+
+	case 2:
+		if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+			string_unlock(absolute_stdin_file_name);
+		}
+
+	case 1:
+		string_unlock(absolute_working_directory);
+
+	default:
+		break;
+	}
+
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler) {
@@ -591,242 +790,17 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 	}
 }
 
-void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
-	int phase = 0;
-	APIE error_code;
-	File *stdin;
-	File *stdout;
-	File *stderr;
-	struct timeval timestamp;
-	Process *process;
-
-	if (program_scheduler->last_spawned_process != NULL) {
-		if (process_is_alive(program_scheduler->last_spawned_process)) {
-			// don't spawn a new process if one is already alive
-			program_scheduler_stop(program_scheduler);
-
-			return;
-		}
-	}
-
-	// prepare stdin
-	stdin = program_scheduler_prepare_stdin(program_scheduler);
-
-	if (stdin == NULL) {
-		goto cleanup;
-	}
-
-	phase = 1;
-
-	// record timestamp
-	if (gettimeofday(&timestamp, NULL) < 0) {
-		timestamp.tv_sec = time(NULL);
-		timestamp.tv_usec = 0;
-	}
-
-	// prepare stdout
-	stdout = program_scheduler_prepare_stdout(program_scheduler, timestamp);
-
-	if (stdout == NULL) {
-		goto cleanup;
-	}
-
-	phase = 2;
-
-	// prepare stderr
-	stderr = program_scheduler_prepare_stderr(program_scheduler, timestamp, stdout);
-
-	if (stderr == NULL) {
-		goto cleanup;
-	}
-
-	phase = 3;
-
-	// spawn process
-	error_code = process_spawn(program_scheduler->config->executable->base.id,
-	                           program_scheduler->config->arguments->base.id,
-	                           program_scheduler->config->environment->base.id,
-	                           program_scheduler->absolute_working_directory->base.id,
-	                           1000, 1000,
-	                           stdin->base.id, stdout->base.id, stderr->base.id,
-	                           NULL, OBJECT_CREATE_FLAG_INTERNAL, false,
-	                           program_scheduler_handle_process_state_change,
-	                           program_scheduler,
-	                           NULL, &process);
-
-	if (error_code != API_E_SUCCESS) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not spawn process: %s (%d)",
-		                               api_get_error_code_name(error_code), error_code);
-
-		goto cleanup;
-	}
-
-	phase = 4;
-
-	if (program_scheduler->last_spawned_process != NULL) {
-		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
-	}
-
-	if (program_scheduler->error_message != NULL) {
-		string_unlock(program_scheduler->error_message);
-	}
-
-	program_scheduler->reboot = false;
-	program_scheduler->delayed_start_timestamp = 0;
-	program_scheduler->last_spawned_process = process;
-	program_scheduler->last_spawned_timestamp = timestamp.tv_sec;
-	program_scheduler->error_message = NULL;
-	program_scheduler->error_internal = false;
-
-	program_scheduler_stop(program_scheduler);
-
-	program_scheduler->process_spawned(program_scheduler->opaque);
-
-	if (program_scheduler->config->repeat_mode != PROGRAM_REPEAT_MODE_NEVER) {
-		program_scheduler_set_state(program_scheduler,
-		                            PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION,
-		                            timestamp.tv_sec);
-	} else {
-		// program_scheduler_stop will not overwrite error-occurred with
-		// stopped, so it can be called any time. explicitly go to stopped
-		// here and overwrite error-occurred because a new attempt to start
-		// the program was made (maybe using schedule-now)
-		program_scheduler_set_state(program_scheduler,
-		                            PROGRAM_SCHEDULER_STATE_STOPPED,
-		                            timestamp.tv_sec);
-	}
-
-	object_remove_internal_reference(&stdin->base);
-	object_remove_internal_reference(&stdout->base);
-	object_remove_internal_reference(&stderr->base);
-
-cleanup:
-	switch (phase) { // no breaks, all cases fall through intentionally
-	case 3:
-		object_remove_internal_reference(&stderr->base);
-
-	case 2:
-		object_remove_internal_reference(&stdout->base);
-
-	case 1:
-		object_remove_internal_reference(&stdin->base);
-
-	default:
-		break;
-	}
-}
-
-static void program_scheduler_tick(void *opaque) {
+static void program_scheduler_handle_interval(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
-	bool start = false;
-	uint32_t start_delay = 0;
 
-	switch (program_scheduler->state) {
-	case PROGRAM_SCHEDULER_STATE_STOPPED:
-		program_scheduler_stop(program_scheduler);
-
-		break;
-
-	case PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION:
-		switch (program_scheduler->config->start_condition) {
-		case PROGRAM_START_CONDITION_NEVER:
-			program_scheduler_stop(program_scheduler);
-
-			break;
-
-		case PROGRAM_START_CONDITION_NOW:
-			start = true;
-			start_delay = program_scheduler->config->start_delay;
-
-			break;
-
-		case PROGRAM_START_CONDITION_REBOOT:
-			start = program_scheduler->reboot;
-			start_delay = program_scheduler->config->start_delay;
-
-			break;
-
-		case PROGRAM_START_CONDITION_TIMESTAMP:
-			start = program_scheduler->config->start_timestamp <= (uint64_t)time(NULL);
-
-			break;
-
-		case PROGRAM_START_CONDITION_CRON:
-			// FIXME
-
-			break;
-
-		default: // should never be reachable
-			program_scheduler_handle_error(program_scheduler, true,
-			                               "Invalid start condition %d",
-			                               program_scheduler->config->start_condition);
-
-			break;
-		}
-
-		if (start) {
-			if (start_delay > 0) {
-				program_scheduler->delayed_start_timestamp = time(NULL) + start_delay;
-
-				program_scheduler_set_state(program_scheduler,
-				                            PROGRAM_SCHEDULER_STATE_DELAYING_START,
-				                            time(NULL));
-			} else {
-				program_scheduler_spawn_process(program_scheduler);
-			}
-		}
-
-		break;
-
-	case PROGRAM_SCHEDULER_STATE_DELAYING_START:
-		if (program_scheduler->delayed_start_timestamp <= (uint64_t)time(NULL)) {
-			program_scheduler_spawn_process(program_scheduler);
-		}
-
-		break;
-
-	case PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION:
-		switch (program_scheduler->config->repeat_mode) {
-		case PROGRAM_REPEAT_MODE_NEVER:
-			program_scheduler_stop(program_scheduler);
-
-			break;
-
-		case PROGRAM_REPEAT_MODE_INTERVAL:
-			if (program_scheduler->last_spawned_timestamp + program_scheduler->config->repeat_interval <= (uint64_t)time(NULL)) {
-				program_scheduler_spawn_process(program_scheduler);
-			}
-
-			break;
-
-		case PROGRAM_REPEAT_MODE_CRON:
-			// FIXME
-
-			break;
-
-		default: // should never be reachable
-			program_scheduler_handle_error(program_scheduler, true,
-			                               "Invalid repeat mode %d",
-			                               program_scheduler->config->repeat_mode);
-
-			break;
-		}
-
-		break;
-
-	default: // should never be reachable
-		program_scheduler_handle_error(program_scheduler, true,
-		                               "Invalid scheduler state %d",
-		                               program_scheduler->state);
-
-		break;
+	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
+	    program_scheduler->config->start_mode == PROGRAM_START_MODE_INTERVAL) {
+		program_scheduler_spawn_process(program_scheduler);
 	}
 }
 
-APIE program_scheduler_create(ProgramScheduler *program_scheduler,
-                              String *identifier, String *root_directory,
-                              ProgramConfig *config, bool reboot,
+APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *identifier,
+                              String *root_directory, ProgramConfig *config,
                               ProgramSchedulerProcessSpawnedFunction process_spawned,
                               ProgramSchedulerStateChangedFunction state_changed,
                               void *opaque) {
@@ -890,7 +864,6 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->identifier = identifier;
 	program_scheduler->root_directory = root_directory;
 	program_scheduler->config = config;
-	program_scheduler->reboot = reboot;
 	program_scheduler->process_spawned = process_spawned;
 	program_scheduler->state_changed = state_changed;
 	program_scheduler->opaque = opaque;
@@ -905,15 +878,14 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->last_spawned_process = NULL;
 	program_scheduler->last_spawned_timestamp = 0;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_STOPPED;
-	program_scheduler->state_timestamp = time(NULL);
-	program_scheduler->error_message = NULL;
-	program_scheduler->error_internal = false;
+	program_scheduler->timestamp = time(NULL);
+	program_scheduler->message = NULL;
 
-	if (timer_create_(&program_scheduler->timer, program_scheduler_tick,
+	if (timer_create_(&program_scheduler->timer, program_scheduler_handle_interval,
 	                  program_scheduler) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create scheduling timer: %s (%d)",
+		log_error("Could not create interval timer: %s (%d)",
 		          get_errno_name(errno), errno);
 
 		goto cleanup;
@@ -943,8 +915,8 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
 	}
 
-	if (program_scheduler->error_message != NULL) {
-		string_unlock(program_scheduler->error_message);
+	if (program_scheduler->message != NULL) {
+		string_unlock(program_scheduler->message);
 	}
 
 	timer_destroy(&program_scheduler->timer);
@@ -970,176 +942,33 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 }
 
 void program_scheduler_update(ProgramScheduler *program_scheduler) {
-	int phase = 0;
 	APIE error_code;
-	String *absolute_working_directory;
-	String *absolute_stdin_file_name;
-	String *absolute_stdout_file_name;
-	String *absolute_stderr_file_name;
 
-	// create absolute working directory string object
-	error_code = string_asprintf(NULL,
-	                             OBJECT_CREATE_FLAG_INTERNAL |
-	                             OBJECT_CREATE_FLAG_LOCKED,
-	                             NULL, &absolute_working_directory,
-	                             "%s/bin/%s",
-	                             program_scheduler->root_directory->buffer,
-	                             program_scheduler->config->working_directory->buffer);
+	if (program_scheduler->shutdown) {
+		return;
+	}
+
+	error_code = program_scheduler_prepare_filesystem(program_scheduler);
 
 	if (error_code != API_E_SUCCESS) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not wrap absolute program working directory name into string object: %s (%d)",
-		                               api_get_error_code_name(error_code), error_code);
-
-		goto cleanup;
+		return;
 	}
 
-	phase = 1;
-
-	// create absolute working directory as default user (UID 1000, GID 1000)
-	error_code = directory_create(absolute_working_directory->buffer,
-	                              DIRECTORY_FLAG_RECURSIVE, 0755, 1000, 1000);
-
-	if (error_code != API_E_SUCCESS) {
-		program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not create absolute program working directory: %s (%d)",
-		                               api_get_error_code_name(error_code), error_code);
-
-		string_unlock(absolute_working_directory);
-
-		goto cleanup;
-	}
-
-	// create absolute stdin filename string object
-	if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		error_code = string_asprintf(NULL,
-		                             OBJECT_CREATE_FLAG_INTERNAL |
-		                             OBJECT_CREATE_FLAG_LOCKED,
-		                             NULL, &absolute_stdin_file_name,
-		                             "%s/bin/%s",
-		                             program_scheduler->root_directory->buffer,
-		                             program_scheduler->config->stdin_file_name->buffer);
-
-		if (error_code != API_E_SUCCESS) {
-			program_scheduler_handle_error(program_scheduler, false,
-			                               "Could not wrap absolute stdin file name into string object: %s (%d)",
-			                               api_get_error_code_name(error_code), error_code);
-
-			goto cleanup;
-		}
+	if (program_scheduler->config->start_mode == PROGRAM_START_MODE_NEVER) {
+		program_scheduler_stop(program_scheduler, program_scheduler->message);
 	} else {
-		absolute_stdin_file_name = NULL;
-	}
-
-	phase = 2;
-
-	// create absolute stdout filename string object
-	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		error_code = string_asprintf(NULL,
-		                             OBJECT_CREATE_FLAG_INTERNAL |
-		                             OBJECT_CREATE_FLAG_LOCKED,
-		                             NULL, &absolute_stdout_file_name,
-		                             "%s/bin/%s",
-		                             program_scheduler->root_directory->buffer,
-		                             program_scheduler->config->stdout_file_name->buffer);
-
-		if (error_code != API_E_SUCCESS) {
-			program_scheduler_handle_error(program_scheduler, false,
-			                               "Could not wrap absolute stdout file name into string object: %s (%d)",
-			                               api_get_error_code_name(error_code), error_code);
-
-			goto cleanup;
-		}
-	} else {
-		absolute_stdout_file_name = NULL;
-	}
-
-	phase = 3;
-
-	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// FIXME: need to ensure that directory part of stdout file name exists
-	}
-
-	// create absolute stderr filename string object
-	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		error_code = string_asprintf(NULL,
-		                             OBJECT_CREATE_FLAG_INTERNAL |
-		                             OBJECT_CREATE_FLAG_LOCKED,
-		                             NULL, &absolute_stderr_file_name,
-		                             "%s/bin/%s",
-		                             program_scheduler->root_directory->buffer,
-		                             program_scheduler->config->stderr_file_name->buffer);
-
-		if (error_code != API_E_SUCCESS) {
-			program_scheduler_handle_error(program_scheduler, false,
-		                               "Could not wrap absolute stderr file name into string object: %s (%d)",
-		                               api_get_error_code_name(error_code), error_code);
-
-			goto cleanup;
-		}
-	} else {
-		absolute_stderr_file_name = NULL;
-	}
-
-	phase = 4;
-
-	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// FIXME: need to ensure that directory part of stderr file name exists
-	}
-
-	// update stored string objects
-	if (program_scheduler->absolute_working_directory != NULL) {
-		string_unlock(program_scheduler->absolute_working_directory);
-	}
-
-	program_scheduler->absolute_working_directory = absolute_working_directory;
-
-	if (program_scheduler->absolute_stdin_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stdin_file_name);
-	}
-
-	program_scheduler->absolute_stdin_file_name = absolute_stdin_file_name;
-
-	if (program_scheduler->absolute_stdout_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stdout_file_name);
-	}
-
-	program_scheduler->absolute_stdout_file_name = absolute_stdout_file_name;
-
-	if (program_scheduler->absolute_stderr_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stderr_file_name);
-	}
-
-	program_scheduler->absolute_stderr_file_name = absolute_stderr_file_name;
-
-	// update state
-	if (program_scheduler->config->start_condition == PROGRAM_START_CONDITION_NEVER) {
-		program_scheduler_stop(program_scheduler);
-	} else {
-		program_scheduler_set_state(program_scheduler,
-		                            PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION,
-		                            time(NULL));
-
 		program_scheduler_start(program_scheduler);
 	}
+}
 
-cleanup:
-	switch (phase) { // no breaks, all cases fall through intentionally
-	case 3:
-		if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(absolute_stdout_file_name);
-		}
+void program_scheduler_continue(ProgramScheduler *program_scheduler) {
+	if (program_scheduler->shutdown) {
+		return;
+	}
 
-	case 2:
-		if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(absolute_stdin_file_name);
-		}
-
-	case 1:
-		string_unlock(absolute_working_directory);
-
-	default:
-		break;
+	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_STOPPED &&
+	    program_scheduler->config->start_mode != PROGRAM_START_MODE_NEVER) {
+		program_scheduler_start(program_scheduler);
 	}
 }
 
@@ -1150,10 +979,120 @@ void program_scheduler_shutdown(ProgramScheduler *program_scheduler) {
 
 	program_scheduler->shutdown = true;
 
-	program_scheduler_stop(program_scheduler);
+	program_scheduler_stop(program_scheduler, NULL);
 
 	if (program_scheduler->last_spawned_process != NULL &&
 	    process_is_alive(program_scheduler->last_spawned_process)) {
 		process_kill(program_scheduler->last_spawned_process, PROCESS_SIGNAL_KILL);
+	}
+}
+
+void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
+	int phase = 0;
+	APIE error_code;
+	File *stdin;
+	File *stdout;
+	File *stderr;
+	struct timeval timestamp;
+	Process *process;
+
+	if (program_scheduler->last_spawned_process != NULL) {
+		if (process_is_alive(program_scheduler->last_spawned_process)) {
+			return; // don't spawn a new process while another one is already running
+		}
+	}
+
+	// prepare stdin
+	stdin = program_scheduler_prepare_stdin(program_scheduler);
+
+	if (stdin == NULL) {
+		goto cleanup;
+	}
+
+	phase = 1;
+
+	// record timestamp
+	if (gettimeofday(&timestamp, NULL) < 0) {
+		timestamp.tv_sec = time(NULL);
+		timestamp.tv_usec = 0;
+	}
+
+	// prepare stdout
+	stdout = program_scheduler_prepare_stdout(program_scheduler, timestamp);
+
+	if (stdout == NULL) {
+		goto cleanup;
+	}
+
+	phase = 2;
+
+	// prepare stderr
+	stderr = program_scheduler_prepare_stderr(program_scheduler, timestamp, stdout);
+
+	if (stderr == NULL) {
+		goto cleanup;
+	}
+
+	phase = 3;
+
+	// spawn process
+	error_code = process_spawn(program_scheduler->config->executable->base.id,
+	                           program_scheduler->config->arguments->base.id,
+	                           program_scheduler->config->environment->base.id,
+	                           program_scheduler->absolute_working_directory->base.id,
+	                           1000, 1000,
+	                           stdin->base.id, stdout->base.id, stderr->base.id,
+	                           NULL, OBJECT_CREATE_FLAG_INTERNAL, false,
+	                           program_scheduler_handle_process_state_change,
+	                           program_scheduler,
+	                           NULL, &process);
+
+	if (error_code != API_E_SUCCESS) {
+		program_scheduler_handle_error(program_scheduler, false,
+		                               "Could not spawn process: %s (%d)",
+		                               api_get_error_code_name(error_code), error_code);
+
+		goto cleanup;
+	}
+
+	phase = 4;
+
+	if (program_scheduler->last_spawned_process != NULL) {
+		object_remove_internal_reference(&program_scheduler->last_spawned_process->base);
+	}
+
+	program_scheduler->last_spawned_process = process;
+	program_scheduler->last_spawned_timestamp = timestamp.tv_sec;
+
+	program_scheduler->process_spawned(program_scheduler->opaque);
+
+	object_remove_internal_reference(&stdin->base);
+	object_remove_internal_reference(&stdout->base);
+	object_remove_internal_reference(&stderr->base);
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 3:
+		object_remove_internal_reference(&stderr->base);
+
+	case 2:
+		object_remove_internal_reference(&stdout->base);
+
+	case 1:
+		object_remove_internal_reference(&stdin->base);
+
+	default:
+		break;
+	}
+
+	if (phase != 4) {
+		// an error occurred, continue-after-error if conditions are met
+		if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
+		    program_scheduler->config->continue_after_error &&
+		    program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
+			// FIXME: call this decoupled over the event loop to avoid recursion
+			//        and possible stack overflow
+			//program_scheduler_spawn_process(program_scheduler);
+		}
 	}
 }

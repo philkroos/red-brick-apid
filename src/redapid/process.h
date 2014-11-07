@@ -77,7 +77,7 @@ typedef struct {
 	ProcessStateChangedFunction state_changed;
 	void *opaque;
 	ProcessState state;
-	uint64_t state_timestamp;
+	uint64_t timestamp;
 	uint8_t exit_code;
 	Pipe state_change_pipe;
 	Thread wait_thread;

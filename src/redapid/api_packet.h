@@ -26,12 +26,9 @@
 
 #include <daemonlib/packed_begin.h>
 
+#include "api.h"
 #include "file.h"
 #include "string.h"
-
-// ensure that bool values in the packet definitions follow the TFP definition
-// of a bool (1 byte) and don't rely on stdbool.h to fulfill this
-typedef uint8_t tfpbool;
 
 //
 // session
@@ -703,13 +700,10 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-	uint8_t start_condition;
-	uint64_t start_timestamp;
-	uint32_t start_delay;
+	uint8_t start_mode;
+	tfpbool continue_after_error;
+	uint32_t start_interval;
 	uint16_t start_fields_string_id;
-	uint8_t repeat_mode;
-	uint32_t repeat_interval;
-	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED SetProgramScheduleRequest;
 
 typedef struct {
@@ -726,13 +720,10 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t start_condition;
-	uint64_t start_timestamp;
-	uint32_t start_delay;
+	uint8_t start_mode;
+	tfpbool continue_after_error;
+	uint32_t start_interval;
 	uint16_t start_fields_string_id;
-	uint8_t repeat_mode;
-	uint32_t repeat_interval;
-	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED GetProgramScheduleResponse;
 
 typedef struct {
@@ -752,11 +743,22 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED ScheduleProgramNowRequest;
+} ATTRIBUTE_PACKED ContinueProgramScheduleRequest;
+
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-} ATTRIBUTE_PACKED ScheduleProgramNowResponse;
+} ATTRIBUTE_PACKED ContinueProgramScheduleResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED StartProgramRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED StartProgramResponse;
 
 typedef struct {
 	PacketHeader header;

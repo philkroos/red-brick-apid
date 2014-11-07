@@ -27,6 +27,10 @@
 #include "api_error.h"
 #include "object.h"
 
+// ensure that bool values in the packet definitions follow the TFP definition
+// of a bool (1 byte) and don't rely on stdbool.h to fulfill this
+typedef uint8_t tfpbool;
+
 int api_init(void);
 void api_exit(void);
 

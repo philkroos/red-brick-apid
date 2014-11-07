@@ -107,7 +107,8 @@ typedef enum {
 	FUNCTION_SET_PROGRAM_SCHEDULE,
 	FUNCTION_GET_PROGRAM_SCHEDULE,
 	FUNCTION_GET_PROGRAM_SCHEDULER_STATE,
-	FUNCTION_SCHEDULE_PROGRAM_NOW,
+	FUNCTION_CONTINUE_PROGRAM_SCHEDULE,
+	FUNCTION_START_PROGRAM,
 	FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS,
 	FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES,
 	FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE,
@@ -739,24 +740,18 @@ CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramStdioRedirection, get_program_stdio
 
 CALL_PROGRAM_FUNCTION(SetProgramSchedule, set_program_schedule, {
 	response.error_code = program_set_schedule(program,
-	                                           request->start_condition,
-	                                           request->start_timestamp,
-	                                           request->start_delay,
-	                                           request->start_fields_string_id,
-	                                           request->repeat_mode,
-	                                           request->repeat_interval,
-	                                           request->repeat_fields_string_id);
+	                                           request->start_mode,
+	                                           request->continue_after_error,
+	                                           request->start_interval,
+	                                           request->start_fields_string_id);
 })
 
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedule, get_program_schedule, {
 	response.error_code = program_get_schedule(program, session,
-	                                           &response.start_condition,
-	                                           &response.start_timestamp,
-	                                           &response.start_delay,
-	                                           &response.start_fields_string_id,
-	                                           &response.repeat_mode,
-	                                           &response.repeat_interval,
-	                                           &response.repeat_fields_string_id);
+	                                           &response.start_mode,
+	                                           &response.continue_after_error,
+	                                           &response.start_interval,
+	                                           &response.start_fields_string_id);
 })
 
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedulerState, get_program_scheduler_state, {
@@ -766,8 +761,12 @@ CALL_PROGRAM_FUNCTION_WITH_SESSION(GetProgramSchedulerState, get_program_schedul
 	                                                  &response.message_string_id);
 })
 
-CALL_PROGRAM_FUNCTION(ScheduleProgramNow, schedule_program_now, {
-	response.error_code = program_schedule_now(program);
+CALL_PROGRAM_FUNCTION(ContinueProgramSchedule, continue_program_schedule, {
+	response.error_code = program_continue_schedule(program);
+})
+
+CALL_PROGRAM_FUNCTION(StartProgram, start_program, {
+	response.error_code = program_start(program);
 })
 
 CALL_PROGRAM_FUNCTION_WITH_SESSION(GetLastSpawnedProgramProcess, get_last_spawned_program_process, {
@@ -965,7 +964,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(SET_PROGRAM_SCHEDULE,             SetProgramSchedule,           set_program_schedule)
 	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULE,             GetProgramSchedule,           get_program_schedule)
 	DISPATCH_FUNCTION(GET_PROGRAM_SCHEDULER_STATE,      GetProgramSchedulerState,     get_program_scheduler_state)
-	DISPATCH_FUNCTION(SCHEDULE_PROGRAM_NOW,             ScheduleProgramNow,           schedule_program_now)
+	DISPATCH_FUNCTION(CONTINUE_PROGRAM_SCHEDULE,        ContinueProgramSchedule,      continue_program_schedule)
+	DISPATCH_FUNCTION(START_PROGRAM,                    StartProgram,                 start_program)
 	DISPATCH_FUNCTION(GET_LAST_SPAWNED_PROGRAM_PROCESS, GetLastSpawnedProgramProcess, get_last_spawned_program_process)
 	DISPATCH_FUNCTION(GET_CUSTOM_PROGRAM_OPTION_NAMES,  GetCustomProgramOptionNames,  get_custom_program_option_names)
 	DISPATCH_FUNCTION(SET_CUSTOM_PROGRAM_OPTION_VALUE,  SetCustomProgramOptionValue,  set_custom_program_option_value)
@@ -1059,7 +1059,8 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_SET_PROGRAM_SCHEDULE:             return "set-program-schedule";
 	case FUNCTION_GET_PROGRAM_SCHEDULE:             return "get-program-schedule";
 	case FUNCTION_GET_PROGRAM_SCHEDULER_STATE:      return "get-program-scheduler-state";
-	case FUNCTION_SCHEDULE_PROGRAM_NOW:             return "schedule-program-now";
+	case FUNCTION_CONTINUE_PROGRAM_SCHEDULE:        return "continue-program-schedule";
+	case FUNCTION_START_PROGRAM:                    return "start-program";
 	case FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS: return "get-last-spawned-program-process";
 	case FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES:  return "get-custom-program-option-names";
 	case FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE:  return "set-custom-program-option-value";

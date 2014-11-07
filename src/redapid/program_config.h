@@ -40,18 +40,11 @@ typedef enum {
 } ProgramStdioRedirection;
 
 typedef enum {
-	PROGRAM_START_CONDITION_NEVER = 0,
-	PROGRAM_START_CONDITION_NOW,
-	PROGRAM_START_CONDITION_REBOOT,
-	PROGRAM_START_CONDITION_TIMESTAMP,
-	PROGRAM_START_CONDITION_CRON
-} ProgramStartCondition;
-
-typedef enum {
-	PROGRAM_REPEAT_MODE_NEVER = 0,
-	PROGRAM_REPEAT_MODE_INTERVAL,
-	PROGRAM_REPEAT_MODE_CRON
-} ProgramRepeatMode;
+	PROGRAM_START_MODE_NEVER = 0,
+	PROGRAM_START_MODE_ALWAYS,
+	PROGRAM_START_MODE_INTERVAL,
+	PROGRAM_START_MODE_CRON
+} ProgramStartMode;
 
 typedef struct {
 	String *name;
@@ -74,13 +67,10 @@ typedef struct {
 	ProgramStdioRedirection stderr_redirection;
 	String *stderr_file_name; // only != NULL if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
 	                          // used in <home>/programs/<identifier>/bin/<stderr_file_name>
-	ProgramStartCondition start_condition;
-	uint64_t start_timestamp;
-	uint32_t start_delay; // seconds
-	String *start_fields; // only != NULL if start_condition == PROGRAM_START_CONDITION_CRON
-	ProgramRepeatMode repeat_mode;
-	uint32_t repeat_interval; // seconds
-	String *repeat_fields; // only != NULL if repeat_mode == PROGRAM_REPEAT_MODE_CRON
+	ProgramStartMode start_mode;
+	bool continue_after_error;
+	uint32_t start_interval; // seconds
+	String *start_fields; // only != NULL if start_mode == PROGRAM_START_MODE_CRON
 	Array *custom_options;
 } ProgramConfig;
 

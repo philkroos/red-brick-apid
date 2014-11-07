@@ -301,26 +301,16 @@ enum program_stdio_redirection {
 	PROGRAM_STDIO_REDIRECTION_STDOUT          // can only be used to redirect stderr to stdout
 }
 
-enum program_start_condition {
-	PROGRAM_START_CONDITION_NEVER = 0,
-	PROGRAM_START_CONDITION_NOW,
-	PROGRAM_START_CONDITION_REBOOT,
-	PROGRAM_START_CONDITION_TIMESTAMP,
-	PROGRAM_START_CONDITION_CRON
-}
-
-enum program_repeat_mode {
-	PROGRAM_REPEAT_MODE_NEVER = 0,
-	PROGRAM_REPEAT_MODE_INTERVAL,
-	PROGRAM_REPEAT_MODE_CRON
+enum program_start_mode {
+	PROGRAM_START_MODE_NEVER = 0,
+	PROGRAM_START_MODE_ALWAYS,
+	PROGRAM_START_MODE_INTERVAL,
+	PROGRAM_START_MODE_CRON
 }
 
 enum program_scheduler_state {
 	PROGRAM_SCHEDULER_STATE_STOPPED = 0,
-	PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION,
-	PROGRAM_SCHEDULER_STATE_DELAYING_START,
-	PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION,
-	PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED
+	PROGRAM_SCHEDULER_STATE_RUNNING
 }
 
 + get_programs                    (uint16_t session_id)           -> uint8_t error_code, uint16_t programs_list_id
@@ -361,27 +351,22 @@ enum program_scheduler_state {
                                                                      uint8_t stderr_redirection,
                                                                      uint16_t stderr_file_name_string_id
 + set_program_schedule            (uint16_t program_id,
-                                   uint8_t start_condition,
-                                   uint64_t start_timestamp,
-                                   uint32_t start_delay,
-                                   uint16_t start_fields_string_id,
-                                   uint8_t repeat_mode,
-                                   uint32_t repeat_interval,
-                                   uint16_t repeat_fields_string_id)
+                                   uint8_t start_mode,
+                                   bool continue_after_error,
+                                   uint32_t start_interval,
+                                   uint16_t start_fields_string_id)
                                                                   -> uint8_t error_code
 + get_program_schedule            (uint16_t program_id)           -> uint8_t error_code
-                                                                     uint8_t start_condition,
-                                                                     uint64_t start_timestamp,
-                                                                     uint32_t start_delay,
-                                                                     uint16_t start_fields_string_id,
-                                                                     uint8_t repeat_mode,
-                                                                     uint32_t repeat_interval,
-                                                                     uint16_t repeat_fields_string_id
+                                                                     uint8_t start_mode,
+                                                                     bool continue_after_error,
+                                                                     uint32_t start_interval,
+                                                                     uint16_t start_fields_string_id
 + get_program_scheduler_state      (uint16_t program_id,
                                     uint16_t session_id)          -> uint8_t error_code, uint8_t state, uint64_t timestamp, uint16_t message_string_id
 + get_last_spawned_program_process (uint16_t program_id,
                                     uint16_t session_id)          -> uint8_t error_code, uint16_t process_id, uint64_t timestamp
-+ schedule_program_now             (uint16_t program_id)          -> uint8_t error_code
++ continue_program_schedule        (uint16_t program_id)          -> uint8_t error_code
++ start_program                    (uint16_t program_id)          -> uint8_t error_code
 + get_custom_program_option_names  (uint16_t program_id,
                                     uint16_t session_id)          -> uint8_t error_code, uint16_t names_list_id
 + set_custom_program_option_value  (uint16_t program_id,

@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-11-03.      *
+ * This file was automatically generated on 2014-11-07.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -685,13 +685,10 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-	uint8_t start_condition;
-	uint64_t start_timestamp;
-	uint32_t start_delay;
+	uint8_t start_mode;
+	bool continue_after_error;
+	uint32_t start_interval;
 	uint16_t start_fields_string_id;
-	uint8_t repeat_mode;
-	uint32_t repeat_interval;
-	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED SetProgramSchedule_;
 
 typedef struct {
@@ -708,13 +705,10 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-	uint8_t start_condition;
-	uint64_t start_timestamp;
-	uint32_t start_delay;
+	uint8_t start_mode;
+	bool continue_after_error;
+	uint32_t start_interval;
 	uint16_t start_fields_string_id;
-	uint8_t repeat_mode;
-	uint32_t repeat_interval;
-	uint16_t repeat_fields_string_id;
 } ATTRIBUTE_PACKED GetProgramScheduleResponse_;
 
 typedef struct {
@@ -734,12 +728,22 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t program_id;
-} ATTRIBUTE_PACKED ScheduleProgramNow_;
+} ATTRIBUTE_PACKED ContinueProgramSchedule_;
 
 typedef struct {
 	PacketHeader header;
 	uint8_t error_code;
-} ATTRIBUTE_PACKED ScheduleProgramNowResponse_;
+} ATTRIBUTE_PACKED ContinueProgramScheduleResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t program_id;
+} ATTRIBUTE_PACKED StartProgram_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED StartProgramResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -970,7 +974,8 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_SET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_SCHEDULE_PROGRAM_NOW] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_START_PROGRAM] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -2415,7 +2420,7 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t se
 	return ret;
 }
 
-int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint16_t start_fields_string_id, uint8_t repeat_mode, uint32_t repeat_interval, uint16_t repeat_fields_string_id, uint8_t *ret_error_code) {
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_mode, bool continue_after_error, uint32_t start_interval, uint16_t start_fields_string_id, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	SetProgramSchedule_ request;
 	SetProgramScheduleResponse_ response;
@@ -2428,13 +2433,10 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
 	}
 
 	request.program_id = leconvert_uint16_to(program_id);
-	request.start_condition = start_condition;
-	request.start_timestamp = leconvert_uint64_to(start_timestamp);
-	request.start_delay = leconvert_uint32_to(start_delay);
+	request.start_mode = start_mode;
+	request.continue_after_error = continue_after_error;
+	request.start_interval = leconvert_uint32_to(start_interval);
 	request.start_fields_string_id = leconvert_uint16_to(start_fields_string_id);
-	request.repeat_mode = repeat_mode;
-	request.repeat_interval = leconvert_uint32_to(repeat_interval);
-	request.repeat_fields_string_id = leconvert_uint16_to(repeat_fields_string_id);
 
 	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
 
@@ -2448,7 +2450,7 @@ int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condit
 	return ret;
 }
 
-int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint16_t *ret_start_fields_string_id, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint16_t *ret_repeat_fields_string_id) {
+int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_mode, bool *ret_continue_after_error, uint32_t *ret_start_interval, uint16_t *ret_start_fields_string_id) {
 	DevicePrivate *device_p = red->p;
 	GetProgramSchedule_ request;
 	GetProgramScheduleResponse_ response;
@@ -2469,13 +2471,10 @@ int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id,
 		return ret;
 	}
 	*ret_error_code = response.error_code;
-	*ret_start_condition = response.start_condition;
-	*ret_start_timestamp = leconvert_uint64_from(response.start_timestamp);
-	*ret_start_delay = leconvert_uint32_from(response.start_delay);
+	*ret_start_mode = response.start_mode;
+	*ret_continue_after_error = response.continue_after_error;
+	*ret_start_interval = leconvert_uint32_from(response.start_interval);
 	*ret_start_fields_string_id = leconvert_uint16_from(response.start_fields_string_id);
-	*ret_repeat_mode = response.repeat_mode;
-	*ret_repeat_interval = leconvert_uint32_from(response.repeat_interval);
-	*ret_repeat_fields_string_id = leconvert_uint16_from(response.repeat_fields_string_id);
 
 
 
@@ -2512,13 +2511,39 @@ int red_get_program_scheduler_state(RED *red, uint16_t program_id, uint16_t sess
 	return ret;
 }
 
-int red_schedule_program_now(RED *red, uint16_t program_id, uint8_t *ret_error_code) {
+int red_continue_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
-	ScheduleProgramNow_ request;
-	ScheduleProgramNowResponse_ response;
+	ContinueProgramSchedule_ request;
+	ContinueProgramScheduleResponse_ response;
 	int ret;
 
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SCHEDULE_PROGRAM_NOW, device_p->ipcon_p, device_p);
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.program_id = leconvert_uint16_to(program_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
+int red_start_program(RED *red, uint16_t program_id, uint8_t *ret_error_code) {
+	DevicePrivate *device_p = red->p;
+	StartProgram_ request;
+	StartProgramResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_START_PROGRAM, device_p->ipcon_p, device_p);
 
 	if (ret < 0) {
 		return ret;

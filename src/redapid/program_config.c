@@ -47,19 +47,11 @@ static EnumValueName _stdio_redirection_enum_value_names[] = {
 	{ -1,                                       NULL }
 };
 
-static EnumValueName _start_condition_enum_value_names[] = {
-	{ PROGRAM_START_CONDITION_NEVER,     "never" },
-	{ PROGRAM_START_CONDITION_NOW,       "now" },
-	{ PROGRAM_START_CONDITION_REBOOT,    "reboot" },
-	{ PROGRAM_START_CONDITION_TIMESTAMP, "timestamp" },
-	{ PROGRAM_START_CONDITION_CRON,      "cron" },
-	{ -1,                                NULL }
-};
-
-static EnumValueName _repeat_mode_enum_value_names[] = {
-	{ PROGRAM_REPEAT_MODE_NEVER,    "never" },
-	{ PROGRAM_REPEAT_MODE_INTERVAL, "interval" },
-	{ PROGRAM_REPEAT_MODE_CRON,     "cron" },
+static EnumValueName _start_mode_enum_value_names[] = {
+	{ PROGRAM_START_MODE_NEVER,     "never" },
+	{ PROGRAM_START_MODE_ALWAYS,    "always" },
+	{ PROGRAM_START_MODE_INTERVAL,  "interval" },
+	{ PROGRAM_START_MODE_CRON,      "cron" },
 	{ -1,                           NULL }
 };
 
@@ -78,20 +70,12 @@ static int program_config_get_stdio_redirection_value(const char *name, int *red
 	return enum_get_value(_stdio_redirection_enum_value_names, name, redirection, true);
 }
 
-static const char *program_config_get_start_condition_name(int condition) {
-	return enum_get_name(_start_condition_enum_value_names, condition, "<unknown>");
+static const char *program_config_get_start_mode_name(int mode) {
+	return enum_get_name(_start_mode_enum_value_names, mode, "<unknown>");
 }
 
-static int program_config_get_start_condition_value(const char *name, int *condition) {
-	return enum_get_value(_start_condition_enum_value_names, name, condition, true);
-}
-
-static const char *program_config_get_repeat_mode_name(int mode) {
-	return enum_get_name(_repeat_mode_enum_value_names, mode, "<unknown>");
-}
-
-static int program_config_get_repeat_mode_value(const char *name, int *mode) {
-	return enum_get_value(_repeat_mode_enum_value_names, name, mode, true);
+static int program_config_get_start_mode_value(const char *name, int *mode) {
+	return enum_get_value(_start_mode_enum_value_names, name, mode, true);
 }
 
 static APIE program_config_set_empty(ProgramConfig *program_config,
@@ -280,8 +264,6 @@ error:
 	*value = default_value;
 }
 
-#if 0 // currently unused
-
 static APIE program_config_set_boolean(ProgramConfig *program_config,
                                        ConfFile *conf_file, const char *name,
                                        bool value) {
@@ -317,8 +299,6 @@ static void program_config_get_boolean(ProgramConfig *program_config,
 		*value = default_value;
 	}
 }
-
-#endif
 
 static APIE program_config_set_symbol(ProgramConfig *program_config,
                                       ConfFile *conf_file,
@@ -570,18 +550,15 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	program_config->environment = environment;
 	program_config->working_directory = working_directory;
 	program_config->stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program_config->stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
-	program_config->stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	program_config->stdin_file_name = NULL;
+	program_config->stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	program_config->stdout_file_name = NULL;
+	program_config->stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	program_config->stderr_file_name = NULL;
-	program_config->start_condition = PROGRAM_START_CONDITION_NEVER;
-	program_config->start_timestamp = 0;
-	program_config->start_delay = 0;
+	program_config->start_mode = PROGRAM_START_MODE_NEVER;
+	program_config->continue_after_error = false;
+	program_config->start_interval = 0;
 	program_config->start_fields = NULL;
-	program_config->repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
-	program_config->repeat_interval = 0;
-	program_config->repeat_fields = NULL;
 	program_config->custom_options = custom_options;
 
 cleanup:
@@ -615,11 +592,7 @@ void program_config_destroy(ProgramConfig *program_config) {
 	array_destroy(program_config->custom_options, program_custom_option_unlock);
 	free(program_config->custom_options);
 
-	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		string_unlock(program_config->repeat_fields);
-	}
-
-	if (program_config->start_condition == PROGRAM_START_CONDITION_CRON) {
+	if (program_config->start_mode == PROGRAM_START_MODE_CRON) {
 		string_unlock(program_config->start_fields);
 	}
 
@@ -656,13 +629,10 @@ APIE program_config_load(ProgramConfig *program_config) {
 	String *stdout_file_name;
 	int stderr_redirection;
 	String *stderr_file_name;
-	int start_condition;
-	uint64_t start_timestamp;
-	uint64_t start_delay;
+	int start_mode;
+	bool continue_after_error;
+	uint64_t start_interval;
 	String *start_fields;
-	int repeat_mode;
-	uint64_t repeat_interval;
-	String *repeat_fields;
 	Array *custom_options;
 	const char *custom_name;
 	const char *custom_value;
@@ -733,25 +703,25 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	phase = 5;
 
-	// get stdin.redirection
+	// get stdin_redirection
 	program_config_get_symbol(program_config, &conf_file,
-	                          "stdin.redirection", &stdin_redirection,
+	                          "stdin_redirection", &stdin_redirection,
 	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
 	                          program_config_get_stdio_redirection_value);
 
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_INDIVIDUAL_LOG ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_CONTINUOUS_LOG ||
 	    stdin_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
-		log_warn("Invalid 'stdin.redirection' option in '%s', using default value instead",
+		log_warn("Invalid 'stdin_redirection' option in '%s', using default value instead",
 		         program_config->filename);
 
 		stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	}
 
-	// get stdin.file_name
+	// get stdin_file_name
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
-		                                       "stdin.file_name",
+		                                       "stdin_file_name",
 		                                       &stdin_file_name, "");
 
 		if (error_code != API_E_SUCCESS) {
@@ -774,24 +744,24 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	phase = 6;
 
-	// get stdout.redirection
+	// get stdout_redirection
 	program_config_get_symbol(program_config, &conf_file,
-	                          "stdout.redirection", &stdout_redirection,
+	                          "stdout_redirection", &stdout_redirection,
 	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
 	                          program_config_get_stdio_redirection_value);
 
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_PIPE ||
 	    stdout_redirection == PROGRAM_STDIO_REDIRECTION_STDOUT) {
-		log_warn("Invalid 'stdout.redirection' option in '%s', using default value instead",
+		log_warn("Invalid 'stdout_redirection' option in '%s', using default value instead",
 		         program_config->filename);
 
 		stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	}
 
-	// get stdout.file_name
+	// get stdout_file_name
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
-		                                       "stdout.file_name",
+		                                       "stdout_file_name",
 		                                       &stdout_file_name, "");
 
 		if (error_code != API_E_SUCCESS) {
@@ -814,23 +784,23 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	phase = 7;
 
-	// get stderr.redirection
+	// get stderr_redirection
 	program_config_get_symbol(program_config, &conf_file,
-	                          "stderr.redirection", &stderr_redirection,
+	                          "stderr_redirection", &stderr_redirection,
 	                          PROGRAM_STDIO_REDIRECTION_DEV_NULL,
 	                          program_config_get_stdio_redirection_value);
 
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_PIPE) {
-		log_warn("Invalid 'stderr.redirection' option in '%s', using default value instead",
+		log_warn("Invalid 'stderr_redirection' option in '%s', using default value instead",
 		         program_config->filename);
 
 		stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 	}
 
-	// get stderr.file_name
+	// get stderr_file_name
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_get_string(program_config, &conf_file,
-		                                       "stderr.file_name",
+		                                       "stderr_file_name",
 		                                       &stderr_file_name, "");
 
 		if (error_code != API_E_SUCCESS) {
@@ -853,24 +823,24 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 	phase = 8;
 
-	// get start.condition
+	// get start_mode
 	program_config_get_symbol(program_config, &conf_file,
-	                          "start.condition", &start_condition,
-	                          PROGRAM_START_CONDITION_NEVER,
-	                          program_config_get_start_condition_value);
+	                          "start_mode", &start_mode,
+	                          PROGRAM_START_MODE_NEVER,
+	                          program_config_get_start_mode_value);
 
-	// get start.timestamp
-	program_config_get_integer(program_config, &conf_file, "start.timestamp",
-	                           &start_timestamp, 0);
+	// get continue_after_error
+	program_config_get_boolean(program_config, &conf_file, "continue_after_error",
+	                           &continue_after_error, false);
 
-	// get start.delay
-	program_config_get_integer(program_config, &conf_file, "start.delay",
-	                           &start_delay, 0);
+	// get start_interval
+	program_config_get_integer(program_config, &conf_file, "start_interval",
+	                           &start_interval, 0);
 
-	// get start.fields
-	if (start_condition == PROGRAM_START_CONDITION_CRON) {
+	// get start_fields
+	if (start_mode == PROGRAM_START_MODE_CRON) {
 		error_code = program_config_get_string(program_config, &conf_file,
-		                                       "start.fields",
+		                                       "start_fields",
 		                                       &start_fields, "* * * * *");
 
 		if (error_code != API_E_SUCCESS) {
@@ -882,46 +852,13 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 			string_unlock(start_fields);
 
-			start_condition = PROGRAM_START_CONDITION_NEVER;
+			start_mode = PROGRAM_START_MODE_NEVER;
 		}
 	} else {
 		start_fields = NULL;
 	}
 
 	phase = 9;
-
-	// get repeat.mode
-	program_config_get_symbol(program_config, &conf_file,
-	                          "repeat.mode", &repeat_mode,
-	                          PROGRAM_REPEAT_MODE_NEVER,
-	                          program_config_get_repeat_mode_value);
-
-	// get repeat.interval
-	program_config_get_integer(program_config, &conf_file, "repeat.interval",
-	                           &repeat_interval, 0);
-
-	// get repeat.fields
-	if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		error_code = program_config_get_string(program_config, &conf_file,
-		                                       "repeat.fields",
-		                                       &repeat_fields, "* * * * *");
-
-		if (error_code != API_E_SUCCESS) {
-			goto cleanup;
-		}
-
-		if (*repeat_fields->buffer == '\0') {
-			log_warn("Cannot repeat with empty cron fields, repeating never instead");
-
-			string_unlock(repeat_fields);
-
-			repeat_mode = PROGRAM_REPEAT_MODE_NEVER;
-		}
-	} else {
-		repeat_fields = NULL;
-	}
-
-	phase = 10;
 
 	// get custom.* options
 	custom_options = calloc(1, sizeof(Array));
@@ -935,7 +872,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 11;
+	phase = 10;
 
 	if (array_create(custom_options, 32, sizeof(ProgramCustomOption), true) < 0) {
 		error_code = api_get_error_code_from_errno();
@@ -946,7 +883,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	phase = 12;
+	phase = 11;
 
 	if (conf_file_get_first_option(&conf_file, &custom_name, &custom_value, &cookie)) {
 		do {
@@ -997,7 +934,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		} while (conf_file_get_next_option(&conf_file, &custom_name, &custom_value, &cookie));
 	}
 
-	phase = 13;
+	phase = 12;
 
 	// unlock/destroy old objects
 	string_unlock(program_config->executable);
@@ -1017,54 +954,42 @@ APIE program_config_load(ProgramConfig *program_config) {
 		string_unlock(program_config->stderr_file_name);
 	}
 
-	if (program_config->start_condition == PROGRAM_START_CONDITION_CRON) {
+	if (program_config->start_mode == PROGRAM_START_MODE_CRON) {
 		string_unlock(program_config->start_fields);
-	}
-
-	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		string_unlock(program_config->repeat_fields);
 	}
 
 	array_destroy(program_config->custom_options, program_custom_option_unlock);
 	free(program_config->custom_options);
 
 	// set new objects
-	program_config->executable          = executable;
-	program_config->arguments           = arguments;
-	program_config->environment         = environment;
-	program_config->working_directory   = working_directory;
-	program_config->stdin_redirection   = stdin_redirection;
-	program_config->stdin_file_name     = stdin_file_name;
-	program_config->stdout_redirection  = stdout_redirection;
-	program_config->stdout_file_name    = stdout_file_name;
-	program_config->stderr_redirection  = stderr_redirection;
-	program_config->stderr_file_name    = stderr_file_name;
-	program_config->start_condition     = start_condition;
-	program_config->start_timestamp     = start_timestamp;
-	program_config->start_delay         = start_delay;
-	program_config->start_fields        = start_fields;
-	program_config->repeat_mode         = repeat_mode;
-	program_config->repeat_interval     = repeat_interval;
-	program_config->repeat_fields       = repeat_fields;
-	program_config->custom_options      = custom_options;
+	program_config->executable = executable;
+	program_config->arguments = arguments;
+	program_config->environment = environment;
+	program_config->working_directory = working_directory;
+	program_config->stdin_redirection = stdin_redirection;
+	program_config->stdin_file_name = stdin_file_name;
+	program_config->stdout_redirection = stdout_redirection;
+	program_config->stdout_file_name = stdout_file_name;
+	program_config->stderr_redirection = stderr_redirection;
+	program_config->stderr_file_name = stderr_file_name;
+	program_config->start_mode  = start_mode;
+	program_config->continue_after_error = continue_after_error;
+	program_config->start_interval = start_interval;
+	program_config->start_fields = start_fields;
+	program_config->custom_options = custom_options;
 
 	conf_file_destroy(&conf_file);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 12:
+	case 11:
 		array_destroy(custom_options, program_custom_option_unlock);
 
-	case 11:
+	case 10:
 		free(custom_options);
 
-	case 10:
-		if (repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-			string_unlock(repeat_fields);
-		}
-
 	case 9:
-		if (start_condition == PROGRAM_START_CONDITION_CRON) {
+		if (start_mode == PROGRAM_START_MODE_CRON) {
 			string_unlock(start_fields);
 		}
 
@@ -1102,7 +1027,7 @@ cleanup:
 		break;
 	}
 
-	return phase == 13 ? API_E_SUCCESS : error_code;
+	return phase == 12 ? API_E_SUCCESS : error_code;
 }
 
 APIE program_config_save(ProgramConfig *program_config) {
@@ -1158,7 +1083,7 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set working directory
+	// set working_directory
 	error_code = program_config_set_string(program_config, &conf_file,
 	                                       "working_directory",
 	                                       program_config->working_directory);
@@ -1167,9 +1092,9 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set stdin.redirection
+	// set stdin_redirection
 	error_code = program_config_set_symbol(program_config, &conf_file,
-	                                       "stdin.redirection",
+	                                       "stdin_redirection",
 	                                       program_config->stdin_redirection,
 	                                       program_config_get_stdio_redirection_name);
 
@@ -1177,23 +1102,23 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set stdin.file_name
+	// set stdin_file_name
 	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_set_string(program_config, &conf_file,
-		                                       "stdin.file_name",
+		                                       "stdin_file_name",
 		                                       program_config->stdin_file_name);
 	} else {
 		error_code = program_config_set_empty(program_config, &conf_file,
-		                                      "stdin.file_name");
+		                                      "stdin_file_name");
 	}
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	// set stdout.redirection
+	// set stdout_redirection
 	error_code = program_config_set_symbol(program_config, &conf_file,
-	                                       "stdout.redirection",
+	                                       "stdout_redirection",
 	                                       program_config->stdout_redirection,
 	                                       program_config_get_stdio_redirection_name);
 
@@ -1201,23 +1126,23 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set stdout.file_name
+	// set stdout_file_name
 	if (program_config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_set_string(program_config, &conf_file,
-		                                       "stdout.file_name",
+		                                       "stdout_file_name",
 		                                       program_config->stdout_file_name);
 	} else {
 		error_code = program_config_set_empty(program_config, &conf_file,
-		                                      "stdout.file_name");
+		                                      "stdout_file_name");
 	}
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	// set stderr.redirection
+	// set stderr_redirection
 	error_code = program_config_set_symbol(program_config, &conf_file,
-	                                       "stderr.redirection",
+	                                       "stderr_redirection",
 	                                       program_config->stderr_redirection,
 	                                       program_config_get_stdio_redirection_name);
 
@@ -1225,85 +1150,56 @@ APIE program_config_save(ProgramConfig *program_config) {
 		goto cleanup;
 	}
 
-	// set stderr.file_name
+	// set stderr_file_name
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = program_config_set_string(program_config, &conf_file,
-		                                       "stderr.file_name",
+		                                       "stderr_file_name",
 		                                       program_config->stderr_file_name);
 	} else {
 		error_code = program_config_set_empty(program_config, &conf_file,
-		                                      "stderr.file_name");
+		                                      "stderr_file_name");
 	}
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	// set start.condition
+	// set start_mode
 	error_code = program_config_set_symbol(program_config, &conf_file,
-	                                       "start.condition",
-	                                       program_config->start_condition,
-	                                       program_config_get_start_condition_name);
+	                                       "start_mode",
+	                                       program_config->start_mode,
+	                                       program_config_get_start_mode_name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	// set start.timestamp
+	// set continue_after_error
+	error_code = program_config_set_boolean(program_config, &conf_file,
+	                                        "continue_after_error",
+	                                        program_config->continue_after_error);
+
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
+	// set start_interval
 	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "start.timestamp",
-	                                        program_config->start_timestamp, 10, 0);
+	                                        "start_interval",
+	                                        program_config->start_interval, 10, 0);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
 	}
 
-	// set start.delay
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "start.delay",
-	                                        program_config->start_delay, 10, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set start.fields
-	if (program_config->start_condition == PROGRAM_START_CONDITION_CRON) {
+	// set start_fields
+	if (program_config->start_mode == PROGRAM_START_MODE_CRON) {
 		error_code = program_config_set_string(program_config, &conf_file,
-		                                       "start.fields",
+		                                       "start_fields",
 		                                       program_config->start_fields);
 	} else {
 		error_code = program_config_set_empty(program_config, &conf_file,
-		                                      "start.fields");
-	}
-
-	// set repeat.mode
-	error_code = program_config_set_symbol(program_config, &conf_file,
-	                                       "repeat.mode",
-	                                       program_config->repeat_mode,
-	                                       program_config_get_repeat_mode_name);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.interval
-	error_code = program_config_set_integer(program_config, &conf_file,
-	                                        "repeat.interval",
-	                                        program_config->repeat_interval, 10, 0);
-
-	if (error_code != API_E_SUCCESS) {
-		goto cleanup;
-	}
-
-	// set repeat.fields
-	if (program_config->repeat_mode == PROGRAM_REPEAT_MODE_CRON) {
-		error_code = program_config_set_string(program_config, &conf_file,
-		                                       "repeat.fields",
-		                                       program_config->repeat_fields);
-	} else {
-		error_code = program_config_set_empty(program_config, &conf_file,
-		                                      "repeat.fields");
+		                                      "start_fields");
 	}
 
 	// set custom.* options

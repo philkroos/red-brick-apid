@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-11-03.      *
+ * This file was automatically generated on 2014-11-07.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -296,32 +296,37 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SCHEDULE_PROGRAM_NOW 57
+#define RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE 57
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 58
+#define RED_FUNCTION_START_PROGRAM 58
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 59
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 59
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 60
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 60
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 61
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 61
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 62
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 62
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 63
 
 /**
  * \ingroup BrickRED
@@ -360,14 +365,14 @@ typedef Device RED;
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED 63
+#define RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED 64
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 64
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 65
 
 
 /**
@@ -733,42 +738,22 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_START_CONDITION_NEVER 0
+#define RED_PROGRAM_START_MODE_NEVER 0
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_START_CONDITION_NOW 1
+#define RED_PROGRAM_START_MODE_ALWAYS 1
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_START_CONDITION_REBOOT 2
+#define RED_PROGRAM_START_MODE_INTERVAL 2
 
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_START_CONDITION_TIMESTAMP 3
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_START_CONDITION_CRON 4
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_REPEAT_MODE_NEVER 0
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_REPEAT_MODE_INTERVAL 1
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_REPEAT_MODE_CRON 2
+#define RED_PROGRAM_START_MODE_CRON 3
 
 /**
  * \ingroup BrickRED
@@ -778,22 +763,7 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_PROGRAM_SCHEDULER_STATE_WAITING_FOR_START_CONDITION 1
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_SCHEDULER_STATE_DELAYING_START 2
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_SCHEDULER_STATE_WAITING_FOR_REPEAT_CONDITION 3
-
-/**
- * \ingroup BrickRED
- */
-#define RED_PROGRAM_SCHEDULER_STATE_ERROR_OCCURRED 4
+#define RED_PROGRAM_SCHEDULER_STATE_RUNNING 1
 
 /**
  * \ingroup BrickRED
@@ -1497,14 +1467,14 @@ int red_get_program_stdio_redirection(RED *red, uint16_t program_id, uint16_t se
  *
  * 
  */
-int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_condition, uint64_t start_timestamp, uint32_t start_delay, uint16_t start_fields_string_id, uint8_t repeat_mode, uint32_t repeat_interval, uint16_t repeat_fields_string_id, uint8_t *ret_error_code);
+int red_set_program_schedule(RED *red, uint16_t program_id, uint8_t start_mode, bool continue_after_error, uint32_t start_interval, uint16_t start_fields_string_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
  *
  * 
  */
-int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_condition, uint64_t *ret_start_timestamp, uint32_t *ret_start_delay, uint16_t *ret_start_fields_string_id, uint8_t *ret_repeat_mode, uint32_t *ret_repeat_interval, uint16_t *ret_repeat_fields_string_id);
+int red_get_program_schedule(RED *red, uint16_t program_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_start_mode, bool *ret_continue_after_error, uint32_t *ret_start_interval, uint16_t *ret_start_fields_string_id);
 
 /**
  * \ingroup BrickRED
@@ -1518,7 +1488,14 @@ int red_get_program_scheduler_state(RED *red, uint16_t program_id, uint16_t sess
  *
  * 
  */
-int red_schedule_program_now(RED *red, uint16_t program_id, uint8_t *ret_error_code);
+int red_continue_program_schedule(RED *red, uint16_t program_id, uint8_t *ret_error_code);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_start_program(RED *red, uint16_t program_id, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED
