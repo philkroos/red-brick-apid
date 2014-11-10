@@ -75,6 +75,7 @@ SOURCES := ../daemonlib/array.c \
            api_error.c \
            brickd.c \
            config_options.c \
+           cron.c \
            directory.c \
            file.c \
            inventory.c \
@@ -87,6 +88,7 @@ SOURCES := ../daemonlib/array.c \
            program_config.c \
            program_scheduler.c \
            session.c \
+           socat.c \
            string.c
 
 OBJECTS := ${SOURCES:.c=.o}

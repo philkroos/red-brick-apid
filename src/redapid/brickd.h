@@ -25,7 +25,6 @@
 #include <stdbool.h>
 
 #include <daemonlib/packet.h>
-#include <daemonlib/queue.h>
 #include <daemonlib/socket.h>
 #include <daemonlib/writer.h>
 

@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * network.h: Network specific functions
+ * cron.h: Cron specific functions
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,15 +19,23 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef REDAPID_NETWORK_H
-#define REDAPID_NETWORK_H
+#ifndef REDAPID_CRON_H
+#define REDAPID_CRON_H
 
-int network_init(const char *brickd_socket_filename,
-                 const char *cron_socket_filename);
-void network_exit(void);
+#include "object.h"
 
-void network_cleanup_brickd_and_socats(void);
+#include <daemonlib/packed_begin.h>
 
-void network_dispatch_response(Packet *response);
+typedef struct {
+	uint32_t cookie;
+	ObjectID program_id;
+} ATTRIBUTE_PACKED Notification;
 
-#endif // REDAPID_NETWORK_H
+#include <daemonlib/packed_end.h>
+
+int cron_init(void);
+void cron_exit(void);
+
+void cron_handle_notification(Notification *notification);
+
+#endif // REDAPID_CRON_H

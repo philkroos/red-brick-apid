@@ -39,6 +39,7 @@
 #include <daemonlib/utils.h>
 
 #include "api.h"
+#include "cron.h"
 #include "inventory.h"
 #include "network.h"
 #include "version.h"
@@ -47,7 +48,8 @@
 
 static char _config_filename[1024] = SYSCONFDIR "/redapid.conf";
 static char _pid_filename[1024] = LOCALSTATEDIR "/run/redapid.pid";
-static char _socket_filename[1024] = LOCALSTATEDIR "/run/redapid.socket";
+static char _brickd_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-brickd.socket";
+static char _cron_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-cron.socket";
 static char _log_filename[1024] = LOCALSTATEDIR "/log/redapid.log";
 
 static int prepare_paths(void) {
@@ -99,9 +101,17 @@ static int prepare_paths(void) {
 		return -1;
 	}
 
-	if (robust_snprintf(_socket_filename, sizeof(_socket_filename),
-	                    "%s/.redapid/redapid.socket", home) < 0) {
-		fprintf(stderr, "Could not format ~/.redapid/redapid.socket file name: %s (%d)\n",
+	if (robust_snprintf(_brickd_socket_filename, sizeof(_brickd_socket_filename),
+	                    "%s/.redapid/redapid-brickd.socket", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid/redapid-brickd.socket file name: %s (%d)\n",
+		        get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	if (robust_snprintf(_cron_socket_filename, sizeof(_cron_socket_filename),
+	                    "%s/.redapid/redapid-cron.socket", home) < 0) {
+		fprintf(stderr, "Could not format ~/.redapid/redapid-cron.socket file name: %s (%d)\n",
 		        get_errno_name(errno), errno);
 
 		return -1;
@@ -261,7 +271,11 @@ int main(int argc, char **argv) {
 		goto error_api;
 	}
 
-	if (network_init(_socket_filename) < 0) {
+	if (cron_init() < 0) {
+		goto error_cron;
+	}
+
+	if (network_init(_brickd_socket_filename, _cron_socket_filename) < 0) {
 		goto error_network;
 	}
 
@@ -269,7 +283,7 @@ int main(int argc, char **argv) {
 		goto error_load_programs;
 	}
 
-	if (event_run(network_cleanup_brickd) < 0) {
+	if (event_run(network_cleanup_brickd_and_socats) < 0) {
 		goto error_run;
 	}
 
@@ -282,6 +296,9 @@ error_load_programs:
 	network_exit();
 
 error_network:
+	cron_exit();
+
+error_cron:
 	api_exit();
 
 error_api:

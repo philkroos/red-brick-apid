@@ -2,7 +2,7 @@
  * redapid
  * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
  *
- * network.h: Network specific functions
+ * socat.h: Socat client for incoming cron events
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,15 +19,23 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef REDAPID_NETWORK_H
-#define REDAPID_NETWORK_H
+#ifndef REDAPID_SOCAT_H
+#define REDAPID_SOCAT_H
 
-int network_init(const char *brickd_socket_filename,
-                 const char *cron_socket_filename);
-void network_exit(void);
+#include <stdbool.h>
 
-void network_cleanup_brickd_and_socats(void);
+#include <daemonlib/socket.h>
 
-void network_dispatch_response(Packet *response);
+#include "cron.h"
 
-#endif // REDAPID_NETWORK_H
+typedef struct {
+	Socket *socket;
+	bool disconnected;
+	Notification notification;
+	int notification_used;
+} Socat;
+
+int socat_create(Socat *socat, Socket *socket);
+void socat_destroy(Socat *socat);
+
+#endif // REDAPID_SOCAT_H

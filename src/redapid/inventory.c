@@ -328,8 +328,8 @@ int inventory_load_programs(void) {
 			return 0;
 		}
 
-		log_warn("Could not open programs directory '%s': %s (%d)",
-		         _programs_directory, get_errno_name(errno), errno);
+		log_error("Could not open programs directory '%s': %s (%d)",
+		          _programs_directory, get_errno_name(errno), errno);
 
 		return -1;
 	}
@@ -343,8 +343,8 @@ int inventory_load_programs(void) {
 				// end-of-directory reached
 				break;
 			} else {
-				log_warn("Could not get next entry of programs directory '%s': %s (%d)",
-				         _programs_directory, get_errno_name(errno), errno);
+				log_error("Could not get next entry of programs directory '%s': %s (%d)",
+				          _programs_directory, get_errno_name(errno), errno);
 
 				goto cleanup;
 			}
@@ -380,7 +380,7 @@ int inventory_load_programs(void) {
 
 		if (error_code != API_E_SUCCESS) {
 			// load errors are non-fatal
-			log_debug("Could not load program from '%s': %s (%d)",
+			log_debug("Could not load program from '%s', ignoring program: %s (%d)",
 			          directory, api_get_error_code_name(error_code), error_code);
 		}
 	}

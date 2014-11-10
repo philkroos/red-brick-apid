@@ -28,6 +28,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <daemonlib/array.h>
 #include <daemonlib/event.h>
 #include <daemonlib/log.h>
 #include <daemonlib/packet.h>
@@ -38,15 +39,19 @@
 
 #include "api.h"
 #include "brickd.h"
+#include "socat.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_NETWORK
 
-static const char *_socket_filename;
-static Socket _server_socket;
+static const char *_brickd_socket_filename = NULL; // only != NULL if corresponding socket is open
+static Socket _brickd_server_socket;
+static const char *_cron_socket_filename = NULL; // only != NULL if corresponding socket is open
+static Socket _cron_server_socket;
 static BrickDaemon _brickd;
 static bool _brickd_connected = false;
+static Array _socats;
 
-static void network_handle_accept(void *opaque) {
+static void network_handle_brickd_accept(void *opaque) {
 	Socket *client_socket;
 	struct sockaddr_storage address;
 	socklen_t length = sizeof(address);
@@ -54,7 +59,7 @@ static void network_handle_accept(void *opaque) {
 	(void)opaque;
 
 	// accept new client socket
-	client_socket = socket_accept(&_server_socket, (struct sockaddr *)&address, &length);
+	client_socket = socket_accept(&_brickd_server_socket, (struct sockaddr *)&address, &length);
 
 	if (client_socket == NULL) {
 		if (!errno_interrupted()) {
@@ -84,12 +89,50 @@ static void network_handle_accept(void *opaque) {
 	log_info("Brick Daemon connected");
 }
 
-int network_init(const char *socket_filename) {
+static void network_handle_cron_accept(void *opaque) {
+	Socket *client_socket;
+	struct sockaddr_storage address;
+	socklen_t length = sizeof(address);
+	Socat *socat;
+
+	(void)opaque;
+
+	// accept new client socket
+	client_socket = socket_accept(&_cron_server_socket, (struct sockaddr *)&address, &length);
+
+	if (client_socket == NULL) {
+		if (!errno_interrupted()) {
+			log_error("Could not accept new client socket: %s (%d)",
+			          get_errno_name(errno), errno);
+		}
+
+		return;
+	}
+
+	// append to socat array
+	socat = array_append(&_socats);
+
+	if (socat == NULL) {
+		log_error("Could not append to socat array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return;
+	}
+
+	// create new socat that takes ownership of the client socket
+	if (socat_create(socat, client_socket) < 0) {
+		array_remove(&_socats, _socats.count - 1, NULL);
+
+		return;
+	}
+
+	log_debug("Added new socat (handle: %d)", socat->socket->base.handle);
+}
+
+static int network_open_server_socket(Socket *server_socket,
+                                      const char *socket_filename,
+                                      EventFunction handle_accept) {
 	struct sockaddr_un address;
-
-	_socket_filename = socket_filename;
-
-	log_debug("Initializing network subsystem");
 
 	if (strlen(socket_filename) >= sizeof(address.sun_path)) {
 		log_error("UNIX domain socket file name '%s' is too long", socket_filename);
@@ -98,7 +141,7 @@ int network_init(const char *socket_filename) {
 	}
 
 	// create socket
-	if (socket_create(&_server_socket) < 0) {
+	if (socket_create(server_socket) < 0) {
 		log_error("Could not create socket: %s (%d)",
 		          get_errno_name(errno), errno);
 
@@ -107,7 +150,7 @@ int network_init(const char *socket_filename) {
 
 	log_debug("Opening UNIX domain server socket at '%s'", socket_filename);
 
-	if (socket_open(&_server_socket, AF_UNIX, SOCK_STREAM, 0) < 0) {
+	if (socket_open(server_socket, AF_UNIX, SOCK_STREAM, 0) < 0) {
 		log_error("Could not open UNIX domain server socket: %s (%d)",
 		          get_errno_name(errno), errno);
 
@@ -121,14 +164,14 @@ int network_init(const char *socket_filename) {
 	address.sun_family = AF_UNIX;
 	strcpy(address.sun_path, socket_filename);
 
-	if (socket_bind(&_server_socket, (struct sockaddr *)&address, sizeof(address)) < 0) {
+	if (socket_bind(server_socket, (struct sockaddr *)&address, sizeof(address)) < 0) {
 		log_error("Could not bind UNIX domain server socket to '%s': %s (%d)",
 		          socket_filename, get_errno_name(errno), errno);
 
 		goto error;
 	}
 
-	if (socket_listen(&_server_socket, 10, socket_create_allocated) < 0) {
+	if (socket_listen(server_socket, 10, socket_create_allocated) < 0) {
 		log_error("Could not listen to UNIX domain server socket bound to '%s': %s (%d)",
 		          socket_filename, get_errno_name(errno), errno);
 
@@ -137,39 +180,99 @@ int network_init(const char *socket_filename) {
 
 	log_debug("Started listening to '%s'", socket_filename);
 
-	if (event_add_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC,
-	                     EVENT_READ, network_handle_accept, NULL) < 0) {
+	if (event_add_source(server_socket->base.handle, EVENT_SOURCE_TYPE_GENERIC,
+	                     EVENT_READ, handle_accept, NULL) < 0) {
 		goto error;
 	}
 
 	return 0;
 
 error:
-	socket_destroy(&_server_socket);
+	socket_destroy(server_socket);
 
 	return -1;
+}
+
+int network_init(const char *brickd_socket_filename,
+                 const char *cron_socket_filename) {
+	log_debug("Initializing network subsystem");
+
+	// create socats array. the Socat struct is not relocatable, because a
+	// pointer to it is passed as opaque parameter to the event subsystem
+	if (array_create(&_socats, 32, sizeof(Socat), false) < 0) {
+		log_error("Could not create socat array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	// open brickd server socket
+	if (network_open_server_socket(&_brickd_server_socket, brickd_socket_filename,
+	                               network_handle_brickd_accept) >= 0) {
+		_brickd_socket_filename = brickd_socket_filename;
+	}
+
+	// open cron server socket
+	if (network_open_server_socket(&_cron_server_socket, cron_socket_filename,
+	                               network_handle_cron_accept) >= 0) {
+		_cron_socket_filename = cron_socket_filename;
+	}
+
+	if (_brickd_socket_filename == NULL && _cron_socket_filename == NULL) {
+		log_error("Could not open any socket to listen to");
+
+		array_destroy(&_socats, (ItemDestroyFunction)socat_destroy);
+
+		return -1;
+	}
+
+	return 0;
 }
 
 void network_exit(void) {
 	log_debug("Shutting down network subsystem");
 
+	array_destroy(&_socats, (ItemDestroyFunction)socat_destroy);
+
 	if (_brickd_connected) {
 		brickd_destroy(&_brickd);
 	}
 
-	event_remove_source(_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC);
-	socket_destroy(&_server_socket);
+	if (_cron_socket_filename != NULL) {
+		event_remove_source(_cron_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC);
+		socket_destroy(&_cron_server_socket);
+		unlink(_cron_socket_filename);
+	}
 
-	unlink(_socket_filename);
+	if (_brickd_socket_filename != NULL) {
+		event_remove_source(_brickd_server_socket.base.handle, EVENT_SOURCE_TYPE_GENERIC);
+		socket_destroy(&_brickd_server_socket);
+		unlink(_brickd_socket_filename);
+	}
 }
 
-void network_cleanup_brickd(void) {
+void network_cleanup_brickd_and_socats(void) {
+	int i;
+	Socat *socat;
+
 	if (_brickd_connected && _brickd.disconnected) {
 		log_debug("Removing disconnected Brick Daemon");
 
 		brickd_destroy(&_brickd);
 
 		_brickd_connected = false;
+	}
+
+	// iterate backwards for simpler index handling
+	for (i = _socats.count - 1; i >= 0; --i) {
+		socat = array_get(&_socats, i);
+
+		if (socat->disconnected) {
+			log_debug("Removing disconnected socat (handle: %d)",
+			          socat->socket->base.handle);
+
+			array_remove(&_socats, i, (ItemDestroyFunction)socat_destroy);
+		}
 	}
 }
 
