@@ -75,14 +75,14 @@ static void socat_handle_receive(void *opaque) {
 
 	cron_handle_notification(&socat->notification);
 
-	log_debug("Socat (handle: %d) received complete request, disconnected socat",
+	log_debug("Socat (handle: %d) received complete request, disconnecting socat",
 	          socat->socket->base.handle);
 
 	socat->disconnected = true;
 }
 
 int socat_create(Socat *socat, Socket *socket) {
-	log_debug("Creating Brick Daemon from UNIX domain socket (handle: %d)", socket->base.handle);
+	log_debug("Creating socat from UNIX domain socket (handle: %d)", socket->base.handle);
 
 	socat->socket = socket;
 	socat->disconnected = false;
