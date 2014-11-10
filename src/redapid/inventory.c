@@ -72,6 +72,12 @@ static void inventory_destroy_object(void *item) {
 	object_destroy(object);
 }
 
+static void inventory_unlock_object(void *item) {
+	Object *object = *(Object **)item;
+
+	object_unlock(object);
+}
+
 static APIE inventory_get_next_session_id(SessionID *id) {
 	int i;
 	SessionID candidate;
@@ -233,6 +239,9 @@ void inventory_exit(void) {
 	// relations between objects that constrains the destruction order are known
 	array_destroy(&_sessions, inventory_destroy_session);
 
+	// unlock all stock string objects
+	array_destroy(&_stock_strings, inventory_unlock_object);
+
 	// object types have to be destroyed in a specific order. if objects of
 	// type A can use (have a reference to) objects of type B then A has to be
 	// destroyed before B. so A has a chance to properly release its references
@@ -252,10 +261,6 @@ void inventory_exit(void) {
 	array_destroy(&_objects[OBJECT_TYPE_FILE], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_LIST], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_STRING], inventory_destroy_object);
-
-	// destroy stock string array, but not its items, because all strings have
-	// already been destroyed at this point
-	array_destroy(&_stock_strings, NULL);
 }
 
 const char *inventory_get_programs_directory(void) {
