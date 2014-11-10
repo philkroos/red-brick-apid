@@ -24,6 +24,8 @@
 
 #include "object.h"
 
+typedef void (*NotificationFunction)(void *opaque);
+
 #include <daemonlib/packed_begin.h>
 
 typedef struct {
@@ -35,6 +37,10 @@ typedef struct {
 
 int cron_init(void);
 void cron_exit(void);
+
+int cron_add_entry(ObjectID program_id, const char *identifier, const char *fields,
+                   NotificationFunction function, void *opaque);
+void cron_remove_entry(ObjectID program_id);
 
 void cron_handle_notification(Notification *notification);
 

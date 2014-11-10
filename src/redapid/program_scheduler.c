@@ -36,6 +36,7 @@
 #include "program_scheduler.h"
 
 #include "api.h"
+#include "cron.h"
 #include "directory.h"
 #include "inventory.h"
 #include "program.h"
@@ -143,6 +144,16 @@ static void program_scheduler_handle_interval(void *opaque) {
 	}
 }
 
+static void program_scheduler_handle_cron(void *opaque) {
+	ProgramScheduler *program_scheduler = opaque;
+	Program *program = containerof(program_scheduler, Program, scheduler);
+
+	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
+	    program->config.start_mode == PROGRAM_START_MODE_CRON) {
+		program_scheduler_spawn_process(program_scheduler);
+	}
+}
+
 static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	Program *program = containerof(program_scheduler, Program, scheduler);
 
@@ -179,12 +190,25 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 		log_debug("Started interval timer for program object (identifier: %s)",
 		          program->identifier->buffer);
 
-		program_scheduler->timer_active = true;
+		program_scheduler->interval_active = true;
 
 		break;
 
 	case PROGRAM_START_MODE_CRON:
-		// FIXME
+		if (cron_add_entry(program->base.id, program->identifier->buffer,
+		                   program->config.start_fields->buffer,
+		                   program_scheduler_handle_cron, program_scheduler) < 0) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not add cron entry: %s (%d)",
+			                               get_errno_name(errno), errno);
+
+			return;
+		}
+
+		log_debug("Added cron entry for program object (identifier: %s)",
+		          program->identifier->buffer);
+
+		program_scheduler->cron_active = true;
 
 		break;
 
@@ -206,7 +230,7 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler,
 		return;
 	}
 
-	if (program_scheduler->timer_active) {
+	if (program_scheduler->interval_active) {
 		if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
 			recursive = true;
 
@@ -219,8 +243,17 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler,
 			log_debug("Stopped interval timer for program object (identifier: %s)",
 			          program->identifier->buffer);
 
-			program_scheduler->timer_active = false;
+			program_scheduler->interval_active = false;
 		}
+	}
+
+	if (program_scheduler->cron_active) {
+		cron_remove_entry(program->base.id);
+
+		log_debug("Removed cron entry for program object (identifier: %s)",
+		          program->identifier->buffer);
+
+		program_scheduler->cron_active = false;
 	}
 
 	program_scheduler_set_state(program_scheduler, PROGRAM_SCHEDULER_STATE_STOPPED,
@@ -874,8 +907,9 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->absolute_stderr_file_name = NULL;
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
-	program_scheduler->timer_active = false;
 	program_scheduler->shutdown = false;
+	program_scheduler->interval_active = false;
+	program_scheduler->cron_active = false;
 	program_scheduler->last_spawned_process = NULL;
 	program_scheduler->last_spawned_timestamp = 0;
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_STOPPED;

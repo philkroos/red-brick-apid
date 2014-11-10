@@ -23,20 +23,29 @@
 #include <dirent.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 
+#include <daemonlib/array.h>
 #include <daemonlib/log.h>
+#include <daemonlib/utils.h>
 
 #include "cron.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_OTHER
 
-#define CROND_DIRECTORY "/etc/cron.d"
+typedef struct {
+	ObjectID program_id;
+	NotificationFunction function;
+	void *opaque;
+} Entry;
 
-static int cron_remove_all_files(void) {
+static Array _entries;
+
+static int cron_cleanup_files(void) {
 	bool success = false;
 	DIR *dp;
 	struct dirent *dirent;
-	const char *prefix = "redapid-";
+	const char *prefix = "redapid-schedule-program-";
 	int prefix_length = strlen(prefix);
 	char filename[1024];
 
@@ -82,11 +91,11 @@ static int cron_remove_all_files(void) {
 
 		log_debug("Removing cron file '%s'", filename);
 
-		/*if (unlink(filename) < 0) {
+		if (unlink(filename) < 0) {
 			// unlink errors are non-fatal
 			log_debug("Could not remove cron file '%s': %s (%d)",
 			          filename, get_errno_name(errno), errno);
-		}*/
+		}
 	}
 
 	success = true;
@@ -100,15 +109,46 @@ cleanup:
 int cron_init(void) {
 	log_debug("Initializing cron subsystem");
 
-	return cron_remove_all_files();
+	// create entry array
+	if (array_create(&_entries, 32, sizeof(Entry), true) < 0) {
+		log_error("Could not create entry array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		return -1;
+	}
+
+	return cron_cleanup_files();
 }
 
 void cron_exit(void) {
 	log_debug("Shutting down cron subsystem");
 
-	cron_remove_all_files();
+	array_destroy(&_entries, NULL);
+
+	cron_cleanup_files();
+}
+
+int cron_add_entry(ObjectID program_id, const char *identifier, const char *fields,
+                   NotificationFunction function, void *opaque) {
+	(void)program_id;
+	(void)fields;
+	(void)identifier;
+	(void)function;
+	(void)opaque;
+
+	// FIXME
+
+	return 0;
+}
+
+void cron_remove_entry(ObjectID program_id) {
+	(void)program_id;
+
+	// FIXME
 }
 
 void cron_handle_notification(Notification *notification) {
-	log_error("cookie %u, program_id %u", notification->cookie, notification->program_id);
+	(void)notification;
+
+	// FIXME
 }
