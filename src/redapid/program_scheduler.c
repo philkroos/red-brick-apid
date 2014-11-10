@@ -28,6 +28,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <daemonlib/log.h>
 #include <daemonlib/utils.h>
@@ -581,7 +582,6 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 	char buffer[1024];
 	APIE error_code;
 	String *name;
-	FILE *fp;
 	File *file;
 
 	// format ISO 8601 date and time
@@ -616,43 +616,6 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 		return NULL;
 	}
 
-	// write timestamp
-	if (robust_snprintf(buffer, sizeof(buffer), "\n\n%s%s%s\n-------------------------------------------------------------------------------\n",
-	                    iso8601dt, iso8601usec, iso8601tz) < 0) {
-		program_scheduler_handle_error(program_scheduler, true,
-		                               "Could not format timestamp for %s log file: %s (%d)",
-		                               suffix, get_errno_name(errno), errno);
-
-		string_unlock(name);
-
-		return NULL;
-	}
-
-	fp = fopen(name->buffer, "ab");
-
-	if (fp == NULL) {
-		program_scheduler_handle_error(program_scheduler, true,
-		                               "Could not open/create %s log file: %s (%d)",
-		                               suffix, get_errno_name(errno), errno);
-
-		string_unlock(name);
-
-		return NULL;
-	}
-
-	if (fwrite(buffer, 1, strlen(buffer), fp) != strlen(buffer)) {
-		program_scheduler_handle_error(program_scheduler, true,
-		                               "Could not write timestamp to %s log file: %s (%d)",
-		                               suffix, get_errno_name(errno), errno);
-
-		string_unlock(name);
-		fclose(fp);
-
-		return NULL;
-	}
-
-	fclose(fp);
-
 	// open log file
 	error_code = file_open(name->base.id,
 	                       FILE_FLAG_WRITE_ONLY | FILE_FLAG_CREATE | FILE_FLAG_APPEND,
@@ -665,6 +628,28 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not open/create %s log file: %s (%d)",
 		                               suffix, api_get_error_code_name(error_code), error_code);
+
+		return NULL;
+	}
+
+	// write timestamp
+	if (robust_snprintf(buffer, sizeof(buffer), "\n\n%s%s%s\n-------------------------------------------------------------------------------\n",
+	                    iso8601dt, iso8601usec, iso8601tz) < 0) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not format timestamp for %s log file: %s (%d)",
+		                               suffix, get_errno_name(errno), errno);
+
+		file_unlock(file);
+
+		return NULL;
+	}
+
+	if (write(file->fd, buffer, strlen(buffer)) < 0) {
+		program_scheduler_handle_error(program_scheduler, true,
+		                               "Could not write timestamp to %s log file: %s (%d)",
+		                               suffix, get_errno_name(errno), errno);
+
+		file_unlock(file);
 
 		return NULL;
 	}
