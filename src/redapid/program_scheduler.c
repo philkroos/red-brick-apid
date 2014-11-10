@@ -185,8 +185,18 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	}
 
 	if (program_scheduler->last_spawned_process->state == PROCESS_STATE_EXITED) {
-		if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
-			program_scheduler_spawn_process(program_scheduler);
+		if (program_scheduler->last_spawned_process->exit_code == 0) {
+			if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
+				program_scheduler_spawn_process(program_scheduler);
+			}
+		} else {
+			if (program_scheduler->config->continue_after_error) {
+				if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
+					program_scheduler_spawn_process(program_scheduler);
+				}
+			} else {
+				program_scheduler_stop(program_scheduler, NULL);
+			}
 		}
 	} else if (program_scheduler->last_spawned_process->state == PROCESS_STATE_ERROR ||
 	           program_scheduler->last_spawned_process->state == PROCESS_STATE_KILLED) {
