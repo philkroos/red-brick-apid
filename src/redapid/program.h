@@ -39,7 +39,7 @@ typedef struct {
 	String *root_directory; // <home>/programs/<identifier>
 	ProgramConfig config;
 	ProgramScheduler scheduler;
-	String *none_message; // FIXME: share one string object between all program objects
+	String *none_message;
 } Program;
 
 APIE program_load(const char *identifier, const char *root_directory,

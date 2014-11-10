@@ -31,6 +31,7 @@
 #include "program_config.h"
 
 #include "api.h"
+#include "inventory.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
@@ -458,11 +459,8 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 	String *working_directory;
 	Array *custom_options;
 
-	// create executable string object
-	error_code = string_wrap("", NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &executable);
+	// get empty executable stock string object
+	error_code = inventory_get_stock_string("", &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -494,11 +492,8 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 
 	phase = 3;
 
-	// create working directory string object
-	error_code = string_wrap(".", NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &working_directory);
+	// get working directory stock string object
+	error_code = inventory_get_stock_string(".", &working_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

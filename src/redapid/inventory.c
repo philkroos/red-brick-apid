@@ -58,6 +58,7 @@ static SessionID _next_session_id = 1; // don't use session ID zero
 static Array _sessions;
 static ObjectID _next_object_id = 1; // don't use object ID zero
 static Array _objects[OBJECT_TYPE_PROGRAM - OBJECT_TYPE_STRING + 1];
+static Array _stock_strings;
 
 static void inventory_destroy_session(void *item) {
 	Session *session = *(Session **)item;
@@ -151,6 +152,7 @@ static APIE inventory_get_next_object_id(ObjectID *id) {
 }
 
 int inventory_init(void) {
+	int phase = 0;
 	struct passwd *pw;
 	int type;
 
@@ -163,7 +165,7 @@ int inventory_init(void) {
 		log_error("Could not determine home directory for UID 1000: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		return -1;
+		goto cleanup;
 	}
 
 	if (robust_snprintf(_programs_directory, sizeof(_programs_directory),
@@ -171,7 +173,7 @@ int inventory_init(void) {
 		log_error("Could not format programs directory name: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		return -1;
+		goto cleanup;
 	}
 
 	// create session array
@@ -179,8 +181,10 @@ int inventory_init(void) {
 		log_error("Could not create session array: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		return -1;
+		goto cleanup;
 	}
+
+	phase = 1;
 
 	// create object arrays
 	for (type = OBJECT_TYPE_STRING; type <= OBJECT_TYPE_PROGRAM; ++type) {
@@ -188,17 +192,37 @@ int inventory_init(void) {
 			log_error("Could not create %s object array: %s (%d)",
 			          object_get_type_name(type), get_errno_name(errno), errno);
 
-			array_destroy(&_sessions, inventory_destroy_session);
-
-			for (--type; type >= OBJECT_TYPE_STRING; --type) {
-				array_destroy(&_objects[type], inventory_destroy_object);
-			}
-
-			return -1;
+			goto cleanup;
 		}
+
+		phase = 2;
 	}
 
-	return 0;
+	// create stock string array
+	if (array_create(&_stock_strings, 32, sizeof(String *), true) < 0) {
+		log_error("Could not create stock string array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		goto cleanup;
+	}
+
+	phase = 3;
+
+cleanup:
+	switch (phase) { // no breaks, all cases fall through intentionally
+	case 2:
+		for (--type; type >= OBJECT_TYPE_STRING; --type) {
+			array_destroy(&_objects[type], inventory_destroy_object);
+		}
+
+	case 1:
+		array_destroy(&_sessions, inventory_destroy_session);
+
+	default:
+		break;
+	}
+
+	return phase == 3 ? 0 : -1;
 }
 
 void inventory_exit(void) {
@@ -228,10 +252,61 @@ void inventory_exit(void) {
 	array_destroy(&_objects[OBJECT_TYPE_FILE], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_LIST], inventory_destroy_object);
 	array_destroy(&_objects[OBJECT_TYPE_STRING], inventory_destroy_object);
+
+	// destroy stock string array, but not its items, because all strings have
+	// already been destroyed at this point
+	array_destroy(&_stock_strings, NULL);
 }
 
 const char *inventory_get_programs_directory(void) {
 	return _programs_directory;
+}
+
+APIE inventory_get_stock_string(const char *buffer, String **string) {
+	int i;
+	String *candidate;
+	APIE error_code;
+	String **string_ptr;
+
+	for (i = 0; i < _stock_strings.count; ++i) {
+		candidate = *(String **)array_get(&_stock_strings, i);
+
+		if (strcmp(candidate->buffer, buffer) == 0) {
+			string_lock(candidate);
+
+			*string = candidate;
+
+			return API_E_SUCCESS;
+		}
+	}
+
+	error_code = string_wrap(buffer, NULL,
+	                         OBJECT_CREATE_FLAG_INTERNAL |
+	                         OBJECT_CREATE_FLAG_LOCKED,
+	                         NULL, string);
+
+	if (error_code != API_E_SUCCESS) {
+		return error_code;
+	}
+
+	string_ptr = array_append(&_stock_strings);
+
+	if (string_ptr == NULL) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not append to stock string array: %s (%d)",
+		          get_errno_name(errno), errno);
+
+		string_unlock(*string);
+
+		return error_code;
+	}
+
+	*string_ptr = *string;
+
+	string_lock(*string);
+
+	return API_E_SUCCESS;
 }
 
 int inventory_load_programs(void) {

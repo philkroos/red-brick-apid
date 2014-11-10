@@ -36,6 +36,7 @@
 
 #include "api.h"
 #include "directory.h"
+#include "inventory.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
@@ -849,11 +850,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *ident
 		goto cleanup;
 	}
 
-	// wrap /dev/null string
-	error_code = string_wrap("/dev/null", NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &dev_null_file_name);
+	// get '/dev/null' stock string object
+	error_code = inventory_get_stock_string("/dev/null", &dev_null_file_name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;

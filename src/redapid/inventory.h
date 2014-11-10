@@ -24,11 +24,14 @@
 
 #include "object.h"
 #include "session.h"
+#include "string.h"
 
 int inventory_init(void);
 void inventory_exit(void);
 
 const char *inventory_get_programs_directory(void);
+
+APIE inventory_get_stock_string(const char *buffer, String **string);
 
 int inventory_load_programs(void);
 void inventory_unload_programs(void);

@@ -860,11 +860,8 @@ APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
 		return API_E_OUT_OF_RANGE;
 	}
 
-	// create name string object
-	error_code = string_wrap("<unnamed>", NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &name);
+	// get '<unnamed>' stock string object
+	error_code = inventory_get_stock_string("<unnamed>", &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
