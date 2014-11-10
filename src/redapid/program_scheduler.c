@@ -37,6 +37,7 @@
 #include "api.h"
 #include "directory.h"
 #include "inventory.h"
+#include "program.h"
 
 #define LOG_CATEGORY LOG_CATEGORY_API
 
@@ -70,6 +71,7 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
                                            bool log_as_error, const char *format, ...) {
 	va_list arguments;
 	char buffer[1024];
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	String *message;
 
 	va_start(arguments, format);
@@ -80,10 +82,10 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 
 	if (log_as_error) {
 		log_error("Scheduler error for program object (identifier: %s) occurred: %s",
-		          program_scheduler->identifier->buffer, buffer);
+		          program->identifier->buffer, buffer);
 	} else {
 		log_debug("Scheduler error for program object (identifier: %s) occurred: %s",
-		          program_scheduler->identifier->buffer, buffer);
+		          program->identifier->buffer, buffer);
 	}
 
 	if (string_wrap(buffer, NULL,
@@ -96,7 +98,53 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 	program_scheduler_stop(program_scheduler, message);
 }
 
+static void program_scheduler_handle_process_state_change(void *opaque) {
+	ProgramScheduler *program_scheduler = opaque;
+	Program *program = containerof(program_scheduler, Program, scheduler);
+
+	if (program_scheduler->state != PROGRAM_SCHEDULER_STATE_RUNNING) {
+		return;
+	}
+
+	if (program_scheduler->last_spawned_process->state == PROCESS_STATE_EXITED) {
+		if (program_scheduler->last_spawned_process->exit_code == 0) {
+			if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
+				program_scheduler_spawn_process(program_scheduler);
+			}
+		} else {
+			if (program->config.continue_after_error) {
+				if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
+					program_scheduler_spawn_process(program_scheduler);
+				}
+			} else {
+				program_scheduler_stop(program_scheduler, NULL);
+			}
+		}
+	} else if (program_scheduler->last_spawned_process->state == PROCESS_STATE_ERROR ||
+	           program_scheduler->last_spawned_process->state == PROCESS_STATE_KILLED) {
+		if (program->config.continue_after_error) {
+			if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
+				program_scheduler_spawn_process(program_scheduler);
+			}
+		} else {
+			program_scheduler_stop(program_scheduler, NULL);
+		}
+	}
+}
+
+static void program_scheduler_handle_interval(void *opaque) {
+	ProgramScheduler *program_scheduler = opaque;
+	Program *program = containerof(program_scheduler, Program, scheduler);
+
+	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
+	    program->config.start_mode == PROGRAM_START_MODE_INTERVAL) {
+		program_scheduler_spawn_process(program_scheduler);
+	}
+}
+
 static void program_scheduler_start(ProgramScheduler *program_scheduler) {
+	Program *program = containerof(program_scheduler, Program, scheduler);
+
 	if (program_scheduler->shutdown) {
 		return;
 	}
@@ -106,7 +154,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	program_scheduler_set_state(program_scheduler, PROGRAM_SCHEDULER_STATE_RUNNING,
 	                            time(NULL), NULL);
 
-	switch (program_scheduler->config->start_mode) {
+	switch (program->config.start_mode) {
 	case PROGRAM_START_MODE_NEVER:
 		program_scheduler_stop(program_scheduler, NULL);
 
@@ -119,7 +167,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 
 	case PROGRAM_START_MODE_INTERVAL:
 		if (timer_configure(&program_scheduler->timer, 0,
-		                    (uint64_t)program_scheduler->config->start_interval * 1000000) < 0) {
+		                    (uint64_t)program->config.start_interval * 1000000) < 0) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not start interval timer: %s (%d)",
 			                               get_errno_name(errno), errno);
@@ -128,7 +176,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 		}
 
 		log_debug("Started interval timer for program object (identifier: %s)",
-		          program_scheduler->identifier->buffer);
+		          program->identifier->buffer);
 
 		program_scheduler->timer_active = true;
 
@@ -142,7 +190,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid start mode %d",
-		                               program_scheduler->config->start_mode);
+		                               program->config.start_mode);
 
 		break;
 	}
@@ -151,6 +199,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 static void program_scheduler_stop(ProgramScheduler *program_scheduler,
                                    String *message) {
 	static bool recursive = false;
+	Program *program = containerof(program_scheduler, Program, scheduler);
 
 	if (recursive) {
 		return;
@@ -167,7 +216,7 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler,
 			recursive = false;
 		} else {
 			log_debug("Stopped interval timer for program object (identifier: %s)",
-			          program_scheduler->identifier->buffer);
+			          program->identifier->buffer);
 
 			program_scheduler->timer_active = false;
 		}
@@ -177,41 +226,9 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler,
 	                            time(NULL), message);
 }
 
-static void program_scheduler_handle_process_state_change(void *opaque) {
-	ProgramScheduler *program_scheduler = opaque;
-
-	if (program_scheduler->state != PROGRAM_SCHEDULER_STATE_RUNNING) {
-		return;
-	}
-
-	if (program_scheduler->last_spawned_process->state == PROCESS_STATE_EXITED) {
-		if (program_scheduler->last_spawned_process->exit_code == 0) {
-			if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
-				program_scheduler_spawn_process(program_scheduler);
-			}
-		} else {
-			if (program_scheduler->config->continue_after_error) {
-				if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
-					program_scheduler_spawn_process(program_scheduler);
-				}
-			} else {
-				program_scheduler_stop(program_scheduler, NULL);
-			}
-		}
-	} else if (program_scheduler->last_spawned_process->state == PROCESS_STATE_ERROR ||
-	           program_scheduler->last_spawned_process->state == PROCESS_STATE_KILLED) {
-		if (program_scheduler->config->continue_after_error) {
-			if (program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
-				program_scheduler_spawn_process(program_scheduler);
-			}
-		} else {
-			program_scheduler_stop(program_scheduler, NULL);
-		}
-	}
-}
-
 static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_scheduler) {
 	int phase = 0;
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	APIE error_code;
 	String *absolute_working_directory;
 	String *absolute_stdin_file_name;
@@ -224,8 +241,8 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 	                             OBJECT_CREATE_FLAG_LOCKED,
 	                             NULL, &absolute_working_directory,
 	                             "%s/bin/%s",
-	                             program_scheduler->root_directory->buffer,
-	                             program_scheduler->config->working_directory->buffer);
+	                             program->root_directory->buffer,
+	                             program->config.working_directory->buffer);
 
 	if (error_code != API_E_SUCCESS) {
 		program_scheduler_handle_error(program_scheduler, false,
@@ -252,14 +269,14 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 	}
 
 	// create absolute stdin filename string object
-	if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+	if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = string_asprintf(NULL,
 		                             OBJECT_CREATE_FLAG_INTERNAL |
 		                             OBJECT_CREATE_FLAG_LOCKED,
 		                             NULL, &absolute_stdin_file_name,
 		                             "%s/bin/%s",
-		                             program_scheduler->root_directory->buffer,
-		                             program_scheduler->config->stdin_file_name->buffer);
+		                             program->root_directory->buffer,
+		                             program->config.stdin_file_name->buffer);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -275,14 +292,14 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 	phase = 2;
 
 	// create absolute stdout filename string object
-	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = string_asprintf(NULL,
 		                             OBJECT_CREATE_FLAG_INTERNAL |
 		                             OBJECT_CREATE_FLAG_LOCKED,
 		                             NULL, &absolute_stdout_file_name,
 		                             "%s/bin/%s",
-		                             program_scheduler->root_directory->buffer,
-		                             program_scheduler->config->stdout_file_name->buffer);
+		                             program->root_directory->buffer,
+		                             program->config.stdout_file_name->buffer);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -297,19 +314,19 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 
 	phase = 3;
 
-	if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// FIXME: need to ensure that directory part of stdout file name exists
 	}
 
 	// create absolute stderr filename string object
-	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		error_code = string_asprintf(NULL,
 		                             OBJECT_CREATE_FLAG_INTERNAL |
 		                             OBJECT_CREATE_FLAG_LOCKED,
 		                             NULL, &absolute_stderr_file_name,
 		                             "%s/bin/%s",
-		                             program_scheduler->root_directory->buffer,
-		                             program_scheduler->config->stderr_file_name->buffer);
+		                             program->root_directory->buffer,
+		                             program->config.stderr_file_name->buffer);
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
@@ -324,7 +341,7 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 
 	phase = 4;
 
-	if (program_scheduler->config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		// FIXME: need to ensure that directory part of stderr file name exists
 	}
 
@@ -356,12 +373,12 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
-		if (program_scheduler->config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_unlock(absolute_stdout_file_name);
 		}
 
 	case 2:
-		if (program_scheduler->config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
+		if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 			string_unlock(absolute_stdin_file_name);
 		}
 
@@ -376,10 +393,11 @@ cleanup:
 }
 
 static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler) {
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	File *file;
 	APIE error_code;
 
-	switch (program_scheduler->config->stdin_redirection) {
+	switch (program->config.stdin_redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 		// FIXME: maybe only open /dev/null once and share it between all schedulers
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
@@ -455,7 +473,7 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid stdin redirection %d",
-		                               program_scheduler->config->stdin_redirection);
+		                               program->config.stdin_redirection);
 
 		return NULL;
 	}
@@ -656,10 +674,11 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 
 static File *program_scheduler_prepare_stdout(ProgramScheduler *program_scheduler,
                                               struct timeval timestamp) {
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	File *file;
 	APIE error_code;
 
-	switch (program_scheduler->config->stdout_redirection) {
+	switch (program->config.stdout_redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 		// FIXME: maybe only open /dev/null once and share it between all schedulers
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
@@ -679,7 +698,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 	case PROGRAM_STDIO_REDIRECTION_PIPE: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid stdout redirection %d",
-		                               program_scheduler->config->stdout_redirection);
+		                               program->config.stdout_redirection);
 
 		return NULL;
 
@@ -722,7 +741,7 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid stdout redirection %d",
-		                               program_scheduler->config->stdout_redirection);
+		                               program->config.stdout_redirection);
 
 		return NULL;
 	}
@@ -730,10 +749,11 @@ static File *program_scheduler_prepare_stdout(ProgramScheduler *program_schedule
 
 static File *program_scheduler_prepare_stderr(ProgramScheduler *program_scheduler,
                                               struct timeval timestamp, File *stdout) {
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	File *file;
 	APIE error_code;
 
-	switch (program_scheduler->config->stderr_redirection) {
+	switch (program->config.stderr_redirection) {
 	case PROGRAM_STDIO_REDIRECTION_DEV_NULL:
 		// FIXME: maybe only open /dev/null once and share it between all schedulers
 		error_code = file_open(program_scheduler->dev_null_file_name->base.id,
@@ -753,7 +773,7 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 	case PROGRAM_STDIO_REDIRECTION_PIPE: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid stderr redirection %d",
-		                               program_scheduler->config->stderr_redirection);
+		                               program->config.stderr_redirection);
 
 		return NULL;
 
@@ -795,27 +815,18 @@ static File *program_scheduler_prepare_stderr(ProgramScheduler *program_schedule
 	default: // should never be reachable
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Invalid stderr redirection %d",
-		                               program_scheduler->config->stderr_redirection);
+		                               program->config.stderr_redirection);
 
 		return NULL;
 	}
 }
 
-static void program_scheduler_handle_interval(void *opaque) {
-	ProgramScheduler *program_scheduler = opaque;
-
-	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
-	    program_scheduler->config->start_mode == PROGRAM_START_MODE_INTERVAL) {
-		program_scheduler_spawn_process(program_scheduler);
-	}
-}
-
-APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *identifier,
-                              String *root_directory, ProgramConfig *config,
+APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               ProgramSchedulerProcessSpawnedFunction process_spawned,
                               ProgramSchedulerStateChangedFunction state_changed,
                               void *opaque) {
 	int phase = 0;
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	APIE error_code;
 	char bin_directory[1024];
 	char *log_directory;
@@ -823,7 +834,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *ident
 
 	// format bin directory name
 	if (robust_snprintf(bin_directory, sizeof(bin_directory), "%s/bin",
-	                    root_directory->buffer) < 0) {
+	                    program->root_directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program bin directory name: %s (%d)",
@@ -841,7 +852,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *ident
 	}
 
 	// format log directory name
-	if (asprintf(&log_directory, "%s/log", root_directory->buffer) < 0) {
+	if (asprintf(&log_directory, "%s/log", program->root_directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program log directory name: %s (%d)",
@@ -869,9 +880,6 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *ident
 
 	phase = 2;
 
-	program_scheduler->identifier = identifier;
-	program_scheduler->root_directory = root_directory;
-	program_scheduler->config = config;
 	program_scheduler->process_spawned = process_spawned;
 	program_scheduler->state_changed = state_changed;
 	program_scheduler->opaque = opaque;
@@ -951,6 +959,7 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 
 void program_scheduler_update(ProgramScheduler *program_scheduler) {
 	APIE error_code;
+	Program *program = containerof(program_scheduler, Program, scheduler);
 
 	if (program_scheduler->shutdown) {
 		return;
@@ -962,7 +971,7 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 		return;
 	}
 
-	if (program_scheduler->config->start_mode == PROGRAM_START_MODE_NEVER) {
+	if (program->config.start_mode == PROGRAM_START_MODE_NEVER) {
 		program_scheduler_stop(program_scheduler, program_scheduler->message);
 	} else {
 		program_scheduler_start(program_scheduler);
@@ -970,12 +979,14 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 }
 
 void program_scheduler_continue(ProgramScheduler *program_scheduler) {
+	Program *program = containerof(program_scheduler, Program, scheduler);
+
 	if (program_scheduler->shutdown) {
 		return;
 	}
 
 	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_STOPPED &&
-	    program_scheduler->config->start_mode != PROGRAM_START_MODE_NEVER) {
+	    program->config.start_mode != PROGRAM_START_MODE_NEVER) {
 		program_scheduler_start(program_scheduler);
 	}
 }
@@ -1001,6 +1012,7 @@ void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
 	File *stdin;
 	File *stdout;
 	File *stderr;
+	Program *program = containerof(program_scheduler, Program, scheduler);
 	struct timeval timestamp;
 	Process *process;
 
@@ -1044,9 +1056,9 @@ void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
 	phase = 3;
 
 	// spawn process
-	error_code = process_spawn(program_scheduler->config->executable->base.id,
-	                           program_scheduler->config->arguments->base.id,
-	                           program_scheduler->config->environment->base.id,
+	error_code = process_spawn(program->config.executable->base.id,
+	                           program->config.arguments->base.id,
+	                           program->config.environment->base.id,
 	                           program_scheduler->absolute_working_directory->base.id,
 	                           1000, 1000,
 	                           stdin->base.id, stdout->base.id, stderr->base.id,
@@ -1096,8 +1108,8 @@ cleanup:
 	if (phase != 4) {
 		// an error occurred, continue-after-error if conditions are met
 		if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
-		    program_scheduler->config->continue_after_error &&
-		    program_scheduler->config->start_mode == PROGRAM_START_MODE_ALWAYS) {
+		    program->config.continue_after_error &&
+		    program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
 			// FIXME: call this decoupled over the event loop to avoid recursion
 			//        and possible stack overflow
 			//program_scheduler_spawn_process(program_scheduler);

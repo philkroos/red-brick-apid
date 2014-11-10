@@ -244,9 +244,6 @@ APIE program_load(const char *identifier, const char *root_directory,
 	memcpy(&program->config, &program_config, sizeof(program->config));
 
 	error_code = program_scheduler_create(&program->scheduler,
-	                                      program->identifier,
-	                                      program->root_directory,
-	                                      &program->config,
 	                                      program_report_process_process_spawn,
 	                                      program_report_scheduler_state_change,
 	                                      program);
@@ -409,9 +406,6 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	}
 
 	error_code = program_scheduler_create(&program->scheduler,
-	                                      program->identifier,
-	                                      program->root_directory,
-	                                      &program->config,
 	                                      program_report_process_process_spawn,
 	                                      program_report_scheduler_state_change,
 	                                      program);

@@ -36,9 +36,6 @@ typedef enum {
 } ProgramSchedulerState;
 
 typedef struct {
-	String *identifier;
-	String *root_directory;
-	ProgramConfig *config;
 	ProgramSchedulerProcessSpawnedFunction process_spawned;
 	ProgramSchedulerStateChangedFunction state_changed;
 	void *opaque;
@@ -64,8 +61,7 @@ typedef struct {
 	String *message; // only != NULL if there is a message
 } ProgramScheduler;
 
-APIE program_scheduler_create(ProgramScheduler *program_scheduler, String *identifier,
-                              String *root_directory, ProgramConfig *config,
+APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               ProgramSchedulerProcessSpawnedFunction process_spawned,
                               ProgramSchedulerStateChangedFunction state_changed,
                               void *opaque);
