@@ -1199,6 +1199,10 @@ APIE program_config_save(ProgramConfig *program_config) {
 		                                      "start_fields");
 	}
 
+	if (error_code != API_E_SUCCESS) {
+		goto cleanup;
+	}
+
 	// set custom.* options
 	conf_file_remove_option(&conf_file, "custom.", true);
 
