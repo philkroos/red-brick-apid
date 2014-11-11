@@ -374,23 +374,10 @@ APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,
 		}
 
 		if (pid == 0) { // child
-			// change group
-			if (setregid(gid, gid) < 0) {
-				error_code = api_get_error_code_from_errno();
+			// change user and groups
+			error_code = process_set_identity(uid, gid);
 
-				log_error("Could not change to group %u for creating directory '%s': %s (%d)",
-				          gid, name, get_errno_name(errno), errno);
-
-				goto child_cleanup;
-			}
-
-			// change user
-			if (setreuid(uid, uid) < 0) {
-				error_code = api_get_error_code_from_errno();
-
-				log_error("Could not change to user %u for creating directory '%s': %s (%d)",
-				          uid, name, get_errno_name(errno), errno);
-
+			if (error_code != API_E_SUCCESS) {
 				goto child_cleanup;
 			}
 

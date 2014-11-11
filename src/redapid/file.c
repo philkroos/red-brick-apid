@@ -400,23 +400,10 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 		// close socket pair read end in child
 		close(pair[0]);
 
-		// change group
-		if (setregid(gid, gid) < 0) {
-			error_code = api_get_error_code_from_errno();
+		// change user and groups
+		error_code = process_set_identity(uid, gid);
 
-			log_error("Could not change to group %u for opening file '%s': %s (%d)",
-			          gid, name, get_errno_name(errno), errno);
-
-			goto child_cleanup;
-		}
-
-		// change user
-		if (setreuid(uid, uid) < 0) {
-			error_code = api_get_error_code_from_errno();
-
-			log_error("Could not change to user %u for opening file '%s': %s (%d)",
-			          uid, name, get_errno_name(errno), errno);
-
+		if (error_code != API_E_SUCCESS) {
 			goto child_cleanup;
 		}
 

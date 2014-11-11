@@ -84,6 +84,7 @@ typedef struct {
 } Process;
 
 APIE process_fork(pid_t *pid);
+APIE process_set_identity(uid_t uid, gid_t gid);
 
 const char *process_get_error_code_name(ProcessE error_code);
 

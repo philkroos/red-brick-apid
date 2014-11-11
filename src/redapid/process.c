@@ -20,8 +20,11 @@
  */
 
 #define _GNU_SOURCE // for execvpe from unistd.h
+#define _BSD_SOURCE // for getgrouplist and setgroups from grp.h
 
 #include <errno.h>
+#include <grp.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -295,6 +298,67 @@ APIE process_fork(pid_t *pid) {
 	}
 }
 
+APIE process_set_identity(uid_t uid, gid_t gid) {
+	APIE error_code;
+	struct passwd *pw;
+	gid_t groups[128]; // FIXME: maybe allocate this dynamically
+	int length = sizeof(groups) / sizeof(gid_t);
+
+	// get username
+	pw = getpwuid(uid);
+
+	if (pw == NULL) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not get passwd entry for user ID %u: %s (%d)",
+		          uid, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	// get (secondary) groups
+	if (getgrouplist(pw->pw_name, pw->pw_gid, groups, &length) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not get secondary groups for user ID %u: %s (%d)",
+		          uid, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	// set (primary) group
+	if (setregid(gid, gid) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not change real and effective group ID to %u: %s (%d)",
+		          gid, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	// set (secondary) groups
+	if (setgroups(length, groups) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not set secondary group IDs of user ID %u: %s (%d)",
+		          uid, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	// set user
+	if (setreuid(uid, uid) < 0) {
+		error_code = api_get_error_code_from_errno();
+
+		log_error("Could not change real and effective user ID to %u: %s (%d)",
+		          uid, get_errno_name(errno), errno);
+
+		return error_code;
+	}
+
+	return API_E_SUCCESS;
+}
+
 const char *process_get_error_code_name(ProcessE error_code) {
 	#define ERROR_CODE_NAME(code) case code: return #code
 
@@ -544,23 +608,10 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	if (pid == 0) { // child
 		close(status_pipe[0]);
 
-		// change group
-		if (setregid(gid, gid) < 0) {
-			error_code = api_get_error_code_from_errno();
+		// change user and groups
+		error_code = process_set_identity(uid, gid);
 
-			log_error("Could not change to group %u for child process (executable: %s, pid: %u): %s (%d)",
-			          gid, executable->buffer, getpid(), get_errno_name(errno), errno);
-
-			goto child_error;
-		}
-
-		// change user
-		if (setreuid(uid, uid) < 0) {
-			error_code = api_get_error_code_from_errno();
-
-			log_error("Could not change to user %u for child process (executable: %s, pid: %u): %s (%d)",
-			          uid, executable->buffer, getpid(), get_errno_name(errno), errno);
-
+		if (error_code != API_E_SUCCESS) {
 			goto child_error;
 		}
 
