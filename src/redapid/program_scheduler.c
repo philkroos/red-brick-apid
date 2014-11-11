@@ -156,6 +156,7 @@ static void program_scheduler_handle_cron(void *opaque) {
 
 static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 	Program *program = containerof(program_scheduler, Program, scheduler);
+	APIE error_code;
 
 	if (program_scheduler->shutdown) {
 		return;
@@ -195,17 +196,19 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 		break;
 
 	case PROGRAM_START_MODE_CRON:
-		if (cron_add_entry(program->base.id, program->identifier->buffer,
-		                   program->config.start_fields->buffer,
-		                   program_scheduler_handle_cron, program_scheduler) < 0) {
+		error_code = cron_add_entry(program->base.id, program->identifier->buffer,
+		                            program->config.start_fields->buffer,
+		                            program_scheduler_handle_cron, program_scheduler);
+
+		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not add cron entry: %s (%d)",
-			                               get_errno_name(errno), errno);
+			                               api_get_error_code_name(error_code), error_code);
 
 			return;
 		}
 
-		log_debug("Added cron entry for program object (identifier: %s)",
+		log_debug("Updated/added cron entry for program object (identifier: %s)",
 		          program->identifier->buffer);
 
 		program_scheduler->cron_active = true;

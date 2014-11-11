@@ -263,16 +263,16 @@ int main(int argc, char **argv) {
 		goto error_signal;
 	}
 
+	if (cron_init() < 0) {
+		goto error_cron;
+	}
+
 	if (inventory_init() < 0) {
 		goto error_inventory;
 	}
 
 	if (api_init() < 0) {
 		goto error_api;
-	}
-
-	if (cron_init() < 0) {
-		goto error_cron;
 	}
 
 	if (network_init(_brickd_socket_filename, _cron_socket_filename) < 0) {
@@ -296,15 +296,15 @@ error_load_programs:
 	network_exit();
 
 error_network:
-	cron_exit();
-
-error_cron:
 	api_exit();
 
 error_api:
 	inventory_exit();
 
 error_inventory:
+	cron_exit();
+
+error_cron:
 	signal_exit();
 
 error_signal:
