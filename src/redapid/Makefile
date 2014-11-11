@@ -7,6 +7,7 @@
 CC ?= gcc
 
 WITH_LOGGING ?= yes
+WITH_EPOLL ?= yes
 WITH_DEBUG ?= no
 
 ## RULES ######################################################################
@@ -54,9 +55,15 @@ SOURCES := ../daemonlib/array.c \
            ../daemonlib/conf_file.c \
            ../daemonlib/daemon.c \
            ../daemonlib/enum.c \
-           ../daemonlib/event.c \
-           ../daemonlib/event_linux.c \
-           ../daemonlib/io.c \
+           ../daemonlib/event.c
+
+ifeq ($(WITH_EPOLL),yes)
+	SOURCES += ../daemonlib/event_linux.c
+else
+	SOURCES += ../daemonlib/event_posix.c
+endif
+
+SOURCES += ../daemonlib/io.c \
            ../daemonlib/log.c \
            ../daemonlib/log_posix.c \
            ../daemonlib/node.c \
@@ -114,6 +121,17 @@ LDFLAGS += -pthread
 
 ifeq ($(WITH_LOGGING),yes)
 	CFLAGS += -DDAEMONLIB_WITH_LOGGING
+endif
+
+ifeq ($(WITH_EPOLL),yes)
+	CFLAGS += -DDAEMONLIB_WITH_EPOLL
+endif
+
+ifneq ($(MAKECMDGOALS),clean)
+$(info features:)
+$(info - logging: $(WITH_LOGGING))
+$(info - epoll:   $(WITH_EPOLL))
+$(info - debug:   $(WITH_DEBUG))
 endif
 
 .PHONY: all clean
