@@ -1163,7 +1163,9 @@ APIE program_set_schedule(Program *program,
 	if (error_code != API_E_SUCCESS) {
 		memcpy(&program->config, &backup, sizeof(program->config));
 
-		string_unlock(start_fields);
+		if (start_mode == PROGRAM_START_MODE_CRON) {
+			string_unlock(start_fields);
+		}
 
 		return error_code;
 	}
