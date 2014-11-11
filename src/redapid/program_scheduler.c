@@ -668,7 +668,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 		return NULL;
 	}
 
-	// write timestamp
+	// format header
 	if (robust_snprintf(buffer, sizeof(buffer), "\n\n%s%s%s\n-------------------------------------------------------------------------------\n",
 	                    iso8601dt, iso8601usec, iso8601tz) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
@@ -680,6 +680,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 		return NULL;
 	}
 
+	// write header
 	if (write(file->fd, buffer, strlen(buffer)) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not write timestamp to %s log file: %s (%d)",
@@ -919,6 +920,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->timestamp = time(NULL);
 	program_scheduler->message = NULL;
 
+	// FIXME: only create timer for interval mode, otherwise this wastes a
+	//        file descriptor per non-interval scheduler
 	if (timer_create_(&program_scheduler->timer, program_scheduler_handle_interval,
 	                  program_scheduler) < 0) {
 		error_code = api_get_error_code_from_errno();

@@ -1142,6 +1142,8 @@ APIE program_set_schedule(Program *program,
 
 			return API_E_INVALID_PARAMETER;
 		}
+
+		// FIXME: validate fields: ^ *(@\S+|\S+ +\S+ +\S+ +\S+ +\S+) *$
 	} else {
 		start_fields = NULL;
 	}

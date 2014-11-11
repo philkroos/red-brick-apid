@@ -304,10 +304,10 @@ static void program_config_get_boolean(ProgramConfig *program_config,
 static APIE program_config_set_symbol(ProgramConfig *program_config,
                                       ConfFile *conf_file,
                                       const char *name, int value,
-                                      ProgramConfigGetNameFunction function) {
+                                      ProgramConfigGetNameFunction get_name) {
 	APIE error_code;
 
-	if (conf_file_set_option_value(conf_file, name, function(value)) < 0) {
+	if (conf_file_set_option_value(conf_file, name, get_name(value)) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not set '%s' option in '%s': %s (%d)",
@@ -322,12 +322,12 @@ static APIE program_config_set_symbol(ProgramConfig *program_config,
 static void program_config_get_symbol(ProgramConfig *program_config,
                                       ConfFile *conf_file, const char *name,
                                       int *value, int default_value,
-                                      ProgramConfigGetValueFunction function) {
+                                      ProgramConfigGetValueFunction get_value) {
 	const char *string = conf_file_get_option_value(conf_file, name);
 
 	if (string == NULL) {
 		*value = default_value;
-	} else if (function(string, value) < 0) {
+	} else if (get_value(string, value) < 0) {
 		log_warn("Invalid symbol for '%s' option in '%s', using default value instead",
 		         name, program_config->filename);
 
@@ -849,6 +849,8 @@ APIE program_config_load(ProgramConfig *program_config) {
 
 			start_mode = PROGRAM_START_MODE_NEVER;
 		}
+
+		// FIXME: validate fields: ^ *(@\S+|\S+ +\S+ +\S+ +\S+ +\S+) *$
 	} else {
 		start_fields = NULL;
 	}
