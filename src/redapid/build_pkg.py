@@ -97,6 +97,7 @@ def build_linux_pkg():
     os.chmod('dist/DEBIAN/postrm', 0755)
 
     os.chmod('dist/etc/redapid.conf', 0644)
+    os.chmod('dist/etc/init.d/redapid', 0755)
     os.chmod('dist/etc/cron.d/redapid-delete-purged-programs', 0644)
     os.chmod('dist/usr/share/doc/redapid/copyright', 0644)
     os.chmod('dist/usr/share/man/man8/redapid.8.gz', 0644)
