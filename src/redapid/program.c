@@ -1128,6 +1128,12 @@ APIE program_set_schedule(Program *program,
 		return API_E_INVALID_PARAMETER;
 	}
 
+	if (start_interval < 1) {
+		log_warn("Invalid program start interval %u", start_interval);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
 	if (start_mode == PROGRAM_START_MODE_CRON) {
 		error_code = string_get_locked(start_fields_id, &start_fields);
 
