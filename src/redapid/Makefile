@@ -119,6 +119,9 @@ endif
 CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DLOCALSTATEDIR="\"$(localstatedir)\""
 LDFLAGS += -pthread
 
+# link with -lrt for clock_gettime (RED Brick doesn't have glibc 2.17)
+LIBS += -lrt
+
 ifeq ($(WITH_LOGGING),yes)
 	CFLAGS += -DDAEMONLIB_WITH_LOGGING
 endif
