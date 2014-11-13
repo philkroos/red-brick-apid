@@ -103,6 +103,7 @@ static void program_scheduler_handle_error(ProgramScheduler *program_scheduler,
 static void program_scheduler_handle_process_state_change(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 	Program *program = containerof(program_scheduler, Program, scheduler);
+	bool spawn = false;
 
 	if (program_scheduler->state != PROGRAM_SCHEDULER_STATE_RUNNING) {
 		return;
@@ -111,12 +112,12 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	if (program_scheduler->last_spawned_process->state == PROCESS_STATE_EXITED) {
 		if (program_scheduler->last_spawned_process->exit_code == 0) {
 			if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
-				program_scheduler_spawn_process(program_scheduler);
+				spawn = true;
 			}
 		} else {
 			if (program->config.continue_after_error) {
 				if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
-					program_scheduler_spawn_process(program_scheduler);
+					spawn = true;
 				}
 			} else {
 				program_scheduler_stop(program_scheduler, NULL);
@@ -126,21 +127,41 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	           program_scheduler->last_spawned_process->state == PROCESS_STATE_KILLED) {
 		if (program->config.continue_after_error) {
 			if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS) {
-				program_scheduler_spawn_process(program_scheduler);
+				spawn = true;
 			}
 		} else {
 			program_scheduler_stop(program_scheduler, NULL);
 		}
 	}
+
+	if (spawn) {
+		// delay next process spawn by 100 milliseconds to avoid running into
+		// a tight loop of process spawn and process exit events which would
+		// basically stop redapid from doing anything else
+		if (timer_configure(&program_scheduler->timer, 100000, 0) < 0) {
+			program_scheduler_handle_error(program_scheduler, false,
+			                               "Could not start timer: %s (%d)",
+			                               get_errno_name(errno), errno);
+
+			return;
+		}
+
+		log_debug("Started timer for program object (identifier: %s)",
+		          program->identifier->buffer);
+
+		program_scheduler->timer_active = true;
+	}
 }
 
-static void program_scheduler_handle_interval(void *opaque) {
+static void program_scheduler_handle_timer(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 	Program *program = containerof(program_scheduler, Program, scheduler);
 
-	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING &&
-	    program->config.start_mode == PROGRAM_START_MODE_INTERVAL) {
-		program_scheduler_spawn_process(program_scheduler);
+	if (program_scheduler->state == PROGRAM_SCHEDULER_STATE_RUNNING) {
+		if (program->config.start_mode == PROGRAM_START_MODE_ALWAYS ||
+		    program->config.start_mode == PROGRAM_START_MODE_INTERVAL) {
+			program_scheduler_spawn_process(program_scheduler);
+		}
 	}
 }
 
@@ -182,16 +203,16 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 		if (timer_configure(&program_scheduler->timer, 0,
 		                    (uint64_t)program->config.start_interval * 1000000) < 0) {
 			program_scheduler_handle_error(program_scheduler, false,
-			                               "Could not start interval timer: %s (%d)",
+			                               "Could not start timer: %s (%d)",
 			                               get_errno_name(errno), errno);
 
 			return;
 		}
 
-		log_debug("Started interval timer for program object (identifier: %s)",
+		log_debug("Started timer for program object (identifier: %s)",
 		          program->identifier->buffer);
 
-		program_scheduler->interval_active = true;
+		program_scheduler->timer_active = true;
 
 		break;
 
@@ -233,20 +254,20 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler,
 		return;
 	}
 
-	if (program_scheduler->interval_active) {
+	if (program_scheduler->timer_active) {
 		if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
 			recursive = true;
 
 			program_scheduler_handle_error(program_scheduler, false,
-			                               "Could not stop interval timer: %s (%d)",
+			                               "Could not stop timer: %s (%d)",
 			                               get_errno_name(errno), errno);
 
 			recursive = false;
 		} else {
-			log_debug("Stopped interval timer for program object (identifier: %s)",
+			log_debug("Stopped timer for program object (identifier: %s)",
 			          program->identifier->buffer);
 
-			program_scheduler->interval_active = false;
+			program_scheduler->timer_active = false;
 		}
 	}
 
@@ -912,7 +933,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
 	program_scheduler->shutdown = false;
-	program_scheduler->interval_active = false;
+	program_scheduler->timer_active = false;
 	program_scheduler->cron_active = false;
 	program_scheduler->last_spawned_process = NULL;
 	program_scheduler->last_spawned_timestamp = 0;
@@ -922,11 +943,11 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 
 	// FIXME: only create timer for interval mode, otherwise this wastes a
 	//        file descriptor per non-interval scheduler
-	if (timer_create_(&program_scheduler->timer, program_scheduler_handle_interval,
+	if (timer_create_(&program_scheduler->timer, program_scheduler_handle_timer,
 	                  program_scheduler) < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_error("Could not create interval timer: %s (%d)",
+		log_error("Could not create timer: %s (%d)",
 		          get_errno_name(errno), errno);
 
 		goto cleanup;

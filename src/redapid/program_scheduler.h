@@ -53,7 +53,7 @@ typedef struct {
 	String *dev_null_file_name; // /dev/null
 	Timer timer;
 	bool shutdown;
-	bool interval_active;
+	bool timer_active;
 	bool cron_active;
 	Process *last_spawned_process; // == NULL until the first process spawned
 	uint64_t last_spawned_timestamp;
