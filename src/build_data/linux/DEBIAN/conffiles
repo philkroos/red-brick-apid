@@ -1,3 +1,4 @@
 /etc/redapid.conf
 /etc/init.d/redapid
 /etc/cron.d/redapid-delete-purged-programs
+/etc/logrotate.d/redapid

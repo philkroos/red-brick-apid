@@ -27,6 +27,10 @@ Check configuration file for errors, print the result and exit.
 Run as daemon and write PID and log file.
 .IP "\fB\-\-debug\fR" 4
 Set all log levels to debug, overriding configuration file values.
+.SH SIGNALS
+On reception of
+.B SIGHUP
+redapid will close and reopen its log file.
 .SH FILES
 .SS "When run as \fBroot\fP"
 .IP "\fI/etc/redapid.conf\fR" 4
@@ -34,9 +38,9 @@ The system wide configuration file. See
 .IR redapid.conf (5)
 for further details.
 .IP "\fI/var/log/redapid.log\fR" 4
-Per system wide log file.
+The system wide log file.
 .IP "\fI/var/run/redapid.pid\fR" 4
-Per system wide PID file.
+The system wide PID file.
 .SS "When run as \fBnon-root\fP"
 .IP "\fI~/.redapid/redapid.conf\fR" 4
 Per user configuration file. See

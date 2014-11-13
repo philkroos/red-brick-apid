@@ -152,11 +152,14 @@ install: all
 	@echo "MD $(sysconfdir)"
 	$(E)$(INSTALL) -d -m 755 $(sysconfdir)
 
+	@echo "MD $(sysconfdir)/init.d"
+	$(E)$(INSTALL) -d -m 755 $(sysconfdir)/init.d
+
 	@echo "MD $(sysconfdir)/cron.d"
 	$(E)$(INSTALL) -d -m 755 $(sysconfdir)/cron.d
 
-	@echo "MD $(sysconfdir)/init.d"
-	$(E)$(INSTALL) -d -m 755 $(sysconfdir)/init.d
+	@echo "MD $(sysconfdir)/logrotate.d"
+	$(E)$(INSTALL) -d -m 755 $(sysconfdir)/logrotate.d
 
 	@echo "MD $(localstatedir)/log"
 	$(E)$(INSTALL) -d -m 755 $(localstatedir)/log
@@ -182,11 +185,14 @@ install: all
 	@echo "CP redapid.conf"
 	$(E)$(INSTALL) -m 644 ../build_data/linux/etc/redapid.conf $(sysconfdir)
 
+	@echo "CP redapid (init.d script)"
+	$(E)$(INSTALL) -m 755 ../build_data/linux/etc/init.d/redapid $(sysconfdir)/init.d
+
 	@echo "CP redapid-delete-purged-programs (cron.d script)"
 	$(E)$(INSTALL) -m 644 ../build_data/linux/etc/cron.d/redapid-delete-purged-programs $(sysconfdir)/cron.d
 
-	@echo "CP redapid (init.d script)"
-	$(E)$(INSTALL) -m 755 ../build_data/linux/etc/init.d/redapid $(sysconfdir)/init.d
+	@echo "CP redapid (logrotate.d script)"
+	$(E)$(INSTALL) -m 644 ../build_data/linux/etc/logrotate.d/redapid $(sysconfdir)/logrotate.d
 
 	@echo "CP redapid.8 (manpage)"
 	$(E)$(INSTALL) -m 644 ../build_data/linux/usr/share/man/man8/redapid.8 $(datadir)/man/man8

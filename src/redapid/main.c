@@ -162,6 +162,33 @@ static void print_usage(void) {
 	       "  --debug         Set all log levels to debug\n");
 }
 
+static void handle_sighup(void) {
+	FILE *log_file = log_get_file();
+
+	if (log_file != NULL) {
+		if (fileno(log_file) == STDOUT_FILENO || fileno(log_file) == STDERR_FILENO) {
+			return; // don't close stdout or stderr
+		}
+
+		fclose(log_file);
+	}
+
+	log_file = fopen(_log_filename, "a+");
+
+	if (log_file == NULL) {
+		log_set_file(stderr);
+
+		log_error("Could not reopen log file '%s': %s (%d)",
+		          _log_filename, get_errno_name(errno), errno);
+
+		return;
+	}
+
+	log_set_file(log_file);
+
+	log_info("Reopened log file '%s'", _log_filename);
+}
+
 int main(int argc, char **argv) {
 	int exit_code = EXIT_FAILURE;
 	int i;
@@ -259,7 +286,7 @@ int main(int argc, char **argv) {
 		goto error_event;
 	}
 
-	if (signal_init(NULL) < 0) {
+	if (signal_init(handle_sighup, NULL) < 0) {
 		goto error_signal;
 	}
 
