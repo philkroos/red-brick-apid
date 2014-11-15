@@ -22,10 +22,6 @@
 #include <daemonlib/config.h>
 
 ConfigOption config_options[] = {
-	CONFIG_OPTION_LOG_LEVEL_INITIALIZER("log_level.event", NULL, LOG_LEVEL_INFO),
-	CONFIG_OPTION_LOG_LEVEL_INITIALIZER("log_level.network", NULL, LOG_LEVEL_INFO),
-	CONFIG_OPTION_LOG_LEVEL_INITIALIZER("log_level.api", NULL, LOG_LEVEL_INFO),
-	CONFIG_OPTION_LOG_LEVEL_INITIALIZER("log_level.object", NULL, LOG_LEVEL_INFO),
-	CONFIG_OPTION_LOG_LEVEL_INITIALIZER("log_level.other", NULL, LOG_LEVEL_INFO),
+	CONFIG_OPTION_SYMBOL_INITIALIZER("log.level", config_parse_log_level, config_format_log_level, LOG_LEVEL_INFO),
 	CONFIG_OPTION_NULL_INITIALIZER // end of list
 };
