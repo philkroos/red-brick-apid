@@ -42,8 +42,6 @@
 #include "inventory.h"
 #include "process.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 #define FILE_SIGNATURE_FORMAT "id: %u, type: %s, name: %s, flags: 0x%04X"
 
 #define file_expand_signature(file) (file)->base.id, \

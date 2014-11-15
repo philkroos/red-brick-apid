@@ -31,8 +31,6 @@
 #include "api.h"
 #include "inventory.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 static void list_unlock_item(void *item) {
 	Object *object = *(Object **)item;
 

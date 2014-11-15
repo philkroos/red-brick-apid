@@ -30,8 +30,6 @@
 
 #include "socat.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_NETWORK
-
 static void socat_handle_receive(void *opaque) {
 	Socat *socat = opaque;
 	int length;

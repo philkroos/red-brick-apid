@@ -33,8 +33,6 @@
 #include "api.h"
 #include "inventory.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 typedef const char *(*ProgramConfigGetNameFunction)(int value);
 typedef int (*ProgramConfigGetValueFunction)(const char *name, int *value);
 

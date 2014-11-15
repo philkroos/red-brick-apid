@@ -38,8 +38,6 @@
 
 #include "cron.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_OTHER
-
 #define FILENAME_PREFIX "redapid-schedule-program-"
 
 typedef struct {

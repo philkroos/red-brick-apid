@@ -41,8 +41,6 @@
 #include "brickd.h"
 #include "socat.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_NETWORK
-
 static const char *_brickd_socket_filename = NULL; // only != NULL if corresponding socket is open
 static Socket _brickd_server_socket;
 static const char *_cron_socket_filename = NULL; // only != NULL if corresponding socket is open

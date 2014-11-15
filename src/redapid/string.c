@@ -35,8 +35,6 @@
 
 #include "inventory.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 static void string_destroy(Object *object) {
 	String *string = (String *)object;
 

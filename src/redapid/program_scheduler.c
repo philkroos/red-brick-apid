@@ -41,8 +41,6 @@
 #include "inventory.h"
 #include "program.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 static void program_scheduler_stop(ProgramScheduler *program_scheduler,
                                    String *message);
 

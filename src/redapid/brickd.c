@@ -32,8 +32,6 @@
 
 #include "api.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_NETWORK
-
 static void brickd_handle_read(void *opaque) {
 	BrickDaemon *brickd = opaque;
 	int length;

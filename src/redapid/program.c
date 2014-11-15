@@ -35,8 +35,6 @@
 #include "directory.h"
 #include "inventory.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 static const char *_identifier_alphabet =
 	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-";
 

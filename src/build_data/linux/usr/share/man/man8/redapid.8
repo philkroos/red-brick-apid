@@ -1,5 +1,5 @@
 .\" Process this file with: groff -man -Tascii redapid.8
-.TH REDAPID 8 2014-01-30 Tinkerforge
+.TH REDAPID 8 2014-11-15 Tinkerforge
 .\" Turn off justification for nroff. Always turn off hyphenation.
 .if n .ad l
 .nh
@@ -11,10 +11,12 @@ redapid \- Tinkerforge RED Brick API Daemon
 .SH DESCRIPTION
 The
 .B redapid
-The RED Brick API Daemon program is part of the Tinkerforge software 
-infrastructure. It implements the interface of the RED Brick. Routing
-of the messages is done by the Brick Daemon, so the RED Brick API Daemon
-should always run together with the Brick Daemon.
+program is part of the Tinkerforge software infrastructure. It implements the
+public API of the Tinkerforge RED Brick. Message routing between redapid and
+user programs is done by the
+.BR brickd (8)
+program. Therefore, redapid should always run together with
+.BR brickd (8).
 .PP
 .SH OPTIONS
 .IP "\fB\-\-help\fR" 4
@@ -26,7 +28,7 @@ Check configuration file for errors, print the result and exit.
 .IP "\fB\-\-daemon\fR" 4
 Run as daemon and write PID and log file.
 .IP "\fB\-\-debug\fR" 4
-Set all log levels to debug, overriding configuration file values.
+Set log level to debug, overriding configuration file value.
 .SH SIGNALS
 On reception of
 .B SIGHUP

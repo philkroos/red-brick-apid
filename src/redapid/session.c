@@ -29,8 +29,6 @@
 
 #include "inventory.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 static void session_remove_external_references(Session *session) {
 	ExternalReference *external_reference;
 	Object *object;

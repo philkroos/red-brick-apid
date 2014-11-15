@@ -44,8 +44,6 @@
 #include "network.h"
 #include "version.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_OTHER
-
 static char _config_filename[1024] = SYSCONFDIR "/redapid.conf";
 static char _pid_filename[1024] = LOCALSTATEDIR "/run/redapid.pid";
 static char _brickd_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-brickd.socket";
@@ -158,7 +156,7 @@ static void print_usage(void) {
 	       "  --help          Show this help\n"
 	       "  --version       Show version number\n"
 	       "  --check-config  Check config file for errors\n"
-	       "  --daemon        Run as daemon and write log and PID file\n"
+	       "  --daemon        Run as daemon and write PID and log file\n"
 	       "  --debug         Set all log levels to debug\n");
 }
 
@@ -241,6 +239,7 @@ int main(int argc, char **argv) {
 	config_init(_config_filename);
 
 	log_init();
+	log_set_debug_override(debug);
 
 	if (daemon) {
 		pid_fd = daemon_start(_log_filename, _pid_filename, 1);
@@ -256,14 +255,6 @@ int main(int argc, char **argv) {
 		goto error_log;
 	}
 
-	log_set_debug_override(debug);
-
-	log_set_level(LOG_CATEGORY_EVENT, config_get_option_value("log_level.event")->log_level);
-	log_set_level(LOG_CATEGORY_NETWORK, config_get_option_value("log_level.network")->log_level);
-	log_set_level(LOG_CATEGORY_API, config_get_option_value("log_level.api")->log_level);
-	log_set_level(LOG_CATEGORY_OBJECT, config_get_option_value("log_level.object")->log_level);
-	log_set_level(LOG_CATEGORY_OTHER, config_get_option_value("log_level.other")->log_level);
-
 	if (config_has_error()) {
 		log_error("Error(s) occurred while reading config file '%s'",
 		          _config_filename);
@@ -278,8 +269,8 @@ int main(int argc, char **argv) {
 	}
 
 	if (config_has_warning()) {
-		log_error("Warning(s) in config file '%s', run with --check-config option for details",
-		          _config_filename);
+		log_warn("Warning(s) in config file '%s', run with --check-config option for details",
+		         _config_filename);
 	}
 
 	if (event_init() < 0) {

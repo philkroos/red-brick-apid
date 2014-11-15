@@ -39,8 +39,6 @@
 #include "string.h"
 #include "version.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 #define RED_BRICK_DEVICE_IDENTIFIER 17
 
 typedef enum {

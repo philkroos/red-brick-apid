@@ -42,8 +42,6 @@
 #include "inventory.h"
 #include "string.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 typedef struct {
 	ProcessState state;
 	uint64_t timestamp;

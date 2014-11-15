@@ -51,8 +51,6 @@
 #include "process.h"
 #include "program.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_OBJECT
-
 static char _programs_directory[1024]; // <home>/programs
 static SessionID _next_session_id = 1; // don't use session ID zero
 static Array _sessions;

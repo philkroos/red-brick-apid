@@ -37,8 +37,6 @@
 #include "process.h"
 #include "string.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_API
-
 static void directory_destroy(Object *object) {
 	Directory *directory = (Directory *)object;
 

@@ -47,8 +47,6 @@
 
 #include "inventory.h"
 
-#define LOG_CATEGORY LOG_CATEGORY_OBJECT
-
 const char *object_get_type_name(ObjectType type) {
 	switch (type) {
 	case OBJECT_TYPE_STRING:    return "string";
