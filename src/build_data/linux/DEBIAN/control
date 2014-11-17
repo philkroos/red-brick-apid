@@ -4,11 +4,12 @@ Section: electronics
 Maintainer: Olaf Lüke <olaf@tinkerforge.com>
 Architecture: <<REDAPID_ARCHITECTURE>>
 Priority: optional
-Installed-Size: 142
+Installed-Size: 252
 Depends: libc6, cron
 Recommends: logrotate
 Description: Tinkerforge RED Brick API Daemon
  The RED Brick API Daemon program is part of the Tinkerforge software 
- infrastructure. It implements the interface of the RED Brick. Routing
- of the messages is done by the Brick Daemon, so the RED Brick API Daemon
- should always run together with the Brick Daemon.
+ infrastructure. It implements the public API of the Tinkerforge RED Brick.
+ Message routing between the RED Brick API Daemon and user programs is done
+ by the Brick Daemon program. Therefore, the RED Brick API Daemon should always
+ be run together with the Brick Daemon.
