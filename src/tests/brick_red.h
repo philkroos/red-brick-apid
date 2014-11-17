@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-11-07.      *
+ * This file was automatically generated on 2014-11-17.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -1042,7 +1042,7 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
  * 
  * Returns the object ID of the new file object and the resulting error code.
  */
-int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
+int red_open_file(RED *red, uint16_t name_string_id, uint32_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -1060,7 +1060,7 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
  * 
  * Returns the object ID of the new file object and the resulting error code.
  */
-int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
+int red_create_pipe(RED *red, uint32_t flags, uint64_t length, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id);
 
 /**
  * \ingroup BrickRED
@@ -1089,7 +1089,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_
  * 
  * FIXME: everything except flags and length is invalid if file type is *Pipe*
  */
-int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
+int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint32_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
 
 /**
  * \ingroup BrickRED
@@ -1299,7 +1299,7 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
  *
  * FIXME: name has to be absolute
  */
-int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code);
+int red_create_directory(RED *red, uint16_t name_string_id, uint32_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code);
 
 /**
  * \ingroup BrickRED

@@ -527,7 +527,7 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 	return API_E_SUCCESS;
 }
 
-static int file_get_oflags_from_flags(uint16_t flags) {
+static int file_get_oflags_from_flags(uint32_t flags) {
 	int oflags = 0;
 
 	if ((flags & FILE_FLAG_READ_ONLY) != 0) {
@@ -608,7 +608,7 @@ mode_t file_get_mode_from_permissions(uint16_t permissions) {
 }
 
 // public API
-APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
+APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
                uint32_t uid, uint32_t gid, Session *session,
                uint16_t object_create_flags, ObjectID *id, File **object) {
 	int phase = 0;
@@ -822,7 +822,7 @@ cleanup:
 }
 
 // public API
-APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
+APIE pipe_create_(uint32_t flags, uint64_t length, Session *session,
                   uint16_t object_create_flags, ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
@@ -958,7 +958,7 @@ cleanup:
 
 // public API
 APIE file_get_info(File *file, Session *session, uint8_t *type,
-                   ObjectID *name_id, uint16_t *flags,
+                   ObjectID *name_id, uint32_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
                    uint64_t *modification_timestamp,

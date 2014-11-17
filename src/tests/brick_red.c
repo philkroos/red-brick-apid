@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-11-07.      *
+ * This file was automatically generated on 2014-11-17.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -222,7 +222,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
@@ -237,7 +237,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t flags;
+	uint32_t flags;
 	uint64_t length;
 	uint16_t session_id;
 } ATTRIBUTE_PACKED CreatePipe_;
@@ -259,7 +259,7 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t type;
 	uint16_t name_string_id;
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
@@ -446,7 +446,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
@@ -1442,7 +1442,7 @@ int red_remove_from_list(RED *red, uint16_t list_id, uint16_t index, uint8_t *re
 	return ret;
 }
 
-int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id) {
+int red_open_file(RED *red, uint16_t name_string_id, uint32_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id) {
 	DevicePrivate *device_p = red->p;
 	OpenFile_ request;
 	OpenFileResponse_ response;
@@ -1455,7 +1455,7 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
 	}
 
 	request.name_string_id = leconvert_uint16_to(name_string_id);
-	request.flags = leconvert_uint16_to(flags);
+	request.flags = leconvert_uint32_to(flags);
 	request.permissions = leconvert_uint16_to(permissions);
 	request.uid = leconvert_uint32_to(uid);
 	request.gid = leconvert_uint32_to(gid);
@@ -1474,7 +1474,7 @@ int red_open_file(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t pe
 	return ret;
 }
 
-int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id) {
+int red_create_pipe(RED *red, uint32_t flags, uint64_t length, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_file_id) {
 	DevicePrivate *device_p = red->p;
 	CreatePipe_ request;
 	CreatePipeResponse_ response;
@@ -1486,7 +1486,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_
 		return ret;
 	}
 
-	request.flags = leconvert_uint16_to(flags);
+	request.flags = leconvert_uint32_to(flags);
 	request.length = leconvert_uint64_to(length);
 	request.session_id = leconvert_uint16_to(session_id);
 
@@ -1503,7 +1503,7 @@ int red_create_pipe(RED *red, uint16_t flags, uint64_t length, uint16_t session_
 	return ret;
 }
 
-int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint16_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp) {
+int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_name_string_id, uint32_t *ret_flags, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp) {
 	DevicePrivate *device_p = red->p;
 	GetFileInfo_ request;
 	GetFileInfoResponse_ response;
@@ -1526,7 +1526,7 @@ int red_get_file_info(RED *red, uint16_t file_id, uint16_t session_id, uint8_t *
 	*ret_error_code = response.error_code;
 	*ret_type = response.type;
 	*ret_name_string_id = leconvert_uint16_from(response.name_string_id);
-	*ret_flags = leconvert_uint16_from(response.flags);
+	*ret_flags = leconvert_uint32_from(response.flags);
 	*ret_permissions = leconvert_uint16_from(response.permissions);
 	*ret_uid = leconvert_uint32_from(response.uid);
 	*ret_gid = leconvert_uint32_from(response.gid);
@@ -1917,7 +1917,7 @@ int red_rewind_directory(RED *red, uint16_t directory_id, uint8_t *ret_error_cod
 	return ret;
 }
 
-int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code) {
+int red_create_directory(RED *red, uint16_t name_string_id, uint32_t flags, uint16_t permissions, uint32_t uid, uint32_t gid, uint8_t *ret_error_code) {
 	DevicePrivate *device_p = red->p;
 	CreateDirectory_ request;
 	CreateDirectoryResponse_ response;
@@ -1930,7 +1930,7 @@ int red_create_directory(RED *red, uint16_t name_string_id, uint16_t flags, uint
 	}
 
 	request.name_string_id = leconvert_uint16_to(name_string_id);
-	request.flags = leconvert_uint16_to(flags);
+	request.flags = leconvert_uint32_to(flags);
 	request.permissions = leconvert_uint16_to(permissions);
 	request.uid = leconvert_uint32_to(uid);
 	request.gid = leconvert_uint32_to(gid);

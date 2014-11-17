@@ -55,7 +55,7 @@ static void directory_signature(Object *object, char *signature) {
 }
 
 // NOTE: assumes that name is absolute (starts with '/')
-static APIE directory_create_helper(char *name, uint16_t flags, mode_t mode) {
+static APIE directory_create_helper(char *name, uint32_t flags, mode_t mode) {
 	char *p;
 	struct stat st;
 	APIE error_code;
@@ -317,7 +317,7 @@ APIE directory_rewind(Directory *directory) {
 }
 
 // public API
-APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,
+APIE directory_create(const char *name, uint32_t flags, uint16_t permissions,
                       uint32_t uid, uint32_t gid) {
 	mode_t mode;
 	char *tmp;

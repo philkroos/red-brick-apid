@@ -120,7 +120,7 @@ struct _File {
 
 	FileType type;
 	String *name; // only supported if type != FILE_TYPE_PIPE
-	uint16_t flags; // refers to PipeFlag if type == FILE_TYPE_PIPE,
+	uint32_t flags; // refers to PipeFlag if type == FILE_TYPE_PIPE,
 	                // refers to FileFlag otherwise
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	Pipe pipe; // only created if type == FILE_TYPE_PIPE
@@ -135,15 +135,15 @@ struct _File {
 
 mode_t file_get_mode_from_permissions(uint16_t permissions);
 
-APIE file_open(ObjectID name_id, uint16_t flags, uint16_t permissions,
+APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
                uint32_t uid, uint32_t gid, Session *session,
                uint16_t object_create_flags, ObjectID *id, File **object);
 
-APIE pipe_create_(uint16_t flags, uint64_t length, Session *session,
+APIE pipe_create_(uint32_t flags, uint64_t length, Session *session,
                   uint16_t object_create_flags, ObjectID *id, File **object);
 
 APIE file_get_info(File *file, Session *session, uint8_t *type,
-                   ObjectID *name_id, uint16_t *flags,
+                   ObjectID *name_id, uint32_t *flags,
                    uint16_t *permissions, uint32_t *uid, uint32_t *gid,
                    uint64_t *length, uint64_t *access_timestamp,
                    uint64_t *modification_timestamp,

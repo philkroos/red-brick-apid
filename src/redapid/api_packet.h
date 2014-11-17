@@ -225,7 +225,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
@@ -240,7 +240,7 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t flags;
+	uint32_t flags;
 	uint64_t length;
 	uint16_t session_id;
 } ATTRIBUTE_PACKED CreatePipeRequest;
@@ -262,7 +262,7 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t type;
 	uint16_t name_string_id;
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;
@@ -453,7 +453,7 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t name_string_id;
-	uint16_t flags;
+	uint32_t flags;
 	uint16_t permissions;
 	uint32_t uid;
 	uint32_t gid;

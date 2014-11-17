@@ -66,7 +66,7 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
                               ObjectID *name_id, uint8_t *type);
 APIE directory_rewind(Directory *directory);
 
-APIE directory_create(const char *name, uint16_t flags, uint16_t permissions,
+APIE directory_create(const char *name, uint32_t flags, uint16_t permissions,
                       uint32_t uid, uint32_t gid);
 
 #endif // REDAPID_DIRECTORY_H

@@ -145,13 +145,13 @@ enum pipe_flag { // bitmask
 	PIPE_FLAG_NON_BLOCKING_WRITE = 0x0002
 }
 
-+ open_file             (uint16_t name_string_id, uint16_t flags, uint16_t permissions,
++ open_file             (uint16_t name_string_id, uint32_t flags, uint16_t permissions,
                          uint32_t uid, uint32_t gid, uint16_t session_id)               -> uint8_t error_code, uint16_t file_id
-+ create_pipe           (uint16_t flags, uint16_t session_id)                           -> uint8_t error_code, uint16_t file_id
++ create_pipe           (uint32_t flags, uint64_t length, uint16_t session_id)          -> uint8_t error_code, uint16_t file_id
 + get_file_info         (uint16_t file_id, uint16_t session_id)                         -> uint8_t error_code,
                                                                                            uint8_t type,
                                                                                            uint16_t name_string_id,
-                                                                                           uint16_t flags,
+                                                                                           uint32_t flags,
                                                                                            uint16_t permissions,
                                                                                            uint32_t uid,
                                                                                            uint32_t gid,
@@ -217,7 +217,7 @@ enum directory_flag { // bitmask
 + get_next_directory_entry (uint16_t directory_id, uint16_t session_id)   -> uint8_t error_code, uint16_t name_string_id, uint8_t type // error_code == NO_MORE_DATA means end-of-directory
 + rewind_directory         (uint16_t directory_id)                        -> uint8_t error_code
 
-+ create_directory (uint16_t name_string_id, uint16_t flags, uint16_t permissions, uint32_t uid, uint32_t gid) -> uint8_t error_code
++ create_directory (uint16_t name_string_id, uint32_t flags, uint16_t permissions, uint32_t uid, uint32_t gid) -> uint8_t error_code
 ? remove_directory (uint16_t name_string_id, uint16_t flags)                                                   -> uint8_t error_code
 ? rename_directory (uint16_t source_string_id, uint16_t target_string_id)                                      -> uint8_t error_code
 
