@@ -5,7 +5,8 @@ Maintainer: Olaf Lüke <olaf@tinkerforge.com>
 Architecture: <<REDAPID_ARCHITECTURE>>
 Priority: optional
 Installed-Size: 142
-Depends: libc6
+Depends: libc6, cron
+Recommends: logrotate
 Description: Tinkerforge RED Brick API Daemon
  The RED Brick API Daemon program is part of the Tinkerforge software 
  infrastructure. It implements the interface of the RED Brick. Routing
