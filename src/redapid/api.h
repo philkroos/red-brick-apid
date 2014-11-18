@@ -44,6 +44,7 @@ void api_send_async_file_read_callback(ObjectID file_id, APIE error_code,
                                        uint8_t *buffer, uint8_t length_read);
 void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
                                         uint8_t length_written);
+void api_send_file_events_occurred_callback(ObjectID file_id, uint16_t events);
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
                                              uint64_t timestamp, uint8_t exit_code);

@@ -73,8 +73,11 @@ typedef enum {
 	FUNCTION_WRITE_FILE_ASYNC,
 	FUNCTION_SET_FILE_POSITION,
 	FUNCTION_GET_FILE_POSITION,
+	FUNCTION_SET_FILE_EVENTS,
+	FUNCTION_GET_FILE_EVENTS,
 	CALLBACK_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_WRITE,
+	CALLBACK_FILE_EVENTS_OCCURRED,
 
 	FUNCTION_OPEN_DIRECTORY,
 	FUNCTION_GET_DIRECTORY_NAME,
@@ -117,6 +120,7 @@ typedef enum {
 static uint32_t _uid = 0; // always little endian
 static AsyncFileReadCallback _async_file_read_callback;
 static AsyncFileWriteCallback _async_file_write_callback;
+static FileEventsOccurredCallback _file_events_occurred_callback;
 static ProcessStateChangedCallback _process_state_changed_callback;
 static ProgramSchedulerStateChangedCallback _program_scheduler_state_changed_callback;
 static ProgramProcessSpawnedCallback _program_process_spawned_callback;
@@ -514,6 +518,14 @@ CALL_FILE_FUNCTION(GetFilePosition, get_file_position, {
 	response.error_code = file_get_position(file, &response.position);
 })
 
+CALL_FILE_FUNCTION(SetFileEvents, set_file_events, {
+	response.error_code = file_set_events(file, request->events);
+})
+
+CALL_FILE_FUNCTION(GetFileEvents, get_file_events, {
+	response.error_code = file_get_events(file, &response.events);
+})
+
 #undef CALL_FILE_PROCEDURE
 #undef CALL_FILE_FUNCTION_WITH_SESSION
 #undef CALL_FILE_FUNCTION
@@ -819,6 +831,10 @@ int api_init(void) {
 	                     sizeof(_async_file_write_callback),
 	                     CALLBACK_ASYNC_FILE_WRITE);
 
+	api_prepare_callback((Packet *)&_file_events_occurred_callback,
+	                     sizeof(_file_events_occurred_callback),
+	                     CALLBACK_FILE_EVENTS_OCCURRED);
+
 	api_prepare_callback((Packet *)&_process_state_changed_callback,
 	                     sizeof(_process_state_changed_callback),
 	                     CALLBACK_PROCESS_STATE_CHANGED);
@@ -892,6 +908,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,                 WriteFileAsync,               write_file_async)
 	DISPATCH_FUNCTION(SET_FILE_POSITION,                SetFilePosition,              set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,                GetFilePosition,              get_file_position)
+	DISPATCH_FUNCTION(SET_FILE_EVENTS,                  SetFileEvents,                set_file_events)
+	DISPATCH_FUNCTION(GET_FILE_EVENTS,                  GetFileEvents,                get_file_events)
 
 	// directory
 	DISPATCH_FUNCTION(OPEN_DIRECTORY,                   OpenDirectory,                open_directory)
@@ -982,8 +1000,11 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_WRITE_FILE_ASYNC:                 return "write-file-async";
 	case FUNCTION_SET_FILE_POSITION:                return "set-file-position";
 	case FUNCTION_GET_FILE_POSITION:                return "get-file-position";
+	case FUNCTION_SET_FILE_EVENTS:                  return "set-file-events";
+	case FUNCTION_GET_FILE_EVENTS:                  return "get-file-events";
 	case CALLBACK_ASYNC_FILE_READ:                  return "async-file-read";
 	case CALLBACK_ASYNC_FILE_WRITE:                 return "async-file-write";
+	case CALLBACK_FILE_EVENTS_OCCURRED:             return "file-events-occurred";
 
 	// directory
 	case FUNCTION_OPEN_DIRECTORY:                   return "open-directory";
@@ -1058,6 +1079,13 @@ void api_send_async_file_write_callback(ObjectID file_id, APIE error_code,
 	_async_file_write_callback.length_written = length_written;
 
 	network_dispatch_response((Packet *)&_async_file_write_callback);
+}
+
+void api_send_file_events_occurred_callback(ObjectID file_id, uint16_t events) {
+	_file_events_occurred_callback.file_id = file_id;
+	_file_events_occurred_callback.events = events;
+
+	network_dispatch_response((Packet *)&_file_events_occurred_callback);
 }
 
 void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,

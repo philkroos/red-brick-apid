@@ -166,157 +166,167 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 30
+#define RED_FUNCTION_SET_FILE_EVENTS 28
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 31
+#define RED_FUNCTION_GET_FILE_EVENTS 29
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 32
+#define RED_FUNCTION_OPEN_DIRECTORY 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 33
+#define RED_FUNCTION_GET_DIRECTORY_NAME 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_DIRECTORY 34
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESSES 35
+#define RED_FUNCTION_REWIND_DIRECTORY 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 36
+#define RED_FUNCTION_CREATE_DIRECTORY 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 37
+#define RED_FUNCTION_GET_PROCESSES 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 38
+#define RED_FUNCTION_SPAWN_PROCESS 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_IDENTITY 39
+#define RED_FUNCTION_KILL_PROCESS 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIO 40
+#define RED_FUNCTION_GET_PROCESS_COMMAND 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 41
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 42
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAMS 43
+#define RED_FUNCTION_GET_PROCESS_STDIO 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 44
+#define RED_FUNCTION_GET_PROCESS_STATE 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_PURGE_PROGRAM 45
+#define RED_FUNCTION_GET_PROGRAMS 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 46
+#define RED_FUNCTION_DEFINE_PROGRAM 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 47
+#define RED_FUNCTION_PURGE_PROGRAM 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 48
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 49
+#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 50
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 50
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 51
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 52
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 52
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 53
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 53
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 54
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE 54
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 55
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE 55
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 56
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_START_PROGRAM 56
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE 57
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 57
+#define RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE 58
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 58
+#define RED_FUNCTION_START_PROGRAM 59
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 59
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 60
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 60
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 61
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 61
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 62
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 63
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 64
 
 /**
  * \ingroup BrickRED
@@ -331,7 +341,7 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_read_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_READ 28
+#define RED_CALLBACK_ASYNC_FILE_READ 30
 
 /**
  * \ingroup BrickRED
@@ -341,28 +351,35 @@ typedef Device RED;
  * This callback reports the result of a call to the {@link red_write_file_async}
  * function.
  */
-#define RED_CALLBACK_ASYNC_FILE_WRITE 29
+#define RED_CALLBACK_ASYNC_FILE_WRITE 31
+
+/**
+ * \ingroup BrickRED
+ *
+ * Signature: \code void callback(uint16_t file_id, uint16_t events, void *user_data) \endcode
+ */
+#define RED_CALLBACK_FILE_EVENTS_OCCURRED 32
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 42
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 45
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED 62
+#define RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED 65
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 63
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 66
 
 
 /**
@@ -569,6 +586,16 @@ typedef Device RED;
  * \ingroup BrickRED
  */
 #define RED_FILE_ORIGIN_END 2
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FILE_EVENT_READABLE 1
+
+/**
+ * \ingroup BrickRED
+ */
+#define RED_FILE_EVENT_WRITABLE 2
 
 /**
  * \ingroup BrickRED
@@ -1197,6 +1224,20 @@ int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t or
  * position and the error code *InvalidSeek* is returned.
  */
 int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint64_t *ret_position);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_set_file_events(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t events);
+
+/**
+ * \ingroup BrickRED
+ *
+ * 
+ */
+int red_get_file_events(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_events);
 
 /**
  * \ingroup BrickRED

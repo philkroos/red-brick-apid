@@ -355,6 +355,28 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+	uint16_t events;
+} ATTRIBUTE_PACKED SetFileEventsRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetFileEventsResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED GetFileEventsRequest;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t events;
+} ATTRIBUTE_PACKED GetFileEventsResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
 	uint8_t error_code;
 	uint8_t buffer[FILE_MAX_READ_ASYNC_BUFFER_LENGTH];
 	uint8_t length_read;
@@ -366,6 +388,12 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t length_written;
 } ATTRIBUTE_PACKED AsyncFileWriteCallback;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint16_t events;
+} ATTRIBUTE_PACKED FileEventsOccurredCallback;
 
 //
 // directory

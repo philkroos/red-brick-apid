@@ -91,6 +91,14 @@ typedef enum {
 	FILE_ORIGIN_END
 } FileOrigin;
 
+typedef enum { // bitmask
+	FILE_EVENT_READABLE = 0x0001,
+	FILE_EVENT_WRITABLE = 0x0002
+} FileEvent;
+
+#define FILE_EVENT_ALL (FILE_EVENT_READABLE | \
+                        FILE_EVENT_WRITABLE)
+
 typedef enum {
 	FILE_TYPE_UNKNOWN = 0,
 	FILE_TYPE_REGULAR,
@@ -122,6 +130,7 @@ struct _File {
 	String *name; // only supported if type != FILE_TYPE_PIPE
 	uint32_t flags; // refers to PipeFlag if type == FILE_TYPE_PIPE,
 	                // refers to FileFlag otherwise
+	uint16_t events;
 	IOHandle fd; // only opened if type != FILE_TYPE_PIPE
 	Pipe pipe; // only created if type == FILE_TYPE_PIPE
 	IOHandle async_read_eventfd;
@@ -162,6 +171,9 @@ PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write);
 APIE file_set_position(File *file, int64_t offset, FileOrigin origin,
                        uint64_t *position);
 APIE file_get_position(File *file, uint64_t *position);
+
+APIE file_set_events(File *file, uint16_t events);
+APIE file_get_events(File *file, uint16_t *events);
 
 IOHandle file_get_read_handle(File *file);
 IOHandle file_get_write_handle(File *file);

@@ -25,6 +25,8 @@ typedef void (*AsyncFileReadCallbackFunction)(uint16_t, uint8_t, uint8_t[60], ui
 
 typedef void (*AsyncFileWriteCallbackFunction)(uint16_t, uint8_t, uint8_t, void *);
 
+typedef void (*FileEventsOccurredCallbackFunction)(uint16_t, uint16_t, void *);
+
 typedef void (*ProcessStateChangedCallbackFunction)(uint16_t, uint8_t, uint64_t, uint8_t, void *);
 
 typedef void (*ProgramSchedulerStateChangedCallbackFunction)(uint16_t, void *);
@@ -352,6 +354,28 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint16_t file_id;
+	uint16_t events;
+} ATTRIBUTE_PACKED SetFileEvents_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+} ATTRIBUTE_PACKED SetFileEventsResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+} ATTRIBUTE_PACKED GetFileEvents_;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t error_code;
+	uint16_t events;
+} ATTRIBUTE_PACKED GetFileEventsResponse_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
 	uint8_t error_code;
 	uint8_t buffer[60];
 	uint8_t length_read;
@@ -363,6 +387,12 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t length_written;
 } ATTRIBUTE_PACKED AsyncFileWriteCallback_;
+
+typedef struct {
+	PacketHeader header;
+	uint16_t file_id;
+	uint16_t events;
+} ATTRIBUTE_PACKED FileEventsOccurredCallback_;
 
 typedef struct {
 	PacketHeader header;
@@ -833,6 +863,22 @@ static void red_callback_wrapper_async_file_write(DevicePrivate *device_p, Packe
 	callback_function(callback->file_id, callback->error_code, callback->length_written, user_data);
 }
 
+static void red_callback_wrapper_file_events_occurred(DevicePrivate *device_p, Packet *packet) {
+	FileEventsOccurredCallbackFunction callback_function;
+	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_FILE_EVENTS_OCCURRED];
+	FileEventsOccurredCallback_ *callback = (FileEventsOccurredCallback_ *)packet;
+	*(void **)(&callback_function) = device_p->registered_callbacks[RED_CALLBACK_FILE_EVENTS_OCCURRED];
+
+	if (callback_function == NULL) {
+		return;
+	}
+
+	callback->file_id = leconvert_uint16_from(callback->file_id);
+	callback->events = leconvert_uint16_from(callback->events);
+
+	callback_function(callback->file_id, callback->events, user_data);
+}
+
 static void red_callback_wrapper_process_state_changed(DevicePrivate *device_p, Packet *packet) {
 	ProcessStateChangedCallbackFunction callback_function;
 	void *user_data = device_p->registered_callback_user_data[RED_CALLBACK_PROCESS_STATE_CHANGED];
@@ -913,8 +959,11 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_WRITE_FILE_ASYNC] = DEVICE_RESPONSE_EXPECTED_FALSE;
 	device_p->response_expected[RED_FUNCTION_SET_FILE_POSITION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_FILE_POSITION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_SET_FILE_EVENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
+	device_p->response_expected[RED_FUNCTION_GET_FILE_EVENTS] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_WRITE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
+	device_p->response_expected[RED_CALLBACK_FILE_EVENTS_OCCURRED] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_FUNCTION_OPEN_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_DIRECTORY_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -953,6 +1002,7 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_READ] = red_callback_wrapper_async_file_read;
 	device_p->callback_wrappers[RED_CALLBACK_ASYNC_FILE_WRITE] = red_callback_wrapper_async_file_write;
+	device_p->callback_wrappers[RED_CALLBACK_FILE_EVENTS_OCCURRED] = red_callback_wrapper_file_events_occurred;
 	device_p->callback_wrappers[RED_CALLBACK_PROCESS_STATE_CHANGED] = red_callback_wrapper_process_state_changed;
 	device_p->callback_wrappers[RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED] = red_callback_wrapper_program_scheduler_state_changed;
 	device_p->callback_wrappers[RED_CALLBACK_PROGRAM_PROCESS_SPAWNED] = red_callback_wrapper_program_process_spawned;
@@ -1702,6 +1752,60 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
 	}
 	*ret_error_code = response.error_code;
 	*ret_position = leconvert_uint64_from(response.position);
+
+
+
+	return ret;
+}
+
+int red_set_file_events(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t events) {
+	DevicePrivate *device_p = red->p;
+	SetFileEvents_ request;
+	SetFileEventsResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_SET_FILE_EVENTS, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.file_id = leconvert_uint16_to(file_id);
+	request.events = leconvert_uint16_to(events);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+
+
+
+	return ret;
+}
+
+int red_get_file_events(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint16_t *ret_events) {
+	DevicePrivate *device_p = red->p;
+	GetFileEvents_ request;
+	GetFileEventsResponse_ response;
+	int ret;
+
+	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_GET_FILE_EVENTS, device_p->ipcon_p, device_p);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	request.file_id = leconvert_uint16_to(file_id);
+
+	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
+
+	if (ret < 0) {
+		return ret;
+	}
+	*ret_error_code = response.error_code;
+	*ret_events = leconvert_uint16_from(response.events);
 
 
 

@@ -124,8 +124,8 @@ enum file_origin {
 }
 
 enum file_event { // bitmask
-	FILE_EVENT_READABLE = 0x01,
-	FILE_EVENT_WRITABLE = 0x02
+	FILE_EVENT_READABLE = 0x0001,
+	FILE_EVENT_WRITABLE = 0x0002
 }
 
 enum file_type {
@@ -167,12 +167,12 @@ enum pipe_flag { // bitmask
 + write_file_async      (uint16_t file_id, uint8_t buffer[61], uint8_t length_to_write) // no response
 + set_file_position     (uint16_t file_id, int64_t offset, uint8_t origin)              -> uint8_t error_code, uint64_t position
 + get_file_position     (uint16_t file_id)                                              -> uint8_t error_code, uint64_t position
-? set_file_events       (uint16_t file_id, uint8_t events)                              -> uint8_t error_code
-? get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint8_t events
++ set_file_events       (uint16_t file_id, uint16_t events)                             -> uint8_t error_code
++ get_file_events       (uint16_t file_id)                                              -> uint8_t error_code, uint16_t events
 
-+ callback: async_file_read     -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
-+ callback: async_file_write    -> uint16_t file_id, uint8_t error_code, uint8_t length_written
-? callback: file_event_occurred -> uint16_t file_id, uint8_t events
++ callback: async_file_read      -> uint16_t file_id, uint8_t error_code, uint8_t buffer[60], uint8_t length_read // error_code == NO_MORE_DATA means end-of-file
++ callback: async_file_write     -> uint16_t file_id, uint8_t error_code, uint8_t length_written
++ callback: file_events_occurred -> uint16_t file_id, uint16_t events
 
 
 /*

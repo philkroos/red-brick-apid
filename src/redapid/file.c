@@ -190,6 +190,14 @@ static void file_destroy(Object *object) {
 	}
 
 	if (file->type == FILE_TYPE_PIPE) {
+		if ((file->events & FILE_EVENT_READABLE) != 0) {
+			event_remove_source(file->pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
+		}
+
+		if ((file->events & FILE_EVENT_WRITABLE) != 0) {
+			event_remove_source(file->pipe.write_end, EVENT_SOURCE_TYPE_GENERIC);
+		}
+
 		pipe_destroy(&file->pipe);
 	} else {
 		// unlink before close, this is safe on POSIX systems
@@ -233,6 +241,35 @@ static void file_send_async_write_callback(File *file, APIE error_code,
 	if (file->base.external_reference_count > 0) {
 		api_send_async_file_write_callback(file->base.id, error_code, length_written);
 	}
+}
+
+static void file_send_events_occurred_callback(File *file, uint16_t events) {
+	// only send a file-events-occurred callback if there is at least one
+	// external reference to the file object. otherwise there is no one that
+	// could be interested in this callback anyway
+	if (file->base.external_reference_count > 0) {
+		api_send_file_events_occurred_callback(file->base.id, events);
+	}
+}
+
+static void file_handle_readable_event(void *opaque) {
+	File *file = opaque;
+
+	event_remove_source(file->pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
+
+	file->events &= ~FILE_EVENT_READABLE;
+
+	file_send_events_occurred_callback(file, FILE_EVENT_READABLE);
+}
+
+static void file_handle_writable_event(void *opaque) {
+	File *file = opaque;
+
+	event_remove_source(file->pipe.write_end, EVENT_SOURCE_TYPE_GENERIC);
+
+	file->events &= ~FILE_EVENT_WRITABLE;
+
+	file_send_events_occurred_callback(file, FILE_EVENT_WRITABLE);
 }
 
 // sets errno on error
@@ -764,6 +801,7 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 	file->type = file_get_type_from_stat_mode(st.st_mode);
 	file->name = name;
 	file->flags = flags;
+	file->events = 0;
 	file->fd = fd;
 	file->async_read_eventfd = async_read_eventfd;
 	file->async_read_in_progress = false;
@@ -907,6 +945,7 @@ APIE pipe_create_(uint32_t flags, uint64_t length, Session *session,
 	file->type = FILE_TYPE_PIPE;
 	file->name = name;
 	file->flags = flags;
+	file->events = 0;
 	file->fd = -1;
 	file->async_read_eventfd = async_read_eventfd;
 	file->async_read_in_progress = false;
@@ -1321,6 +1360,57 @@ APIE file_get_position(File *file, uint64_t *position) {
 	}
 
 	*position = rc;
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE file_set_events(File *file, uint16_t events) {
+	if (file->type != FILE_TYPE_PIPE) {
+		log_warn("Cannot set file events for non-pipe file object ("FILE_SIGNATURE_FORMAT")",
+		         file_expand_signature(file));
+
+		return API_E_NOT_SUPPORTED;
+	}
+
+	if ((events & ~FILE_EVENT_ALL) != 0) {
+		log_warn("Invalid file events 0x%04X", events);
+
+		return API_E_INVALID_PARAMETER;
+	}
+
+	if ((events & FILE_EVENT_READABLE) != 0 && (file->events & FILE_EVENT_READABLE) == 0) {
+		if (event_add_source(file->pipe.read_end, EVENT_SOURCE_TYPE_GENERIC, EVENT_READ,
+		                     file_handle_readable_event, file) < 0) {
+			return API_E_INTERNAL_ERROR;
+		}
+
+		file->events |= FILE_EVENT_READABLE;
+	} else if ((events & FILE_EVENT_READABLE) == 0 && (file->events & FILE_EVENT_READABLE) != 0) {
+		event_remove_source(file->pipe.read_end, EVENT_SOURCE_TYPE_GENERIC);
+
+		file->events &= ~FILE_EVENT_READABLE;
+	}
+
+	if ((events & FILE_EVENT_WRITABLE) != 0 && (file->events & FILE_EVENT_WRITABLE) == 0) {
+		if (event_add_source(file->pipe.write_end, EVENT_SOURCE_TYPE_GENERIC, EVENT_WRITE,
+		                     file_handle_writable_event, file) < 0) {
+			return API_E_INTERNAL_ERROR;
+		}
+
+		file->events |= FILE_EVENT_WRITABLE;
+	} else if ((events & FILE_EVENT_WRITABLE) == 0 && (file->events & FILE_EVENT_WRITABLE) != 0) {
+		event_remove_source(file->pipe.write_end, EVENT_SOURCE_TYPE_GENERIC);
+
+		file->events &= ~FILE_EVENT_WRITABLE;
+	}
+
+	return API_E_SUCCESS;
+}
+
+// public API
+APIE file_get_events(File *file, uint16_t *events) {
+	*events = file->events;
 
 	return API_E_SUCCESS;
 }
