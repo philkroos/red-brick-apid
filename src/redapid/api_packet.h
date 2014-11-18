@@ -354,38 +354,6 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	uint16_t name_string_id;
-	tfpbool follow_symlink;
-} ATTRIBUTE_PACKED LookupFileInfoRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t type;
-	uint16_t permissions;
-	uint32_t uid;
-	uint32_t gid;
-	uint64_t length;
-	uint64_t access_timestamp;
-	uint64_t modification_timestamp;
-	uint64_t status_change_timestamp;
-} ATTRIBUTE_PACKED LookupFileInfoResponse;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t name_string_id;
-	tfpbool canonicalize;
-	uint16_t session_id;
-} ATTRIBUTE_PACKED LookupSymlinkTargetRequest;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t target_string_id;
-} ATTRIBUTE_PACKED LookupSymlinkTargetResponse;
-
-typedef struct {
-	PacketHeader header;
 	uint16_t file_id;
 	uint8_t error_code;
 	uint8_t buffer[FILE_MAX_READ_ASYNC_BUFFER_LENGTH];

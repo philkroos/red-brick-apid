@@ -75,8 +75,6 @@ typedef enum {
 	FUNCTION_GET_FILE_POSITION,
 	CALLBACK_ASYNC_FILE_READ,
 	CALLBACK_ASYNC_FILE_WRITE,
-	FUNCTION_LOOKUP_FILE_INFO,
-	FUNCTION_LOOKUP_SYMLINK_TARGET,
 
 	FUNCTION_OPEN_DIRECTORY,
 	FUNCTION_GET_DIRECTORY_NAME,
@@ -236,22 +234,6 @@ static PacketE api_get_packet_error_code(APIE error_code) {
 		response.error_code = inventory_get_session(request->session_id, &session); \
 		if (response.error_code == API_E_SUCCESS) { \
 			body \
-		} \
-		network_dispatch_response((Packet *)&response); \
-	}
-
-#define CALL_FUNCTION_WITH_STRING_AND_SESSION(packet_prefix, function_suffix, variable, body) \
-	static void api_##function_suffix(packet_prefix##Request *request) { \
-		packet_prefix##Response response; \
-		String *variable; \
-		Session *session; \
-		api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response)); \
-		response.error_code = string_get(request->variable##_string_id, &variable); \
-		if (response.error_code == API_E_SUCCESS) { \
-			response.error_code = inventory_get_session(request->session_id, &session); \
-			if (response.error_code == API_E_SUCCESS) { \
-				body \
-			} \
 		} \
 		network_dispatch_response((Packet *)&response); \
 	}
@@ -532,26 +514,6 @@ CALL_FILE_FUNCTION(GetFilePosition, get_file_position, {
 	response.error_code = file_get_position(file, &response.position);
 })
 
-CALL_FUNCTION_WITH_STRING(LookupFileInfo, lookup_file_info, name, {
-	response.error_code = file_lookup_info(name->buffer,
-	                                       request->follow_symlink,
-	                                       &response.type,
-	                                       &response.permissions,
-	                                       &response.uid,
-	                                       &response.gid,
-	                                       &response.length,
-	                                       &response.access_timestamp,
-	                                       &response.modification_timestamp,
-	                                       &response.status_change_timestamp);
-})
-
-CALL_FUNCTION_WITH_STRING_AND_SESSION(LookupSymlinkTarget, lookup_symlink_target, name, {
-	response.error_code = symlink_lookup_target(name->buffer,
-	                                            request->canonicalize,
-	                                            session,
-	                                            &response.target_string_id);
-})
-
 #undef CALL_FILE_PROCEDURE
 #undef CALL_FILE_FUNCTION_WITH_SESSION
 #undef CALL_FILE_FUNCTION
@@ -798,7 +760,6 @@ CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
 #undef CALL_PROGRAM_FUNCTION_WITH_SESSION
 #undef CALL_PROGRAM_FUNCTION
 
-#undef CALL_FUNCTION_WITH_STRING_AND_SESSION
 #undef CALL_FUNCTION_WITH_SESSION
 #undef CALL_FUNCTION_WITH_STRING
 #undef CALL_TYPE_FUNCTION_WITH_SESSION
@@ -885,7 +846,8 @@ void api_handle_request(Packet *request) {
 	#define DISPATCH_FUNCTION(function_id_suffix, packet_prefix, function_suffix) \
 		case FUNCTION_##function_id_suffix: \
 			if (request->header.length != sizeof(packet_prefix##Request)) { \
-				log_warn("Request has length mismatch (actual: %u != expected: %u)", \
+				log_warn("Received %s request with length mismatch (actual: %u != expected: %u)", \
+				         api_get_function_name(request->header.function_id), \
 				         request->header.length, (uint32_t)sizeof(packet_prefix##Request)); \
 				api_send_response_if_expected(request, PACKET_E_INVALID_PARAMETER); \
 			} else { \
@@ -930,8 +892,6 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(WRITE_FILE_ASYNC,                 WriteFileAsync,               write_file_async)
 	DISPATCH_FUNCTION(SET_FILE_POSITION,                SetFilePosition,              set_file_position)
 	DISPATCH_FUNCTION(GET_FILE_POSITION,                GetFilePosition,              get_file_position)
-	DISPATCH_FUNCTION(LOOKUP_FILE_INFO,                 LookupFileInfo,               lookup_file_info)
-	DISPATCH_FUNCTION(LOOKUP_SYMLINK_TARGET,            LookupSymlinkTarget,          lookup_symlink_target)
 
 	// directory
 	DISPATCH_FUNCTION(OPEN_DIRECTORY,                   OpenDirectory,                open_directory)
@@ -1024,8 +984,6 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_GET_FILE_POSITION:                return "get-file-position";
 	case CALLBACK_ASYNC_FILE_READ:                  return "async-file-read";
 	case CALLBACK_ASYNC_FILE_WRITE:                 return "async-file-write";
-	case FUNCTION_LOOKUP_FILE_INFO:                 return "lookup-file-info";
-	case FUNCTION_LOOKUP_SYMLINK_TARGET:            return "lookup-symlink-target";
 
 	// directory
 	case FUNCTION_OPEN_DIRECTORY:                   return "open-directory";

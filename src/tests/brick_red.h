@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-11-17.      *
+ * This file was automatically generated on 2014-11-18.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -166,167 +166,157 @@ typedef Device RED;
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_FILE_INFO 30
+#define RED_FUNCTION_OPEN_DIRECTORY 30
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_LOOKUP_SYMLINK_TARGET 31
+#define RED_FUNCTION_GET_DIRECTORY_NAME 31
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_OPEN_DIRECTORY 32
+#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 32
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_DIRECTORY_NAME 33
+#define RED_FUNCTION_REWIND_DIRECTORY 33
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY 34
+#define RED_FUNCTION_CREATE_DIRECTORY 34
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_REWIND_DIRECTORY 35
+#define RED_FUNCTION_GET_PROCESSES 35
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CREATE_DIRECTORY 36
+#define RED_FUNCTION_SPAWN_PROCESS 36
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESSES 37
+#define RED_FUNCTION_KILL_PROCESS 37
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SPAWN_PROCESS 38
+#define RED_FUNCTION_GET_PROCESS_COMMAND 38
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_KILL_PROCESS 39
+#define RED_FUNCTION_GET_PROCESS_IDENTITY 39
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_COMMAND 40
+#define RED_FUNCTION_GET_PROCESS_STDIO 40
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_IDENTITY 41
+#define RED_FUNCTION_GET_PROCESS_STATE 41
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STDIO 42
+#define RED_FUNCTION_GET_PROGRAMS 43
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROCESS_STATE 43
+#define RED_FUNCTION_DEFINE_PROGRAM 44
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAMS 45
+#define RED_FUNCTION_PURGE_PROGRAM 45
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_DEFINE_PROGRAM 46
+#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 46
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_PURGE_PROGRAM 47
+#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 47
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_IDENTIFIER 48
+#define RED_FUNCTION_SET_PROGRAM_COMMAND 48
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_ROOT_DIRECTORY 49
+#define RED_FUNCTION_GET_PROGRAM_COMMAND 49
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_COMMAND 50
+#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 50
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_COMMAND 51
+#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 51
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_STDIO_REDIRECTION 52
+#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 52
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_STDIO_REDIRECTION 53
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 53
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_PROGRAM_SCHEDULE 54
+#define RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE 54
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULE 55
+#define RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE 55
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_PROGRAM_SCHEDULER_STATE 56
+#define RED_FUNCTION_START_PROGRAM 56
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_CONTINUE_PROGRAM_SCHEDULE 57
+#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 57
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_START_PROGRAM 58
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 58
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_LAST_SPAWNED_PROGRAM_PROCESS 59
+#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 59
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_NAMES 60
+#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 60
 
 /**
  * \ingroup BrickRED
  */
-#define RED_FUNCTION_SET_CUSTOM_PROGRAM_OPTION_VALUE 61
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_GET_CUSTOM_PROGRAM_OPTION_VALUE 62
-
-/**
- * \ingroup BrickRED
- */
-#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 63
+#define RED_FUNCTION_REMOVE_CUSTOM_PROGRAM_OPTION 61
 
 /**
  * \ingroup BrickRED
@@ -358,21 +348,21 @@ typedef Device RED;
  *
  * Signature: \code void callback(uint16_t process_id, uint8_t state, uint64_t timestamp, uint8_t exit_code, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROCESS_STATE_CHANGED 44
+#define RED_CALLBACK_PROCESS_STATE_CHANGED 42
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED 64
+#define RED_CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED 62
 
 /**
  * \ingroup BrickRED
  *
  * Signature: \code void callback(uint16_t program_id, void *user_data) \endcode
  */
-#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 65
+#define RED_CALLBACK_PROGRAM_PROCESS_SPAWNED 63
 
 
 /**
@@ -1207,40 +1197,6 @@ int red_set_file_position(RED *red, uint16_t file_id, int64_t offset, uint8_t or
  * position and the error code *InvalidSeek* is returned.
  */
 int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, uint64_t *ret_position);
-
-/**
- * \ingroup BrickRED
- *
- * Returns various information about a file and the resulting error code.
- * 
- * FIXME: name has to be absolute
- * 
- * The information is obtained via the
- * `stat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
- * function. If ``follow_symlink`` is *false* then the
- * `lstat() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/stat.html>`__
- * function is used instead.
- * 
- * See {@link red_get_file_info} for a list of possible file types and see
- * {@link red_open_file} for a list of possible file permissions.
- */
-int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp);
-
-/**
- * \ingroup BrickRED
- *
- * Returns the target of a symbolic link and the resulting error code.
- * 
- * FIXME: name has to be absolute
- * 
- * If ``canonicalize`` is *false* then the target of the symbolic link is resolved
- * one level via the
- * `readlink() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/readlink.html>`__
- * function, otherwise it is fully resolved using the
- * `realpath() <http://pubs.opengroup.org/onlinepubs/9699919799/functions/realpath.html>`__
- * function.
- */
-int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_target_string_id);
 
 /**
  * \ingroup BrickRED

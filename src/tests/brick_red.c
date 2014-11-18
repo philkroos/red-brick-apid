@@ -1,5 +1,5 @@
 /* ***********************************************************
- * This file was automatically generated on 2014-11-17.      *
+ * This file was automatically generated on 2014-11-18.      *
  *                                                           *
  * Bindings Version 2.1.4                                    *
  *                                                           *
@@ -363,38 +363,6 @@ typedef struct {
 	uint8_t error_code;
 	uint8_t length_written;
 } ATTRIBUTE_PACKED AsyncFileWriteCallback_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t name_string_id;
-	bool follow_symlink;
-} ATTRIBUTE_PACKED LookupFileInfo_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t type;
-	uint16_t permissions;
-	uint32_t uid;
-	uint32_t gid;
-	uint64_t length;
-	uint64_t access_timestamp;
-	uint64_t modification_timestamp;
-	uint64_t status_change_timestamp;
-} ATTRIBUTE_PACKED LookupFileInfoResponse_;
-
-typedef struct {
-	PacketHeader header;
-	uint16_t name_string_id;
-	bool canonicalize;
-	uint16_t session_id;
-} ATTRIBUTE_PACKED LookupSymlinkTarget_;
-
-typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t target_string_id;
-} ATTRIBUTE_PACKED LookupSymlinkTargetResponse_;
 
 typedef struct {
 	PacketHeader header;
@@ -947,8 +915,6 @@ void red_create(RED *red, const char *uid, IPConnection *ipcon) {
 	device_p->response_expected[RED_FUNCTION_GET_FILE_POSITION] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_READ] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
 	device_p->response_expected[RED_CALLBACK_ASYNC_FILE_WRITE] = DEVICE_RESPONSE_EXPECTED_ALWAYS_FALSE;
-	device_p->response_expected[RED_FUNCTION_LOOKUP_FILE_INFO] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
-	device_p->response_expected[RED_FUNCTION_LOOKUP_SYMLINK_TARGET] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_OPEN_DIRECTORY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_DIRECTORY_NAME] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
 	device_p->response_expected[RED_FUNCTION_GET_NEXT_DIRECTORY_ENTRY] = DEVICE_RESPONSE_EXPECTED_ALWAYS_TRUE;
@@ -1736,70 +1702,6 @@ int red_get_file_position(RED *red, uint16_t file_id, uint8_t *ret_error_code, u
 	}
 	*ret_error_code = response.error_code;
 	*ret_position = leconvert_uint64_from(response.position);
-
-
-
-	return ret;
-}
-
-int red_lookup_file_info(RED *red, uint16_t name_string_id, bool follow_symlink, uint8_t *ret_error_code, uint8_t *ret_type, uint16_t *ret_permissions, uint32_t *ret_uid, uint32_t *ret_gid, uint64_t *ret_length, uint64_t *ret_access_timestamp, uint64_t *ret_modification_timestamp, uint64_t *ret_status_change_timestamp) {
-	DevicePrivate *device_p = red->p;
-	LookupFileInfo_ request;
-	LookupFileInfoResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_LOOKUP_FILE_INFO, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.name_string_id = leconvert_uint16_to(name_string_id);
-	request.follow_symlink = follow_symlink;
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_type = response.type;
-	*ret_permissions = leconvert_uint16_from(response.permissions);
-	*ret_uid = leconvert_uint32_from(response.uid);
-	*ret_gid = leconvert_uint32_from(response.gid);
-	*ret_length = leconvert_uint64_from(response.length);
-	*ret_access_timestamp = leconvert_uint64_from(response.access_timestamp);
-	*ret_modification_timestamp = leconvert_uint64_from(response.modification_timestamp);
-	*ret_status_change_timestamp = leconvert_uint64_from(response.status_change_timestamp);
-
-
-
-	return ret;
-}
-
-int red_lookup_symlink_target(RED *red, uint16_t name_string_id, bool canonicalize, uint16_t session_id, uint8_t *ret_error_code, uint16_t *ret_target_string_id) {
-	DevicePrivate *device_p = red->p;
-	LookupSymlinkTarget_ request;
-	LookupSymlinkTargetResponse_ response;
-	int ret;
-
-	ret = packet_header_create(&request.header, sizeof(request), RED_FUNCTION_LOOKUP_SYMLINK_TARGET, device_p->ipcon_p, device_p);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	request.name_string_id = leconvert_uint16_to(name_string_id);
-	request.canonicalize = canonicalize;
-	request.session_id = leconvert_uint16_to(session_id);
-
-	ret = device_send_request(device_p, (Packet *)&request, (Packet *)&response);
-
-	if (ret < 0) {
-		return ret;
-	}
-	*ret_error_code = response.error_code;
-	*ret_target_string_id = leconvert_uint16_from(response.target_string_id);
 
 
 
