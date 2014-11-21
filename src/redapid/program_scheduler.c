@@ -22,6 +22,7 @@
 #define _GNU_SOURCE // for asprintf from stdio.h
 
 #include <errno.h>
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -538,32 +539,29 @@ static File *program_scheduler_prepare_stdin(ProgramScheduler *program_scheduler
 static File *program_scheduler_prepare_individual_log(ProgramScheduler *program_scheduler,
                                                       struct timeval timestamp,
                                                       const char *suffix) {
+	uint64_t microseconds = (uint64_t)timestamp.tv_sec * 1000000 + (uint64_t)timestamp.tv_usec;
 	struct tm localized_timestamp;
-	char iso8601dt[64] = "unknown";
-	char iso8601usec[16] = "";
-	char iso8601tz[16] = "";
+	char iso8601[128] = "unknown";
 	char buffer[1024];
 	struct stat st;
 	APIE error_code;
-	uint32_t counter = 0;
+	int counter = 0;
 	String *name;
 	File *file;
 
-	// format ISO 8601 date and time
+	// format ISO 8601 date, time and timezone offset
 	if (localtime_r(&timestamp.tv_sec, &localized_timestamp) != NULL) {
-		// use ISO 8601 format YYYYMMDDThhmmss.uuuuuu±hhmm instead of the common
-		// YYYY-MM-DDThh:mm:ss.uuuuuu±hhmm because the colons in there can
-		// create problems on Windows which does not allow colons in filenames.
-		// include microseconds to reduce the chance for file name collisions
-		strftime(iso8601dt, sizeof(iso8601dt), "%Y%m%dT%H%M%S", &localized_timestamp);
-		snprintf(iso8601usec, sizeof(iso8601usec), ".%06d", (int)timestamp.tv_usec);
-		strftime(iso8601tz, sizeof(iso8601tz), "%z", &localized_timestamp);
+		// use ISO 8601 format YYYYMMDDThhmmss±hhmm instead of the common
+		// YYYY-MM-DDThh:mm:ss±hhmm because the colons in there can create
+		// problems on Windows which does not allow colons in filenames
+		strftime(iso8601, sizeof(iso8601), "%Y%m%dT%H%M%S%z", &localized_timestamp);
 	}
 
-	// create log file
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s%s%s-%s.log",
+	// create log file, include microsecond timestamp to reduce the chance for
+	// file name collisions and as easy-to-parse timestamp for brickv
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/%s_%"PRIu64"_%s.log",
 	                    program_scheduler->log_directory,
-	                    iso8601dt, iso8601usec, iso8601tz, suffix) < 0) {
+	                    iso8601, microseconds, suffix) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not format %s log file name: %s (%d)",
 		                               suffix, get_errno_name(errno), errno);
@@ -609,9 +607,9 @@ static File *program_scheduler_prepare_individual_log(ProgramScheduler *program_
 			}
 		}
 
-		if (robust_snprintf(buffer, sizeof(buffer), "%s/%s%s%s-%s-%u.log",
-		                    program_scheduler->log_directory, iso8601dt,
-		                    iso8601usec, iso8601tz, suffix, ++counter) < 0) {
+		if (robust_snprintf(buffer, sizeof(buffer), "%s/%s_%"PRIu64"+%03d_%s.log",
+		                    program_scheduler->log_directory,
+		                    iso8601, microseconds, counter, suffix) < 0) {
 			program_scheduler_handle_error(program_scheduler, true,
 			                               "Could not format %s log file name: %s (%d)",
 			                               suffix, get_errno_name(errno), errno);
@@ -639,7 +637,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 	String *name;
 	File *file;
 
-	// format ISO 8601 date and time
+	// format ISO 8601 date, time and timezone offset
 	if (localtime_r(&timestamp.tv_sec, &localized_timestamp) != NULL) {
 		// can use common ISO 8601 format YYYY-MM-DDThh:mm:ss.uuuuuu±hhmm
 		// because this timestamp is not part of a filename
@@ -649,7 +647,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 	}
 
 	// format log filename
-	if (robust_snprintf(buffer, sizeof(buffer), "%s/continuous-%s.log",
+	if (robust_snprintf(buffer, sizeof(buffer), "%s/continuous_%s.log",
 	                    program_scheduler->log_directory, suffix) < 0) {
 		program_scheduler_handle_error(program_scheduler, true,
 		                               "Could not format %s log file name: %s (%d)",
