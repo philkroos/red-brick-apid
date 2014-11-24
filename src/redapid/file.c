@@ -650,9 +650,9 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
                uint16_t object_create_flags, ObjectID *id, File **object) {
 	int phase = 0;
 	APIE error_code;
-	String *name;
 	int oflags = O_NOCTTY;
 	mode_t mode = 0;
+	String *name;
 	IOHandle fd;
 	IOHandle async_read_eventfd;
 	File *file;
@@ -698,7 +698,15 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 	    ((flags & FILE_FLAG_CREATE) == 0 || (flags & FILE_FLAG_EXCLUSIVE) == 0)) {
 		error_code = API_E_INVALID_PARAMETER;
 
-		log_warn("FILE_FLAG_TEMPORARY specified without using FILE_FLAG_CREATE and FILE_FLAG_EXCLUSIVE");
+		log_warn("FILE_FLAG_TEMPORARY used without using FILE_FLAG_CREATE and FILE_FLAG_EXCLUSIVE as well");
+
+		goto cleanup;
+	}
+
+	if ((flags & FILE_FLAG_REPLACE) != 0 && (flags & FILE_FLAG_CREATE) == 0) {
+		error_code = API_E_INVALID_PARAMETER;
+
+		log_warn("FILE_FLAG_REPLACE used without using FILE_FLAG_CREATE as well");
 
 		goto cleanup;
 	}
@@ -731,6 +739,18 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 		log_warn("Cannot open/create file with relative name '%s'", name->buffer);
 
 		goto cleanup;
+	}
+
+	// unlink existing
+	if ((flags & FILE_FLAG_REPLACE) != 0) {
+		if (unlink(name->buffer) < 0 && errno != ENOENT) {
+			error_code = api_get_error_code_from_errno();
+
+			log_warn("Could not unlink '%s': %s (%d)",
+			         name->buffer, get_errno_name(errno), errno);
+
+			goto cleanup;
+		}
 	}
 
 	// open file

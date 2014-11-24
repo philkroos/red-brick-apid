@@ -33,15 +33,16 @@
 #include "string.h"
 
 typedef enum { // bitmask
-	FILE_FLAG_READ_ONLY      = 0x0001,
-	FILE_FLAG_WRITE_ONLY     = 0x0002,
-	FILE_FLAG_READ_WRITE     = 0x0004,
-	FILE_FLAG_APPEND         = 0x0008,
-	FILE_FLAG_CREATE         = 0x0010,
-	FILE_FLAG_EXCLUSIVE      = 0x0020,
-	FILE_FLAG_NON_BLOCKING   = 0x0040,
-	FILE_FLAG_TRUNCATE       = 0x0080,
-	FILE_FLAG_TEMPORARY      = 0x0100 // can only be used in combination with FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE
+	FILE_FLAG_READ_ONLY    = 0x0001,
+	FILE_FLAG_WRITE_ONLY   = 0x0002,
+	FILE_FLAG_READ_WRITE   = 0x0004,
+	FILE_FLAG_APPEND       = 0x0008,
+	FILE_FLAG_CREATE       = 0x0010,
+	FILE_FLAG_EXCLUSIVE    = 0x0020,
+	FILE_FLAG_NON_BLOCKING = 0x0040,
+	FILE_FLAG_TRUNCATE     = 0x0080,
+	FILE_FLAG_TEMPORARY    = 0x0100, // can only be used in combination with FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE
+	FILE_FLAG_REPLACE      = 0x0200  // can only be used in combination with FILE_FLAG_CREATE
 } FileFlag;
 
 #define FILE_FLAG_ALL (FILE_FLAG_READ_ONLY | \
@@ -52,7 +53,8 @@ typedef enum { // bitmask
                        FILE_FLAG_EXCLUSIVE | \
                        FILE_FLAG_NON_BLOCKING | \
                        FILE_FLAG_TRUNCATE | \
-                       FILE_FLAG_TEMPORARY)
+                       FILE_FLAG_TEMPORARY | \
+                       FILE_FLAG_REPLACE)
 
 #define PIPE_FLAG_ALL (PIPE_FLAG_NON_BLOCKING_READ | \
                        PIPE_FLAG_NON_BLOCKING_WRITE)
