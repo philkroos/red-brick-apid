@@ -31,7 +31,7 @@
 typedef struct {
 	Socket *socket;
 	bool disconnected;
-	Notification notification;
+	CronNotification notification;
 	int notification_used;
 } Socat;
 

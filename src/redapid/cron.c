@@ -42,7 +42,7 @@
 
 typedef struct {
 	ObjectID program_id;
-	NotifyFunction notify;
+	CronNotifyFunction notify;
 	void *opaque;
 } Entry;
 
@@ -172,7 +172,7 @@ void cron_exit(void) {
 }
 
 APIE cron_add_entry(ObjectID program_id, const char *identifier, const char *fields,
-                    NotifyFunction notify, void *opaque) {
+                    CronNotifyFunction notify, void *opaque) {
 	int phase = 0;
 	char template[1024] = "/tmp/temporary-"FILENAME_PREFIX"XXXXXX";
 	char filename[1024];
@@ -328,7 +328,7 @@ void cron_remove_entry(ObjectID program_id) {
 	         program_id);
 }
 
-void cron_handle_notification(Notification *notification) {
+void cron_handle_notification(CronNotification *notification) {
 	int i;
 	Entry *entry;
 

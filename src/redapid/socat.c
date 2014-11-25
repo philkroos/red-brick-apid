@@ -36,7 +36,7 @@ static void socat_handle_receive(void *opaque) {
 
 	length = socket_receive(socat->socket,
 	                        (uint8_t *)&socat->notification + socat->notification_used,
-	                        sizeof(Notification) - socat->notification_used);
+	                        sizeof(CronNotification) - socat->notification_used);
 
 	if (length == 0) {
 		log_debug("Socat (handle: %d) disconnected by peer",
@@ -66,7 +66,7 @@ static void socat_handle_receive(void *opaque) {
 
 	socat->notification_used += length;
 
-	if (socat->notification_used < (int)sizeof(Notification)) {
+	if (socat->notification_used < (int)sizeof(CronNotification)) {
 		// wait for complete request
 		return;
 	}
