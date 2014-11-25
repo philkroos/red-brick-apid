@@ -290,6 +290,7 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 	String *absolute_working_directory;
 	String *absolute_stdin_file_name;
 	String *absolute_stdout_file_name;
+	char *p;
 	String *absolute_stderr_file_name;
 
 	// create absolute working directory string object
@@ -371,8 +372,28 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 
 	phase = 3;
 
+	// ensure that directory part of stdout file name exists
 	if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// FIXME: need to ensure that directory part of stdout file name exists
+		p = strrchr(absolute_stdout_file_name->buffer, '/');
+
+		if (p != NULL) {
+			*p = '\0';
+
+			error_code = directory_create(absolute_stdout_file_name->buffer,
+			                              DIRECTORY_FLAG_RECURSIVE,
+			                              0755, 1000, 1000);
+
+			*p = '/';
+
+			if (error_code != API_E_SUCCESS) {
+				program_scheduler_handle_error(program_scheduler, false,
+				                               "Could not create directory for stdout file '%s': %s (%d)",
+				                               absolute_stdout_file_name->buffer,
+				                               api_get_error_code_name(error_code), error_code);
+
+				goto cleanup;
+			}
+		}
 	}
 
 	// create absolute stderr filename string object
@@ -387,8 +408,8 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 
 		if (error_code != API_E_SUCCESS) {
 			program_scheduler_handle_error(program_scheduler, false,
-		                                   "Could not wrap absolute stderr file name into string object: %s (%d)",
-		                                   api_get_error_code_name(error_code), error_code);
+			                               "Could not wrap absolute stderr file name into string object: %s (%d)",
+			                               api_get_error_code_name(error_code), error_code);
 
 			goto cleanup;
 		}
@@ -398,8 +419,28 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 
 	phase = 4;
 
+	// ensure that directory part of stderr file name exists
 	if (program->config.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		// FIXME: need to ensure that directory part of stderr file name exists
+		p = strrchr(absolute_stderr_file_name->buffer, '/');
+
+		if (p != NULL) {
+			*p = '\0';
+
+			error_code = directory_create(absolute_stderr_file_name->buffer,
+			                              DIRECTORY_FLAG_RECURSIVE,
+			                              0755, 1000, 1000);
+
+			*p = '/';
+
+			if (error_code != API_E_SUCCESS) {
+				program_scheduler_handle_error(program_scheduler, false,
+				                               "Could not create directory for stderr file '%s': %s (%d)",
+				                               absolute_stderr_file_name->buffer,
+				                               api_get_error_code_name(error_code), error_code);
+
+				goto cleanup;
+			}
+		}
 	}
 
 	// update stored string objects
