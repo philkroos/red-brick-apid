@@ -705,8 +705,6 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	list_unlock(backup.environment);
 	string_unlock(backup.working_directory);
 
-	program_scheduler_update(&program->scheduler);
-
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 4:
@@ -974,8 +972,6 @@ APIE program_set_stdio_redirection(Program *program,
 	if (backup.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
 		string_unlock(backup.stderr_file_name);
 	}
-
-	program_scheduler_update(&program->scheduler);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
