@@ -227,8 +227,8 @@ static void process_handle_state_change(void *opaque) {
 		                                        change.timestamp, change.exit_code);
 	}
 
-	if (process->auto_destroy && !process_is_alive(process)) {
-		process->auto_destroy = false; // only auto-destroy once
+	if (process->release_on_death && !process_is_alive(process)) {
+		process->release_on_death = false; // only release-on-death once
 
 		object_remove_internal_reference(&process->base);
 	}
@@ -376,7 +376,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
                    ObjectID environment_id, ObjectID working_directory_id,
                    uint32_t uid, uint32_t gid, ObjectID stdin_id,
                    ObjectID stdout_id, ObjectID stderr_id, Session *session,
-                   uint16_t object_create_flags, bool auto_destroy,
+                   uint16_t object_create_flags, bool release_on_death,
                    ProcessStateChangedFunction state_changed, void *opaque,
                    ObjectID *id, Process **object) {
 	int phase = 0;
@@ -760,7 +760,7 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	process->stdin = stdin;
 	process->stdout = stdout;
 	process->stderr = stderr;
-	process->auto_destroy = auto_destroy;
+	process->release_on_death = release_on_death;
 	process->state_changed = state_changed;
 	process->opaque = opaque;
 	process->state = PROCESS_STATE_RUNNING;
