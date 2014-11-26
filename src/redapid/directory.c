@@ -256,6 +256,7 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
                               ObjectID *name_id, uint8_t *type) {
 	struct dirent *dirent;
 	APIE error_code;
+	struct stat st;
 
 	for (;;) {
 		errno = 0;
@@ -301,6 +302,36 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
 		case DT_FIFO: *type = DIRECTORY_ENTRY_TYPE_FIFO;      break;
 		case DT_LNK:  *type = DIRECTORY_ENTRY_TYPE_SYMLINK;   break;
 		case DT_SOCK: *type = DIRECTORY_ENTRY_TYPE_SOCKET;    break;
+		}
+
+		if (*type == DIRECTORY_ENTRY_TYPE_UNKNOWN) {
+			if (lstat(directory->buffer, &st) < 0) {
+				error_code = api_get_error_code_from_errno();
+
+				log_error("Could not get information for next entry of directory object (id: %u, name: %s): %s (%d)",
+				          directory->base.id, directory->name->buffer,
+				          get_errno_name(errno), errno);
+
+				return error_code;
+			}
+
+			if (S_ISREG(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_REGULAR;
+			} else if (S_ISDIR(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_DIRECTORY;
+			} else if (S_ISCHR(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_CHARACTER;
+			} else if (S_ISBLK(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_BLOCK;
+			} else if (S_ISFIFO(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_FIFO;
+			} else if (S_ISLNK(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_SYMLINK;
+			} else if (S_ISSOCK(st.st_mode)) {
+				*type = DIRECTORY_ENTRY_TYPE_SOCKET;
+			} else {
+				*type = DIRECTORY_ENTRY_TYPE_UNKNOWN;
+			}
 		}
 
 		return string_wrap(directory->buffer,
