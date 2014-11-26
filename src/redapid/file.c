@@ -406,8 +406,8 @@ static void file_handle_async_read(void *opaque) {
 }
 
 // NOTE: assumes that name is absolute (starts with '/')
-static APIE file_open_as(const char *name, int oflags, mode_t mode,
-                         uint32_t uid, uint32_t gid, IOHandle *fd_) {
+static APIE file_open_as(const char *name, uint32_t flags, int oflags,
+                         mode_t mode, uint32_t uid, uint32_t gid, IOHandle *fd_) {
 	APIE error_code;
 	int pair[2];
 	pid_t pid;
@@ -449,11 +449,13 @@ static APIE file_open_as(const char *name, int oflags, mode_t mode,
 			error_code = api_get_error_code_from_errno();
 
 			if (errno == ENOENT) {
-				log_debug("Could not open non-existing file '%s' as %u:%u",
-				          name, uid, gid);
+				log_debug("Could not open non-existing file '%s'", name);
+			} else if ((flags & (FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE)) ==
+			           (FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE) && errno == EEXIST) {
+				log_debug("Could not exclusively create already existing file '%s'", name);
 			} else {
-				log_warn("Could not open file '%s' as %u:%u: %s (%d)",
-				         name, uid, gid, get_errno_name(errno), errno);
+				log_warn("Could not open file '%s' with flags 0x%04X as %u:%u: %s (%d)",
+				         name, flags, uid, gid, get_errno_name(errno), errno);
 			}
 
 			goto child_cleanup;
@@ -746,7 +748,7 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 		if (unlink(name->buffer) < 0 && errno != ENOENT) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not unlink '%s': %s (%d)",
+			log_warn("Could not unlink '%s' to replace it: %s (%d)",
 			         name->buffer, get_errno_name(errno), errno);
 
 			goto cleanup;
@@ -761,17 +763,20 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 			error_code = api_get_error_code_from_errno();
 
 			if (errno == ENOENT) {
-				log_debug("Could not open non-existing file '%s' as %u:%u",
-				          name->buffer, uid, gid);
+				log_debug("Could not open non-existing file '%s'", name->buffer);
+			} else if ((flags & (FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE)) ==
+			           (FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE) && errno == EEXIST) {
+				log_debug("Could not exclusively create already existing file '%s'",
+				          name->buffer);
 			} else {
-				log_warn("Could not open file '%s' as %u:%u: %s (%d)",
-				         name->buffer, uid, gid, get_errno_name(errno), errno);
+				log_warn("Could not open file '%s' with flags 0x%04X as %u:%u: %s (%d)",
+				         name->buffer, flags, uid, gid, get_errno_name(errno), errno);
 			}
 
 			goto cleanup;
 		}
 	} else {
-		error_code = file_open_as(name->buffer, oflags, mode, uid, gid, &fd);
+		error_code = file_open_as(name->buffer, flags, oflags, mode, uid, gid, &fd);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
