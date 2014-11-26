@@ -42,6 +42,9 @@
 #include "inventory.h"
 #include "program.h"
 
+extern bool _is_full_image;
+
+static void program_scheduler_start(ProgramScheduler *program_scheduler);
 static void program_scheduler_stop(ProgramScheduler *program_scheduler,
                                    String *message);
 
@@ -152,6 +155,26 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	}
 }
 
+static void program_scheduler_abort_observer(ProgramScheduler *program_scheduler) {
+	if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_WAITING) {
+		process_monitor_remove_observer("lxpanel", &program_scheduler->observer);
+	}
+
+	program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
+}
+
+static void program_scheduler_handle_observer(void *opaque) {
+	ProgramScheduler *program_scheduler = opaque;
+
+	if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_WAITING) {
+		process_monitor_remove_observer("lxpanel", &program_scheduler->observer);
+
+		program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
+
+		program_scheduler_start(program_scheduler);
+	}
+}
+
 static void program_scheduler_handle_timer(void *opaque) {
 	ProgramScheduler *program_scheduler = opaque;
 	Program *program = containerof(program_scheduler, Program, scheduler);
@@ -184,6 +207,7 @@ static void program_scheduler_start(ProgramScheduler *program_scheduler) {
 
 	// FIXME: delay scheduler start after reboot for some seconds so the system has a moment to settle
 
+	program_scheduler_abort_observer(program_scheduler);
 	program_scheduler_set_state(program_scheduler, PROGRAM_SCHEDULER_STATE_RUNNING,
 	                            time(NULL), NULL);
 
@@ -252,6 +276,8 @@ static void program_scheduler_stop(ProgramScheduler *program_scheduler,
 	if (recursive) {
 		return;
 	}
+
+	program_scheduler_abort_observer(program_scheduler);
 
 	if (program_scheduler->timer_active) {
 		if (timer_configure(&program_scheduler->timer, 0, 0) < 0) {
@@ -911,6 +937,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	char bin_directory[1024];
 	char *log_directory;
 	String *dev_null_file_name;
+	int i;
+	String *environment;
 
 	// format bin directory name
 	if (robust_snprintf(bin_directory, sizeof(bin_directory), "%s/bin",
@@ -969,6 +997,9 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->absolute_stderr_file_name = NULL;
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
+	program_scheduler->observer.function = program_scheduler_handle_observer;
+	program_scheduler->observer.opaque = program_scheduler;
+	program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
 	program_scheduler->shutdown = false;
 	program_scheduler->timer_active = false;
 	program_scheduler->cron_active = false;
@@ -977,6 +1008,21 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->state = PROGRAM_SCHEDULER_STATE_STOPPED;
 	program_scheduler->timestamp = time(NULL);
 	program_scheduler->message = NULL;
+
+	// if this is a full image...
+	if (_is_full_image) {
+		for (i = 0; i < program->config.environment->items.count; ++i) {
+			environment = *(String **)array_get(&program->config.environment->items, i);
+
+			// ...and the DISPLAY environment variable is set...
+			if (strncmp(environment->buffer, "DISPLAY=", strlen("DISPLAY=")) == 0) {
+				// ...then use the process monitor to wait for lxpanel to start
+				program_scheduler->observer_state = PROCESS_OBSERVER_STATE_PENDING;
+
+				break;
+			}
+		}
+	}
 
 	// FIXME: only create timer for interval mode, otherwise this wastes a
 	//        file descriptor per non-interval scheduler
@@ -1056,7 +1102,17 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 
 	if (program->config.start_mode == PROGRAM_START_MODE_NEVER) {
 		program_scheduler_stop(program_scheduler, program_scheduler->message);
-	} else {
+	} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_PENDING) {
+		program_scheduler->observer_state = PROCESS_OBSERVER_STATE_WAITING;
+
+		if (process_monitor_add_observer("lxpanel", 30, &program_scheduler->observer) < 0) {
+			program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
+
+			// if the observer could not be added, then start anyway. this is
+			// still better than not starting at all
+			program_scheduler_start(program_scheduler);
+		}
+	} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_FINISHED) {
 		program_scheduler_start(program_scheduler);
 	}
 }
@@ -1098,6 +1154,8 @@ void program_scheduler_spawn_process(ProgramScheduler *program_scheduler) {
 	Program *program = containerof(program_scheduler, Program, scheduler);
 	struct timeval timestamp;
 	Process *process;
+
+	program_scheduler_abort_observer(program_scheduler);
 
 	if (program_scheduler->last_spawned_process != NULL) {
 		if (process_is_alive(program_scheduler->last_spawned_process)) {

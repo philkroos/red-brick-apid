@@ -25,6 +25,7 @@
 #include <daemonlib/timer.h>
 
 #include "process.h"
+#include "process_monitor.h"
 #include "program_config.h"
 
 typedef void (*ProgramSchedulerProcessSpawnedFunction)(void *opaque);
@@ -34,6 +35,12 @@ typedef enum {
 	PROGRAM_SCHEDULER_STATE_STOPPED = 0,
 	PROGRAM_SCHEDULER_STATE_RUNNING
 } ProgramSchedulerState;
+
+typedef enum {
+	PROCESS_OBSERVER_STATE_PENDING = 0,
+	PROCESS_OBSERVER_STATE_WAITING,
+	PROCESS_OBSERVER_STATE_FINISHED
+} ProcessObserverState;
 
 typedef struct {
 	ProgramSchedulerProcessSpawnedFunction process_spawned;
@@ -51,6 +58,8 @@ typedef struct {
 	                                   // if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
 	char *log_directory; // <home>/programs/<identifier>/log
 	String *dev_null_file_name; // /dev/null
+	ProcessObserver observer;
+	ProcessObserverState observer_state;
 	Timer timer;
 	bool shutdown;
 	bool timer_active;

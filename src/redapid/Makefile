@@ -91,6 +91,7 @@ SOURCES += ../daemonlib/io.c \
            network.c \
            object.c \
            process.c \
+           process_monitor.c \
            program.c \
            program_config.c \
            program_scheduler.c \

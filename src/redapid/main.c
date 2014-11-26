@@ -42,6 +42,7 @@
 #include "cron.h"
 #include "inventory.h"
 #include "network.h"
+#include "process_monitor.h"
 #include "version.h"
 
 static char _config_filename[1024] = SYSCONFDIR "/redapid.conf";
@@ -49,6 +50,32 @@ static char _pid_filename[1024] = LOCALSTATEDIR "/run/redapid.pid";
 static char _brickd_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-brickd.socket";
 static char _cron_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-cron.socket";
 static char _log_filename[1024] = LOCALSTATEDIR "/log/redapid.log";
+static char _image_version[128] = "<unknown>";
+bool _is_full_image = false;
+
+static void read_image_version(void) {
+	FILE *fp;
+	int length;
+
+	fp = fopen("/etc/tf_image_version", "rb");
+
+	if (fp == NULL) {
+		return;
+	}
+
+	length = robust_fread(fp, _image_version, sizeof(_image_version) - 1);
+
+	fclose(fp);
+
+	if (length < 0) {
+		string_copy(_image_version, sizeof(_image_version), "<unknown>");
+
+		return;
+	}
+
+	_image_version[length] = '\0';
+	_is_full_image = strstr(_image_version, "(full)");
+}
 
 static int prepare_paths(void) {
 	char *home;
@@ -228,6 +255,8 @@ int main(int argc, char **argv) {
 		return EXIT_SUCCESS;
 	}
 
+	read_image_version();
+
 	if (prepare_paths() < 0) {
 		return EXIT_FAILURE;
 	}
@@ -263,9 +292,11 @@ int main(int argc, char **argv) {
 	}
 
 	if (daemon) {
-		log_info("RED Brick API Daemon %s started (daemonized)", VERSION_STRING);
+		log_info("RED Brick API Daemon %s started (daemonized) on %s image",
+		         VERSION_STRING, _image_version);
 	} else {
-		log_info("RED Brick API Daemon %s started", VERSION_STRING);
+		log_info("RED Brick API Daemon %s started on %s image",
+		         VERSION_STRING, _image_version);
 	}
 
 	if (config_has_warning()) {
@@ -279,6 +310,10 @@ int main(int argc, char **argv) {
 
 	if (signal_init(handle_sighup, NULL) < 0) {
 		goto error_signal;
+	}
+
+	if (process_monitor_init() < 0) {
+		goto error_process_monitor;
 	}
 
 	if (cron_init() < 0) {
@@ -323,6 +358,9 @@ error_inventory:
 	cron_exit();
 
 error_cron:
+	process_monitor_exit();
+
+error_process_monitor:
 	signal_exit();
 
 error_signal:
