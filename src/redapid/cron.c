@@ -166,6 +166,11 @@ int cron_init(void) {
 void cron_exit(void) {
 	log_debug("Shutting down cron subsystem");
 
+	if (_entries.count > 0) {
+		log_warn("Shutting down cron subsystem while %d entry(s) are still added",
+		         _entries.count);
+	}
+
 	array_destroy(&_entries, NULL);
 
 	cron_remove_all_files();
