@@ -74,7 +74,20 @@ static void read_image_version(void) {
 	}
 
 	_image_version[length] = '\0';
-	_is_full_image = strstr(_image_version, "(full)");
+
+	while (length > 0 && strspn(&_image_version[length - 1], " \f\n\r\t\v") > 0) {
+		--length;
+	}
+
+	_image_version[length] = '\0';
+
+	if (length == 0) {
+		string_copy(_image_version, sizeof(_image_version), "<unknown>");
+
+		return;
+	}
+
+	_is_full_image = strstr(_image_version, "(full)") != NULL;
 }
 
 static int prepare_paths(void) {
