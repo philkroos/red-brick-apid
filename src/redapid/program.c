@@ -553,8 +553,8 @@ APIE program_purge(Program *program, uint32_t cookie) {
 		return API_E_SUCCESS;
 	}
 
-	log_warn("Could not move program directory '%s' to /tmp within 1000 attempts",
-	         program->root_directory->buffer);
+	log_error("Could not move program directory '%s' to /tmp within 1000 attempts",
+	          program->root_directory->buffer);
 
 	return API_E_INTERNAL_ERROR;
 }

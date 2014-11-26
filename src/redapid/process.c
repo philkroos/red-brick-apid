@@ -893,8 +893,8 @@ APIE process_kill(Process *process, ProcessSignal signal) {
 	if (rc < 0) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not send signal (number: %d) to child process (executable: %s, pid: %u): %s (%d)",
-		         signal, process->executable->buffer, process->pid, get_errno_name(errno), errno);
+		log_error("Could not send signal (number: %d) to child process (executable: %s, pid: %u): %s (%d)",
+		          signal, process->executable->buffer, process->pid, get_errno_name(errno), errno);
 
 		return error_code;
 	}

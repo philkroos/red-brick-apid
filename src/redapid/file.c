@@ -368,9 +368,9 @@ static void file_handle_async_read(void *opaque) {
 		} else {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
-			         length_to_read, file_expand_signature(file),
-			         get_errno_name(errno), errno);
+			log_error("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
+			          length_to_read, file_expand_signature(file),
+			          get_errno_name(errno), errno);
 
 			event_remove_source(file->async_read_eventfd, EVENT_SOURCE_TYPE_GENERIC);
 
@@ -454,8 +454,8 @@ static APIE file_open_as(const char *name, uint32_t flags, int oflags,
 			           (FILE_FLAG_CREATE | FILE_FLAG_EXCLUSIVE) && errno == EEXIST) {
 				log_debug("Could not exclusively create already existing file '%s'", name);
 			} else {
-				log_warn("Could not open file '%s' with flags 0x%04X as %u:%u: %s (%d)",
-				         name, flags, uid, gid, get_errno_name(errno), errno);
+				log_error("Could not open file '%s' with flags 0x%04X as %u:%u: %s (%d)",
+				          name, flags, uid, gid, get_errno_name(errno), errno);
 			}
 
 			goto child_cleanup;
@@ -748,8 +748,8 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 		if (unlink(name->buffer) < 0 && errno != ENOENT) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not unlink '%s' to replace it: %s (%d)",
-			         name->buffer, get_errno_name(errno), errno);
+			log_error("Could not unlink '%s' to replace it: %s (%d)",
+			          name->buffer, get_errno_name(errno), errno);
 
 			goto cleanup;
 		}
@@ -769,8 +769,8 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 				log_debug("Could not exclusively create already existing file '%s'",
 				          name->buffer);
 			} else {
-				log_warn("Could not open file '%s' with flags 0x%04X as %u:%u: %s (%d)",
-				         name->buffer, flags, uid, gid, get_errno_name(errno), errno);
+				log_error("Could not open file '%s' with flags 0x%04X as %u:%u: %s (%d)",
+				          name->buffer, flags, uid, gid, get_errno_name(errno), errno);
 			}
 
 			goto cleanup;
@@ -1054,8 +1054,8 @@ APIE file_get_info(File *file, Session *session, uint8_t *type,
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not get pipe buffer length for file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-			         file_expand_signature(file), get_errno_name(errno), errno);
+			log_error("Could not get pipe buffer length for file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			          file_expand_signature(file), get_errno_name(errno), errno);
 
 			return error_code;
 		}
@@ -1073,8 +1073,8 @@ APIE file_get_info(File *file, Session *session, uint8_t *type,
 		if (rc < 0) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not get information for file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-			         file_expand_signature(file), get_errno_name(errno), errno);
+			log_error("Could not get information for file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			          file_expand_signature(file), get_errno_name(errno), errno);
 
 			return error_code;
 		}
@@ -1130,9 +1130,9 @@ APIE file_read(File *file, uint8_t *buffer, uint8_t length_to_read,
 		} else {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-			         length_to_read, file_expand_signature(file),
-			         get_errno_name(errno), errno);
+			log_error("Could not read %u byte(s) from file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			          length_to_read, file_expand_signature(file),
+			          get_errno_name(errno), errno);
 
 			return error_code;
 		}
@@ -1230,9 +1230,9 @@ APIE file_write(File *file, uint8_t *buffer, uint8_t length_to_write,
 			log_debug("Writing %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") would block",
 			          length_to_write, file_expand_signature(file));
 		} else {
-			log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-			         length_to_write, file_expand_signature(file),
-			         get_errno_name(errno), errno);
+			log_error("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+			          length_to_write, file_expand_signature(file),
+			          get_errno_name(errno), errno);
 		}
 
 		return error_code;
@@ -1264,9 +1264,9 @@ PacketE file_write_unchecked(File *file, uint8_t *buffer, uint8_t length_to_writ
 			log_debug("Writing %u byte(s) unchecked to file object ("FILE_SIGNATURE_FORMAT") would block",
 			          length_to_write, file_expand_signature(file));
 		} else {
-			log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") unchecked: %s (%d)",
-			         length_to_write, file_expand_signature(file),
-			         get_errno_name(errno), errno);
+			log_error("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") unchecked: %s (%d)",
+			          length_to_write, file_expand_signature(file),
+			          get_errno_name(errno), errno);
 		}
 
 		return PACKET_E_UNKNOWN_ERROR;
@@ -1309,9 +1309,9 @@ PacketE file_write_async(File *file, uint8_t *buffer, uint8_t length_to_write) {
 			log_debug("Writing %u byte(s) asynchronously to file object ("FILE_SIGNATURE_FORMAT") would block",
 			          length_to_write, file_expand_signature(file));
 		} else {
-			log_warn("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
-			         length_to_write, file_expand_signature(file),
-			         get_errno_name(errno), errno);
+			log_error("Could not write %u byte(s) to file object ("FILE_SIGNATURE_FORMAT") asynchronously: %s (%d)",
+			          length_to_write, file_expand_signature(file),
+			          get_errno_name(errno), errno);
 		}
 
 		// FIXME: this callback should be delivered after the response of this function
@@ -1356,9 +1356,9 @@ APIE file_set_position(File *file, int64_t offset, FileOrigin origin,
 	if (rc == (off_t)-1) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not set position (offset %"PRIi64", origin: %d) of file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-		         offset, origin, file_expand_signature(file),
-		         get_errno_name(errno), errno);
+		log_error("Could not set position (offset %"PRIi64", origin: %d) of file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+		          offset, origin, file_expand_signature(file),
+		          get_errno_name(errno), errno);
 
 		return error_code;
 	}
@@ -1378,8 +1378,8 @@ APIE file_get_position(File *file, uint64_t *position) {
 	if (rc == (off_t)-1) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not get position of file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
-		         file_expand_signature(file), get_errno_name(errno), errno);
+		log_error("Could not get position of file object ("FILE_SIGNATURE_FORMAT"): %s (%d)",
+		          file_expand_signature(file), get_errno_name(errno), errno);
 
 		return error_code;
 	}

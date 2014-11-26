@@ -92,8 +92,8 @@ static APIE directory_create_helper(char *name, uint32_t flags, mode_t mode) {
 		if (errno != EEXIST) {
 			error_code = api_get_error_code_from_errno();
 
-			log_warn("Could not create directory '%s': %s (%d)",
-			         name, get_errno_name(errno), errno);
+			log_error("Could not create directory '%s': %s (%d)",
+			          name, get_errno_name(errno), errno);
 
 			return error_code;
 		}
@@ -108,13 +108,13 @@ static APIE directory_create_helper(char *name, uint32_t flags, mode_t mode) {
 		}
 
 		if (!S_ISDIR(st.st_mode)) {
-			log_warn("Expecting '%s' to be a directory", name);
+			log_error("Expecting '%s' to be a directory", name);
 
 			return API_E_NOT_A_DIRECTORY;
 		}
 
 		if ((flags & DIRECTORY_FLAG_EXCLUSIVE) != 0) {
-			log_warn("Could not create already existing directory '%s'", name);
+			log_error("Could not create already existing directory '%s'", name);
 
 			return API_E_ALREADY_EXISTS;
 		}
@@ -171,8 +171,8 @@ APIE directory_open(ObjectID name_id, Session *session, ObjectID *id) {
 	if (dp == NULL) {
 		error_code = api_get_error_code_from_errno();
 
-		log_warn("Could not open directory '%s': %s (%d)",
-		         name->buffer, get_errno_name(errno), errno);
+		log_error("Could not open directory '%s': %s (%d)",
+		          name->buffer, get_errno_name(errno), errno);
 
 		goto cleanup;
 	}
@@ -270,9 +270,9 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
 			} else {
 				error_code = api_get_error_code_from_errno();
 
-				log_warn("Could not get next entry of directory object (id: %u, name: %s): %s (%d)",
-				         directory->base.id, directory->name->buffer,
-				         get_errno_name(errno), errno);
+				log_error("Could not get next entry of directory object (id: %u, name: %s): %s (%d)",
+				          directory->base.id, directory->name->buffer,
+				          get_errno_name(errno), errno);
 
 				return error_code;
 			}
@@ -283,7 +283,7 @@ APIE directory_get_next_entry(Directory *directory, Session *session,
 		}
 
 		if (strlen(dirent->d_name) > DIRECTORY_MAX_ENTRY_LENGTH) {
-			log_warn("Directory entry name is too long");
+			log_error("Directory entry name is too long");
 
 			return API_E_OUT_OF_RANGE;
 		}
