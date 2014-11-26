@@ -180,6 +180,13 @@ static PacketE api_get_packet_error_code(APIE error_code) {
 	}
 }
 
+#define CALL_PROCEDURE(packet_prefix, function_suffix, body) \
+	static void api_##function_suffix(packet_prefix##Request *request) { \
+		PacketE error_code; \
+		body \
+		api_send_response_if_expected((Packet *)request, error_code); \
+	}
+
 #define CALL_FUNCTION(packet_prefix, function_suffix, body) \
 	static void api_##function_suffix(packet_prefix##Request *request) { \
 		packet_prefix##Response response; \
@@ -772,22 +779,11 @@ CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
 #undef CALL_PROGRAM_FUNCTION_WITH_SESSION
 #undef CALL_PROGRAM_FUNCTION
 
-#undef CALL_FUNCTION_WITH_SESSION
-#undef CALL_FUNCTION_WITH_STRING
-#undef CALL_TYPE_FUNCTION_WITH_SESSION
-#undef CALL_TYPE_FUNCTION
-#undef CALL_FUNCTION_WITH_SESSION
-#undef CALL_FUNCTION
-
 //
 // misc
 //
 
-static void api_get_identity(GetIdentityRequest *request) {
-	GetIdentityResponse response;
-
-	api_prepare_response((Packet *)request, (Packet *)&response, sizeof(response));
-
+CALL_FUNCTION(GetIdentity, get_identity, {
 	base58_encode(response.uid, uint32_from_le(_uid));
 	strcpy(response.connected_uid, "0");
 	response.position = '0';
@@ -798,9 +794,15 @@ static void api_get_identity(GetIdentityRequest *request) {
 	response.firmware_version[1] = VERSION_MINOR;
 	response.firmware_version[2] = VERSION_RELEASE;
 	response.device_identifier = RED_BRICK_DEVICE_IDENTIFIER;
+})
 
-	network_dispatch_response((Packet *)&response);
-}
+#undef CALL_FUNCTION_WITH_SESSION
+#undef CALL_FUNCTION_WITH_STRING
+#undef CALL_TYPE_FUNCTION_WITH_SESSION
+#undef CALL_TYPE_FUNCTION
+#undef CALL_FUNCTION_WITH_SESSION
+#undef CALL_FUNCTION
+#undef CALL_PROCEDURE
 
 //
 // api
