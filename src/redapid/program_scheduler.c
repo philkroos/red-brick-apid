@@ -137,10 +137,10 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	}
 
 	if (spawn) {
-		// delay next process spawn by 100 milliseconds to avoid running into
+		// delay next process spawn by 200 milliseconds to avoid running into
 		// a tight loop of process spawn and process exit events which would
 		// basically stop redapid from doing anything else
-		if (timer_configure(&program_scheduler->timer, 100000, 0) < 0) {
+		if (timer_configure(&program_scheduler->timer, 200000, 0) < 0) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not start timer: %s (%d)",
 			                               get_errno_name(errno), errno);
