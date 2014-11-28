@@ -158,21 +158,37 @@ static uint16_t file_get_permissions_from_stat_mode(mode_t mode) {
 
 	if ((mode & S_IRUSR) != 0) {
 		permissions |= FILE_PERMISSION_USER_READ;
-	} else if ((mode & S_IWUSR) != 0) {
+	}
+
+	if ((mode & S_IWUSR) != 0) {
 		permissions |= FILE_PERMISSION_USER_WRITE;
-	} else if ((mode & S_IXUSR) != 0) {
+	}
+
+	if ((mode & S_IXUSR) != 0) {
 		permissions |= FILE_PERMISSION_USER_EXECUTE;
-	} else if ((mode & S_IRGRP) != 0) {
+	}
+
+	if ((mode & S_IRGRP) != 0) {
 		permissions |= FILE_PERMISSION_GROUP_READ;
-	} else if ((mode & S_IWGRP) != 0) {
+	}
+
+	if ((mode & S_IWGRP) != 0) {
 		permissions |= FILE_PERMISSION_GROUP_WRITE;
-	} else if ((mode & S_IXGRP) != 0) {
+	}
+
+	if ((mode & S_IXGRP) != 0) {
 		permissions |= FILE_PERMISSION_GROUP_EXECUTE;
-	} else if ((mode & S_IROTH) != 0) {
+	}
+
+	if ((mode & S_IROTH) != 0) {
 		permissions |= FILE_PERMISSION_OTHERS_READ;
-	} else if ((mode & S_IWOTH) != 0) {
+	}
+
+	if ((mode & S_IWOTH) != 0) {
 		permissions |= FILE_PERMISSION_OTHERS_WRITE;
-	} else if ((mode & S_IXOTH) != 0) {
+	}
+
+	if ((mode & S_IXOTH) != 0) {
 		permissions |= FILE_PERMISSION_OTHERS_EXECUTE;
 	}
 
