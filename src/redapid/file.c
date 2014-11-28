@@ -1209,10 +1209,10 @@ APIE file_abort_async_read(File *file) {
 
 		file->async_read_in_progress = false;
 		file->length_to_read_async = 0;
-	}
 
-	// FIXME: this callback should be delivered after the response of this function
-	file_send_async_read_callback(file, API_E_OPERATION_ABORTED, NULL, 0);
+		// FIXME: this callback should be delivered after the response of this function
+		file_send_async_read_callback(file, API_E_OPERATION_ABORTED, NULL, 0);
+	}
 
 	return API_E_SUCCESS;
 }
