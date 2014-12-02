@@ -1086,7 +1086,8 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 	}
 }
 
-void program_scheduler_update(ProgramScheduler *program_scheduler) {
+void program_scheduler_update(ProgramScheduler *program_scheduler,
+                              bool schedule_changed) {
 	APIE error_code;
 	Program *program = containerof(program_scheduler, Program, scheduler);
 
@@ -1100,20 +1101,22 @@ void program_scheduler_update(ProgramScheduler *program_scheduler) {
 		return;
 	}
 
-	if (program->config.start_mode == PROGRAM_START_MODE_NEVER) {
-		program_scheduler_stop(program_scheduler, program_scheduler->message);
-	} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_PENDING) {
-		program_scheduler->observer_state = PROCESS_OBSERVER_STATE_WAITING;
+	if (schedule_changed) {
+		if (program->config.start_mode == PROGRAM_START_MODE_NEVER) {
+			program_scheduler_stop(program_scheduler, program_scheduler->message);
+		} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_PENDING) {
+			program_scheduler->observer_state = PROCESS_OBSERVER_STATE_WAITING;
 
-		if (process_monitor_add_observer("lxpanel", 30, &program_scheduler->observer) < 0) {
-			program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
+			if (process_monitor_add_observer("lxpanel", 30, &program_scheduler->observer) < 0) {
+				program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
 
-			// if the observer could not be added, then start anyway. this is
-			// still better than not starting at all
+				// if the observer could not be added, then start anyway. this is
+				// still better than not starting at all
+				program_scheduler_start(program_scheduler);
+			}
+		} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_FINISHED) {
 			program_scheduler_start(program_scheduler);
 		}
-	} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_FINISHED) {
-		program_scheduler_start(program_scheduler);
 	}
 }
 

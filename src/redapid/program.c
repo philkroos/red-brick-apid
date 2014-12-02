@@ -265,7 +265,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 	log_debug("Loaded program object (id: %u, identifier: %s)",
 	          program->base.id, identifier);
 
-	program_scheduler_update(&program->scheduler);
+	program_scheduler_update(&program->scheduler, true);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
@@ -433,7 +433,7 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	log_debug("Defined program object (id: %u, identifier: %s)",
 	          program->base.id, identifier->buffer);
 
-	program_scheduler_update(&program->scheduler);
+	program_scheduler_update(&program->scheduler, true);
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
@@ -705,6 +705,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	list_unlock(backup.environment);
 	string_unlock(backup.working_directory);
 
+	program_scheduler_update(&program->scheduler, false);
+
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 4:
@@ -973,6 +975,8 @@ APIE program_set_stdio_redirection(Program *program,
 		string_unlock(backup.stderr_file_name);
 	}
 
+	program_scheduler_update(&program->scheduler, false);
+
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 4:
@@ -1175,7 +1179,7 @@ APIE program_set_schedule(Program *program,
 		string_unlock(backup.start_fields);
 	}
 
-	program_scheduler_update(&program->scheduler);
+	program_scheduler_update(&program->scheduler, true);
 
 	return API_E_SUCCESS;
 }

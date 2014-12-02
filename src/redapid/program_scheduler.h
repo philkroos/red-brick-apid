@@ -77,7 +77,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
                               void *opaque);
 void program_scheduler_destroy(ProgramScheduler *program_scheduler);
 
-void program_scheduler_update(ProgramScheduler *program_scheduler);
+void program_scheduler_update(ProgramScheduler *program_scheduler,
+                              bool schedule_changed);
 void program_scheduler_continue(ProgramScheduler *program_scheduler);
 void program_scheduler_shutdown(ProgramScheduler *program_scheduler);
 
