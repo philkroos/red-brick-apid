@@ -137,10 +137,13 @@ static void program_scheduler_handle_process_state_change(void *opaque) {
 	}
 
 	if (spawn) {
-		// delay next process spawn by 200 milliseconds to avoid running into
-		// a tight loop of process spawn and process exit events which would
-		// basically stop redapid from doing anything else
-		if (timer_configure(&program_scheduler->timer, 200000, 0) < 0) {
+		// delay next process spawn by 1 second to avoid running into a tight
+		// loop of process spawn and process exit events which would basically
+		// stop redapid from doing anything else. also if the throughput between
+		// redapid and brickv is low then sending to many program-process-spawned
+		// callbacks might force brickv into doing nothing else but updating
+		// the last-spawned-program-process information
+		if (timer_configure(&program_scheduler->timer, 1000000, 0) < 0) {
 			program_scheduler_handle_error(program_scheduler, false,
 			                               "Could not start timer: %s (%d)",
 			                               get_errno_name(errno), errno);
