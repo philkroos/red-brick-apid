@@ -26,6 +26,8 @@
 #include "session.h"
 #include "string.h"
 
+typedef void (*InventoryForEachObjectFunction)(Object *object, void *opaque);
+
 int inventory_init(void);
 void inventory_exit(void);
 
@@ -43,6 +45,8 @@ APIE inventory_get_session(SessionID id, Session **session);
 APIE inventory_add_object(Object *object);
 void inventory_remove_object(Object *object);
 APIE inventory_get_object(ObjectType type, ObjectID id, Object **object);
+void inventory_for_each_object(ObjectType type, InventoryForEachObjectFunction function,
+                               void *opaque);
 
 APIE inventory_get_processes(Session *session, ObjectID *processes_id);
 APIE inventory_get_programs(Session *session, ObjectID *programs_id);

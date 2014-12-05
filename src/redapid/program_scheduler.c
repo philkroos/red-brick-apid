@@ -40,6 +40,7 @@
 #include "cron.h"
 #include "directory.h"
 #include "inventory.h"
+#include "network.h"
 #include "program.h"
 
 extern bool _is_full_image;
@@ -1004,6 +1005,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->observer.opaque = program_scheduler;
 	program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
 	program_scheduler->shutdown = false;
+	program_scheduler->waiting_for_brickd = !network_is_brickd_connected();
 	program_scheduler->timer_active = false;
 	program_scheduler->cron_active = false;
 	program_scheduler->last_spawned_process = NULL;
@@ -1089,8 +1091,7 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 	}
 }
 
-void program_scheduler_update(ProgramScheduler *program_scheduler,
-                              bool schedule_changed) {
+void program_scheduler_update(ProgramScheduler *program_scheduler, bool try_start) {
 	APIE error_code;
 	Program *program = containerof(program_scheduler, Program, scheduler);
 
@@ -1098,28 +1099,42 @@ void program_scheduler_update(ProgramScheduler *program_scheduler,
 		return;
 	}
 
+	// check brickd connection state, if waiting for it
+	if (program_scheduler->waiting_for_brickd && network_is_brickd_connected()) {
+		program_scheduler->waiting_for_brickd = false;
+	}
+
+	// prepare filesystem
 	error_code = program_scheduler_prepare_filesystem(program_scheduler);
 
 	if (error_code != API_E_SUCCESS) {
 		return;
 	}
 
-	if (schedule_changed) {
-		if (program->config.start_mode == PROGRAM_START_MODE_NEVER) {
-			program_scheduler_stop(program_scheduler, program_scheduler->message);
-		} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_PENDING) {
-			program_scheduler->observer_state = PROCESS_OBSERVER_STATE_WAITING;
+	if (!try_start) {
+		// if starting should not be tried, then exit early
+		return;
+	}
 
-			if (process_monitor_add_observer("lxpanel", 30, &program_scheduler->observer) < 0) {
-				program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
+	if (program->config.start_mode == PROGRAM_START_MODE_NEVER) {
+		program_scheduler_stop(program_scheduler, program_scheduler->message);
 
-				// if the observer could not be added, then start anyway. this is
-				// still better than not starting at all
-				program_scheduler_start(program_scheduler);
-			}
-		} else if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_FINISHED) {
-			program_scheduler_start(program_scheduler);
+		return;
+	}
+
+	if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_PENDING) {
+		program_scheduler->observer_state = PROCESS_OBSERVER_STATE_WAITING;
+
+		if (process_monitor_add_observer("lxpanel", 30, &program_scheduler->observer) < 0) {
+			// if the observer could not be added, then start anyway.
+			// this is still better than not starting at all
+			program_scheduler->observer_state = PROCESS_OBSERVER_STATE_FINISHED;
 		}
+	}
+
+	if (program_scheduler->observer_state == PROCESS_OBSERVER_STATE_FINISHED &&
+	    !program_scheduler->waiting_for_brickd) {
+		program_scheduler_start(program_scheduler);
 	}
 }
 

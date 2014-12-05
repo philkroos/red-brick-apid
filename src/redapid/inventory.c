@@ -572,6 +572,18 @@ APIE inventory_get_object(ObjectType type, ObjectID id, Object **object) {
 	return API_E_UNKNOWN_OBJECT_ID;
 }
 
+void inventory_for_each_object(ObjectType type, InventoryForEachObjectFunction function,
+                               void *opaque) {
+	int i;
+	Object *object;
+
+	for (i = 0; i < _objects[type].count; ++i) {
+		object = *(Object **)array_get(&_objects[type], i);
+
+		function(object, opaque);
+	}
+}
+
 // public API
 APIE inventory_get_processes(Session *session, ObjectID *processes_id) {
 	List *processes;

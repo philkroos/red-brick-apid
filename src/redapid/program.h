@@ -104,4 +104,6 @@ APIE program_get_custom_option_value(Program *program, Session *session,
                                      ObjectID name_id, ObjectID *value_id);
 APIE program_remove_custom_option(Program *program, ObjectID name_id);
 
+void program_handle_brickd_connection(Program *program);
+
 #endif // REDAPID_PROGRAM_H

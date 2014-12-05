@@ -22,9 +22,13 @@
 #ifndef REDAPID_NETWORK_H
 #define REDAPID_NETWORK_H
 
+#include <stdbool.h>
+
 int network_init(const char *brickd_socket_filename,
                  const char *cron_socket_filename);
 void network_exit(void);
+
+bool network_is_brickd_connected(void);
 
 void network_cleanup_brickd_and_socats(void);
 

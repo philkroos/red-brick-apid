@@ -39,6 +39,8 @@
 
 #include "api.h"
 #include "brickd.h"
+#include "inventory.h"
+#include "program.h"
 #include "socat.h"
 
 static const char *_brickd_socket_filename = NULL; // only != NULL if corresponding socket is open
@@ -48,6 +50,14 @@ static Socket _cron_server_socket;
 static BrickDaemon _brickd;
 static bool _brickd_connected = false;
 static Array _socats;
+
+static void network_notify_program_scheduler(Object *object, void *opaque) {
+	Program *program = (Program *)object;
+
+	(void)opaque;
+
+	program_handle_brickd_connection(program);
+}
 
 static void network_handle_brickd_accept(void *opaque) {
 	Socket *client_socket;
@@ -85,6 +95,8 @@ static void network_handle_brickd_accept(void *opaque) {
 	_brickd_connected = true;
 
 	log_info("Brick Daemon connected");
+
+	inventory_for_each_object(OBJECT_TYPE_PROGRAM, network_notify_program_scheduler, NULL);
 }
 
 static void network_handle_cron_accept(void *opaque) {
@@ -247,6 +259,10 @@ void network_exit(void) {
 		socket_destroy(&_brickd_server_socket);
 		unlink(_brickd_socket_filename);
 	}
+}
+
+bool network_is_brickd_connected(void) {
+	return _brickd_connected;
 }
 
 void network_cleanup_brickd_and_socats(void) {

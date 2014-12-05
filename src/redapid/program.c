@@ -1515,3 +1515,9 @@ APIE program_remove_custom_option(Program *program, ObjectID name_id) {
 
 	return API_E_SUCCESS;
 }
+
+void program_handle_brickd_connection(Program *program) {
+	if (program->scheduler.waiting_for_brickd) {
+		program_scheduler_update(&program->scheduler, true);
+	}
+}
