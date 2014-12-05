@@ -45,10 +45,10 @@ case "$1" in
 	log_daemon_msg "Starting RED Brick API Daemon" "redapid"
 
 	# FIXME: depending on $network does not seem to be enough to ensure that
-	# the loopback interface is actually up at this point. just wait 5 seconds
+	# the loopback interface is actually up at this point. just wait 60 seconds
 	# here for lo to come up to ensure that scheduled programs can connect via
 	# localhost to brickd
-	TIMEOUT=5
+	TIMEOUT=60
 	RESULT=`ifconfig | grep -e '^lo '`
 	while [ $TIMEOUT -gt 0 ] && [ -z "$RESULT" ]; do
 		sleep 1
