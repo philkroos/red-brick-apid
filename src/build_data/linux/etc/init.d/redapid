@@ -1,7 +1,7 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          redapid
-# Required-Start:    $remote_fs $syslog
+# Required-Start:    $remote_fs $syslog $network $named
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
@@ -43,6 +43,19 @@ test -x $DAEMON || exit 0
 case "$1" in
   start)
 	log_daemon_msg "Starting RED Brick API Daemon" "redapid"
+
+	# FIXME: depending on $network does not seem to be enough to ensure that
+	# the loopback interface is actually up at this point. just wait 5 seconds
+	# here for lo to come up to ensure that scheduled programs can connect via
+	# localhost to brickd
+	TIMEOUT=5
+	RESULT=`ifconfig | grep -e '^lo '`
+	while [ $TIMEOUT -gt 0 ] && [ -z "$RESULT" ]; do
+		sleep 1
+		TIMEOUT=$(($TIMEOUT - 1))
+		RESULT=`ifconfig | grep -e '^lo '`
+	done
+
 	start_daemon -p $PIDFILE $DAEMON $OPTIONS
 	log_end_msg $?
 	;;
