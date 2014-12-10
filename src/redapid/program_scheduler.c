@@ -680,7 +680,7 @@ static File *program_scheduler_prepare_individual_log(ProgramScheduler *program_
 
 		if (robust_snprintf(buffer, sizeof(buffer), "%s/%s_%"PRIu64"+%03d_%s.log",
 		                    program_scheduler->log_directory,
-		                    iso8601, microseconds, counter, suffix) < 0) {
+		                    iso8601, microseconds, ++counter, suffix) < 0) {
 			program_scheduler_handle_error(program_scheduler, true,
 			                               "Could not format %s log file name: %s (%d)",
 			                               suffix, get_errno_name(errno), errno);
