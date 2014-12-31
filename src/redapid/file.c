@@ -42,6 +42,8 @@
 #include "inventory.h"
 #include "process.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 #define FILE_SIGNATURE_FORMAT "id: %u, type: %s, name: %s, flags: 0x%04X"
 
 #define file_expand_signature(file) (file)->base.id, \

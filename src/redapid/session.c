@@ -29,6 +29,8 @@
 
 #include "inventory.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static void session_remove_external_references(Session *session) {
 	ExternalReference *external_reference;
 	Object *object;

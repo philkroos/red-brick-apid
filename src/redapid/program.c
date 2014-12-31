@@ -35,6 +35,8 @@
 #include "directory.h"
 #include "inventory.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static const char *_identifier_alphabet =
 	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-";
 

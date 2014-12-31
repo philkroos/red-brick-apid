@@ -31,6 +31,8 @@
 #include "api.h"
 #include "inventory.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static void list_unlock_item(void *item) {
 	Object *object = *(Object **)item;
 

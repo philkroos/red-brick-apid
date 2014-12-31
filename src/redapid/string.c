@@ -35,6 +35,8 @@
 
 #include "inventory.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static void string_destroy(Object *object) {
 	String *string = (String *)object;
 

@@ -32,6 +32,8 @@
 
 #include "api.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static void brickd_handle_read(void *opaque) {
 	BrickDaemon *brickd = opaque;
 	int length;

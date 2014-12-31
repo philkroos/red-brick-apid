@@ -47,6 +47,8 @@
 
 #include "inventory.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 const char *object_get_type_name(ObjectType type) {
 	switch (type) {
 	case OBJECT_TYPE_STRING:    return "string";

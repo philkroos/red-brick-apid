@@ -39,6 +39,8 @@
 #include "string.h"
 #include "version.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 #define RED_BRICK_DEVICE_IDENTIFIER 17
 
 typedef enum {

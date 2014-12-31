@@ -43,6 +43,8 @@
 #include "network.h"
 #include "program.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 extern bool _is_full_image;
 
 static void program_scheduler_start(ProgramScheduler *program_scheduler);

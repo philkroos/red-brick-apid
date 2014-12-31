@@ -43,6 +43,8 @@
 #include "program.h"
 #include "socat.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static const char *_brickd_socket_filename = NULL; // only != NULL if corresponding socket is open
 static Socket _brickd_server_socket;
 static const char *_cron_socket_filename = NULL; // only != NULL if corresponding socket is open

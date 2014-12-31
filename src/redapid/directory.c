@@ -37,6 +37,8 @@
 #include "process.h"
 #include "string.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static void directory_destroy(Object *object) {
 	Directory *directory = (Directory *)object;
 

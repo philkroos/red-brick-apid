@@ -42,6 +42,8 @@
 #include "inventory.h"
 #include "string.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 typedef struct {
 	ProcessState state;
 	uint64_t timestamp;

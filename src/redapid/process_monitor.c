@@ -32,6 +32,8 @@
 
 #include "process_monitor.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 #define SERACH_INTERVAL 2 // seconds
 
 typedef struct {

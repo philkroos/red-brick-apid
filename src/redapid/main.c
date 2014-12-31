@@ -45,6 +45,8 @@
 #include "process_monitor.h"
 #include "version.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static char _config_filename[1024] = SYSCONFDIR "/redapid.conf";
 static char _pid_filename[1024] = LOCALSTATEDIR "/run/redapid.pid";
 static char _brickd_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-brickd.socket";
@@ -190,14 +192,14 @@ static int prepare_paths(void) {
 
 static void print_usage(void) {
 	printf("Usage:\n"
-	       "  redapid [--help|--version|--check-config|--daemon] [--debug]\n"
+	       "  redapid [--help|--version|--check-config|--daemon] [--debug [<filter>]]\n"
 	       "\n"
 	       "Options:\n"
-	       "  --help          Show this help\n"
-	       "  --version       Show version number\n"
-	       "  --check-config  Check config file for errors\n"
-	       "  --daemon        Run as daemon and write PID and log file\n"
-	       "  --debug         Set all log levels to debug\n");
+	       "  --help              Show this help\n"
+	       "  --version           Show version number\n"
+	       "  --check-config      Check config file for errors\n"
+	       "  --daemon            Run as daemon and write PID and log file\n"
+	       "  --debug [<filter>]  Set log level to debug and apply optional filter\n");
 }
 
 static void handle_sighup(void) {
@@ -234,7 +236,7 @@ int main(int argc, char **argv) {
 	bool version = false;
 	bool check_config = false;
 	bool daemon = false;
-	bool debug = false;
+	const char *debug_filter = NULL;
 	int pid_fd = -1;
 
 	for (i = 1; i < argc; ++i) {
@@ -247,7 +249,11 @@ int main(int argc, char **argv) {
 		} else if (strcmp(argv[i], "--daemon") == 0) {
 			daemon = true;
 		} else if (strcmp(argv[i], "--debug") == 0) {
-			debug = true;
+			if (i + 1 < argc && strncmp(argv[i + 1], "--", 2) != 0) {
+				debug_filter = argv[++i];
+			} else {
+				debug_filter = "";
+			}
 		} else {
 			fprintf(stderr, "Unknown option '%s'\n\n", argv[i]);
 			print_usage();
@@ -288,7 +294,6 @@ int main(int argc, char **argv) {
 	}
 
 	log_init();
-	log_set_debug_override(debug);
 
 	if (daemon) {
 		pid_fd = daemon_start(_log_filename, _pid_filename, 1);
@@ -310,6 +315,10 @@ int main(int argc, char **argv) {
 	} else {
 		log_info("RED Brick API Daemon %s started on %s image",
 		         VERSION_STRING, _image_version);
+	}
+
+	if (debug_filter != NULL) {
+		log_enable_debug_override(debug_filter);
 	}
 
 	if (config_has_warning()) {

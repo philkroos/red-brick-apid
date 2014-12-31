@@ -23,5 +23,6 @@
 
 ConfigOption config_options[] = {
 	CONFIG_OPTION_SYMBOL_INITIALIZER("log.level", config_parse_log_level, config_format_log_level, LOG_LEVEL_INFO),
+	CONFIG_OPTION_STRING_INITIALIZER("log.debug_filter", 0, -1, NULL),
 	CONFIG_OPTION_NULL_INITIALIZER // end of list
 };

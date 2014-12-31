@@ -30,6 +30,8 @@
 
 #include "socat.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 static void socat_handle_receive(void *opaque) {
 	Socat *socat = opaque;
 	int length;

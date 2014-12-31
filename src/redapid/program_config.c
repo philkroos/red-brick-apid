@@ -33,6 +33,8 @@
 #include "api.h"
 #include "inventory.h"
 
+static LogSource _log_source = LOG_SOURCE_INITIALIZER;
+
 typedef const char *(*ProgramConfigGetNameFunction)(int value);
 typedef int (*ProgramConfigGetValueFunction)(const char *name, int *value);
 
