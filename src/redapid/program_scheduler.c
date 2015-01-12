@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * program_scheduler.c: Program object scheduler
  *
@@ -45,7 +45,7 @@
 
 static LogSource _log_source = LOG_SOURCE_INITIALIZER;
 
-extern bool _is_full_image;
+extern bool _x11_enabled;
 
 static void program_scheduler_start(ProgramScheduler *program_scheduler);
 static void program_scheduler_stop(ProgramScheduler *program_scheduler,
@@ -1016,8 +1016,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->timestamp = time(NULL);
 	program_scheduler->message = NULL;
 
-	// if this is a full image...
-	if (_is_full_image) {
+	// if X11 is enabled...
+	if (_x11_enabled) {
 		for (i = 0; i < program->config.environment->items.count; ++i) {
 			environment = *(String **)array_get(&program->config.environment->items, i);
 

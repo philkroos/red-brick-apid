@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * main.c: RED Brick API Daemon starting point
  *
@@ -47,13 +47,13 @@
 
 static LogSource _log_source = LOG_SOURCE_INITIALIZER;
 
-static char _config_filename[1024] = SYSCONFDIR "/redapid.conf";
-static char _pid_filename[1024] = LOCALSTATEDIR "/run/redapid.pid";
-static char _brickd_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-brickd.socket";
-static char _cron_socket_filename[1024] = LOCALSTATEDIR "/run/redapid-cron.socket";
-static char _log_filename[1024] = LOCALSTATEDIR "/log/redapid.log";
+static char _config_filename[1024] = SYSCONFDIR"/redapid.conf";
+static char _pid_filename[1024] = LOCALSTATEDIR"/run/redapid.pid";
+static char _brickd_socket_filename[1024] = LOCALSTATEDIR"/run/redapid-brickd.socket";
+static char _cron_socket_filename[1024] = LOCALSTATEDIR"/run/redapid-cron.socket";
+static char _log_filename[1024] = LOCALSTATEDIR"/log/redapid.log";
 static char _image_version[128] = "<unknown>";
-bool _is_full_image = false;
+bool _x11_enabled = false;
 
 static void read_image_version(void) {
 	FILE *fp;
@@ -88,8 +88,6 @@ static void read_image_version(void) {
 
 		return;
 	}
-
-	_is_full_image = strstr(_image_version, "(full)") != NULL;
 }
 
 static int prepare_paths(void) {
@@ -276,6 +274,8 @@ int main(int argc, char **argv) {
 
 	read_image_version();
 
+	_x11_enabled = access("/etc/tf_x11_enabled", F_OK) == 0;
+
 	if (prepare_paths() < 0) {
 		return EXIT_FAILURE;
 	}
@@ -309,8 +309,14 @@ int main(int argc, char **argv) {
 		goto error_pid_file;
 	}
 
-	if (daemon) {
+	if (daemon && _x11_enabled) {
+		log_info("RED Brick API Daemon %s started (daemonized, X11 enabled) on %s image",
+		         VERSION_STRING, _image_version);
+	} else if (daemon) {
 		log_info("RED Brick API Daemon %s started (daemonized) on %s image",
+		         VERSION_STRING, _image_version);
+	} else if (_x11_enabled) {
+		log_info("RED Brick API Daemon %s started (X11 enabled) on %s image",
 		         VERSION_STRING, _image_version);
 	} else {
 		log_info("RED Brick API Daemon %s started on %s image",

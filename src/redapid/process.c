@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * process.c: Process object implementation
  *
@@ -52,13 +52,14 @@ typedef struct {
 
 static bool process_state_is_alive(ProcessState state) {
 	switch (state) {
-	default:
 	case PROCESS_STATE_UNKNOWN: return true;
 	case PROCESS_STATE_RUNNING: return true;
 	case PROCESS_STATE_ERROR:   return false;
 	case PROCESS_STATE_EXITED:  return false;
 	case PROCESS_STATE_KILLED:  return false;
 	case PROCESS_STATE_STOPPED: return true;
+
+	default:                    return true;
 	}
 }
 
