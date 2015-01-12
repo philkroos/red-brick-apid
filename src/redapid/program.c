@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * program.c: Program object implementation
  *
@@ -136,9 +136,9 @@ static void program_destroy(Object *object) {
 
 	program_config_destroy(&program->config);
 
-	string_unlock(program->root_directory);
-	string_unlock(program->identifier);
-	string_unlock(program->none_message);
+	string_unlock_and_release(program->root_directory);
+	string_unlock_and_release(program->identifier);
+	string_unlock_and_release(program->none_message);
 
 	free(program);
 }
@@ -278,13 +278,13 @@ cleanup:
 		free(program);
 
 	case 4:
-		string_unlock(none_message);
+		string_unlock_and_release(none_message);
 
 	case 3:
-		string_unlock(root_directory_object);
+		string_unlock_and_release(root_directory_object);
 
 	case 2:
-		string_unlock(identifier_object);
+		string_unlock_and_release(identifier_object);
 
 	case 1:
 		program_config_destroy(&program_config);
@@ -306,8 +306,8 @@ APIE program_define(ObjectID identifier_id, Session *session, ObjectID *id) {
 	String *none_message;
 	Program *program;
 
-	// lock identifier string object
-	error_code = string_get_locked(identifier_id, &identifier);
+	// acquire and lock identifier string object
+	error_code = string_get_acquired_and_locked(identifier_id, &identifier);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -449,16 +449,16 @@ cleanup:
 		free(program);
 
 	case 4:
-		string_unlock(none_message);
+		string_unlock_and_release(none_message);
 
 	case 3:
 		rmdir(root_directory->buffer); // FIXME: do a recursive remove here
 
 	case 2:
-		string_unlock(root_directory);
+		string_unlock_and_release(root_directory);
 
 	case 1:
-		string_unlock(identifier);
+		string_unlock_and_release(identifier);
 
 	default:
 		break;
@@ -628,8 +628,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 		goto cleanup;
 	}
 
-	// lock new executable string object
-	error_code = string_get_locked(executable_id, &executable);
+	// acquire and lock new executable string object
+	error_code = string_get_acquired_and_locked(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -646,7 +646,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	}
 
 	// lock new arguments list object
-	error_code = list_get_locked(arguments_id, OBJECT_TYPE_STRING, &arguments);
+	error_code = list_get_acquired_and_locked(arguments_id, OBJECT_TYPE_STRING,
+	                                          &arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -655,7 +656,8 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	phase = 2;
 
 	// lock new environment list object
-	error_code = list_get_locked(environment_id, OBJECT_TYPE_STRING, &environment);
+	error_code = list_get_acquired_and_locked(environment_id, OBJECT_TYPE_STRING,
+	                                          &environment);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -663,8 +665,9 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 
 	phase = 3;
 
-	// lock new working directory string object
-	error_code = string_get_locked(working_directory_id, &working_directory);
+	// acquire and lock new working directory string object
+	error_code = string_get_acquired_and_locked(working_directory_id,
+	                                            &working_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -702,10 +705,10 @@ APIE program_set_command(Program *program, ObjectID executable_id,
 	phase = 5;
 
 	// unlock old objects
-	string_unlock(backup.executable);
-	list_unlock(backup.arguments);
-	list_unlock(backup.environment);
-	string_unlock(backup.working_directory);
+	string_unlock_and_release(backup.executable);
+	list_unlock_and_release(backup.arguments);
+	list_unlock_and_release(backup.environment);
+	string_unlock_and_release(backup.working_directory);
 
 	program_scheduler_update(&program->scheduler, false);
 
@@ -714,16 +717,16 @@ cleanup:
 	case 4:
 		memcpy(&program->config, &backup, sizeof(program->config));
 
-		string_unlock(working_directory);
+		string_unlock_and_release(working_directory);
 
 	case 3:
-		list_unlock(environment);
+		list_unlock_and_release(environment);
 
 	case 2:
-		list_unlock(arguments);
+		list_unlock_and_release(arguments);
 
 	case 1:
-		string_unlock(executable);
+		string_unlock_and_release(executable);
 
 	default:
 		break;
@@ -864,9 +867,10 @@ APIE program_set_stdio_redirection(Program *program,
 		goto cleanup;
 	}
 
-	// lock new stdin file name string object
+	// acquire and lock new stdin file name string object
 	if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		error_code = string_get_locked(stdin_file_name_id, &stdin_file_name);
+		error_code = string_get_acquired_and_locked(stdin_file_name_id,
+		                                            &stdin_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -890,9 +894,10 @@ APIE program_set_stdio_redirection(Program *program,
 		//        of <home>/programs/<identifier>/bin
 	}
 
-	// lock new stdout file name string object
+	// acquire and lock new stdout file name string object
 	if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		error_code = string_get_locked(stdout_file_name_id, &stdout_file_name);
+		error_code = string_get_acquired_and_locked(stdout_file_name_id,
+		                                            &stdout_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -916,9 +921,10 @@ APIE program_set_stdio_redirection(Program *program,
 		//        of <home>/programs/<identifier>/bin
 	}
 
-	// lock new stderr file name string object
+	// acquire and lock new stderr file name string object
 	if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		error_code = string_get_locked(stderr_file_name_id, &stderr_file_name);
+		error_code = string_get_acquired_and_locked(stderr_file_name_id,
+		                                            &stderr_file_name);
 
 		if (error_code != API_E_SUCCESS) {
 			goto cleanup;
@@ -966,15 +972,15 @@ APIE program_set_stdio_redirection(Program *program,
 
 	// unlock old objects
 	if (backup.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(backup.stdin_file_name);
+		string_unlock_and_release(backup.stdin_file_name);
 	}
 
 	if (backup.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(backup.stdout_file_name);
+		string_unlock_and_release(backup.stdout_file_name);
 	}
 
 	if (backup.stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(backup.stderr_file_name);
+		string_unlock_and_release(backup.stderr_file_name);
 	}
 
 	program_scheduler_update(&program->scheduler, false);
@@ -986,17 +992,17 @@ cleanup:
 
 	case 3:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(stderr_file_name);
+			string_unlock_and_release(stderr_file_name);
 		}
 
 	case 2:
 		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(stdout_file_name);
+			string_unlock_and_release(stdout_file_name);
 		}
 
 	case 1:
 		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(stdin_file_name);
+			string_unlock_and_release(stdin_file_name);
 		}
 
 	default:
@@ -1135,7 +1141,7 @@ APIE program_set_schedule(Program *program,
 	}
 
 	if (start_mode == PROGRAM_START_MODE_CRON) {
-		error_code = string_get_locked(start_fields_id, &start_fields);
+		error_code = string_get_acquired_and_locked(start_fields_id, &start_fields);
 
 		if (error_code != API_E_SUCCESS) {
 			return error_code;
@@ -1144,7 +1150,7 @@ APIE program_set_schedule(Program *program,
 		if (*start_fields->buffer == '\0') {
 			log_warn("Cannot start with empty cron fields");
 
-			string_unlock(start_fields);
+			string_unlock_and_release(start_fields);
 
 			return API_E_INVALID_PARAMETER;
 		}
@@ -1170,7 +1176,7 @@ APIE program_set_schedule(Program *program,
 		memcpy(&program->config, &backup, sizeof(program->config));
 
 		if (start_mode == PROGRAM_START_MODE_CRON) {
-			string_unlock(start_fields);
+			string_unlock_and_release(start_fields);
 		}
 
 		return error_code;
@@ -1178,7 +1184,7 @@ APIE program_set_schedule(Program *program,
 
 	// unlock old objects
 	if (backup.start_mode == PROGRAM_START_MODE_CRON) {
-		string_unlock(backup.start_fields);
+		string_unlock_and_release(backup.start_fields);
 	}
 
 	program_scheduler_update(&program->scheduler, true);
@@ -1361,7 +1367,7 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 		return error_code;
 	}
 
-	error_code = string_get_locked(value_id, &value);
+	error_code = string_get_acquired_and_locked(value_id, &value);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
@@ -1379,12 +1385,12 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 			          program->base.id, program->identifier->buffer,
 			          get_errno_name(errno), errno);
 
-			string_unlock(value);
+			string_unlock_and_release(value);
 
 			return error_code;
 		}
 
-		string_lock(name);
+		string_acquire_and_lock(name);
 
 		custom_option->name = name;
 		custom_option->value = value;
@@ -1395,8 +1401,8 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 			array_remove(program->config.custom_options,
 			             program->config.custom_options->count - 1, NULL);
 
-			string_unlock(name);
-			string_unlock(value);
+			string_unlock_and_release(name);
+			string_unlock_and_release(value);
 
 			return error_code;
 		}
@@ -1409,12 +1415,12 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 		if (error_code != API_E_SUCCESS) {
 			custom_option->value = backup;
 
-			string_unlock(value);
+			string_unlock_and_release(value);
 
 			return error_code;
 		}
 
-		string_unlock(backup);
+		string_unlock_and_release(backup);
 	}
 
 	return API_E_SUCCESS;
@@ -1512,8 +1518,8 @@ APIE program_remove_custom_option(Program *program, ObjectID name_id) {
 		return error_code;
 	}
 
-	string_unlock(backup.name);
-	string_unlock(backup.value);
+	string_unlock_and_release(backup.name);
+	string_unlock_and_release(backup.value);
 
 	return API_E_SUCCESS;
 }

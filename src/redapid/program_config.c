@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * program_config.c: Program object configuration
  *
@@ -56,11 +56,11 @@ static EnumValueName _start_mode_enum_value_names[] = {
 	{ -1,                           NULL }
 };
 
-static void program_custom_option_unlock(void *item) {
+static void program_custom_option_unlock_and_release(void *item) {
 	ProgramCustomOption *custom_option = item;
 
-	string_unlock(custom_option->name);
-	string_unlock(custom_option->value);
+	string_unlock_and_release(custom_option->name);
+	string_unlock_and_release(custom_option->value);
 }
 
 static const char *program_config_get_stdio_redirection_name(int redirection) {
@@ -445,7 +445,7 @@ static APIE program_config_get_string_list(ProgramConfig *program_config,
 	return API_E_SUCCESS;
 
 error:
-	list_unlock(*value);
+	list_unlock_and_release(*value);
 
 	return error_code;
 }
@@ -559,22 +559,22 @@ APIE program_config_create(ProgramConfig *program_config, const char *filename) 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 6:
-		array_destroy(custom_options, program_custom_option_unlock);
+		array_destroy(custom_options, program_custom_option_unlock_and_release);
 
 	case 5:
 		free(custom_options);
 
 	case 4:
-		string_unlock(working_directory);
+		string_unlock_and_release(working_directory);
 
 	case 3:
-		list_unlock(environment);
+		list_unlock_and_release(environment);
 
 	case 2:
-		list_unlock(arguments);
+		list_unlock_and_release(arguments);
 
 	case 1:
-		string_unlock(executable);
+		string_unlock_and_release(executable);
 
 	default:
 		break;
@@ -584,29 +584,30 @@ cleanup:
 }
 
 void program_config_destroy(ProgramConfig *program_config) {
-	array_destroy(program_config->custom_options, program_custom_option_unlock);
+	array_destroy(program_config->custom_options,
+	              program_custom_option_unlock_and_release);
 	free(program_config->custom_options);
 
 	if (program_config->start_mode == PROGRAM_START_MODE_CRON) {
-		string_unlock(program_config->start_fields);
+		string_unlock_and_release(program_config->start_fields);
 	}
 
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(program_config->stderr_file_name);
+		string_unlock_and_release(program_config->stderr_file_name);
 	}
 
 	if (program_config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(program_config->stdout_file_name);
+		string_unlock_and_release(program_config->stdout_file_name);
 	}
 
 	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(program_config->stdin_file_name);
+		string_unlock_and_release(program_config->stdin_file_name);
 	}
 
-	string_unlock(program_config->working_directory);
-	list_unlock(program_config->environment);
-	list_unlock(program_config->arguments);
-	string_unlock(program_config->executable);
+	string_unlock_and_release(program_config->working_directory);
+	list_unlock_and_release(program_config->environment);
+	list_unlock_and_release(program_config->arguments);
+	string_unlock_and_release(program_config->executable);
 	free(program_config->filename);
 }
 
@@ -726,7 +727,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		if (*stdin_file_name->buffer == '\0') {
 			log_warn("Cannot redirect stdin to empty file name, redirecting to /dev/null instead");
 
-			string_unlock(stdin_file_name);
+			string_unlock_and_release(stdin_file_name);
 
 			stdin_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 		} else {
@@ -766,7 +767,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		if (*stdout_file_name->buffer == '\0') {
 			log_warn("Cannot redirect stdout to empty file name, redirecting to /dev/null instead");
 
-			string_unlock(stdout_file_name);
+			string_unlock_and_release(stdout_file_name);
 
 			stdout_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 		} else {
@@ -805,7 +806,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		if (*stderr_file_name->buffer == '\0') {
 			log_warn("Cannot redirect stderr to empty file name, redirecting to /dev/null instead");
 
-			string_unlock(stderr_file_name);
+			string_unlock_and_release(stderr_file_name);
 
 			stderr_redirection = PROGRAM_STDIO_REDIRECTION_DEV_NULL;
 		} else {
@@ -845,7 +846,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 		if (*start_fields->buffer == '\0') {
 			log_warn("Cannot start with empty cron fields, starting never instead");
 
-			string_unlock(start_fields);
+			string_unlock_and_release(start_fields);
 
 			start_mode = PROGRAM_START_MODE_NEVER;
 		}
@@ -922,7 +923,7 @@ APIE program_config_load(ProgramConfig *program_config) {
 				log_error("Could not create string object from '%s' option value in '%s': %s (%d)",
 				          custom_value, program_config->filename, get_errno_name(errno), errno);
 
-				string_unlock(custom_option->name);
+				string_unlock_and_release(custom_option->name);
 
 				array_remove(custom_options, custom_options->count - 1, NULL);
 
@@ -934,28 +935,29 @@ APIE program_config_load(ProgramConfig *program_config) {
 	phase = 12;
 
 	// unlock/destroy old objects
-	string_unlock(program_config->executable);
-	list_unlock(program_config->arguments);
-	list_unlock(program_config->environment);
-	string_unlock(program_config->working_directory);
+	string_unlock_and_release(program_config->executable);
+	list_unlock_and_release(program_config->arguments);
+	list_unlock_and_release(program_config->environment);
+	string_unlock_and_release(program_config->working_directory);
 
 	if (program_config->stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(program_config->stdin_file_name);
+		string_unlock_and_release(program_config->stdin_file_name);
 	}
 
 	if (program_config->stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(program_config->stdout_file_name);
+		string_unlock_and_release(program_config->stdout_file_name);
 	}
 
 	if (program_config->stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-		string_unlock(program_config->stderr_file_name);
+		string_unlock_and_release(program_config->stderr_file_name);
 	}
 
 	if (program_config->start_mode == PROGRAM_START_MODE_CRON) {
-		string_unlock(program_config->start_fields);
+		string_unlock_and_release(program_config->start_fields);
 	}
 
-	array_destroy(program_config->custom_options, program_custom_option_unlock);
+	array_destroy(program_config->custom_options,
+	              program_custom_option_unlock_and_release);
 	free(program_config->custom_options);
 
 	// set new objects
@@ -980,42 +982,42 @@ APIE program_config_load(ProgramConfig *program_config) {
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 11:
-		array_destroy(custom_options, program_custom_option_unlock);
+		array_destroy(custom_options, program_custom_option_unlock_and_release);
 
 	case 10:
 		free(custom_options);
 
 	case 9:
 		if (start_mode == PROGRAM_START_MODE_CRON) {
-			string_unlock(start_fields);
+			string_unlock_and_release(start_fields);
 		}
 
 	case 8:
 		if (stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(stderr_file_name);
+			string_unlock_and_release(stderr_file_name);
 		}
 
 	case 7:
 		if (stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(stdout_file_name);
+			string_unlock_and_release(stdout_file_name);
 		}
 
 	case 6:
 		if (stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(stdin_file_name);
+			string_unlock_and_release(stdin_file_name);
 		}
 
 	case 5:
-		string_unlock(working_directory);
+		string_unlock_and_release(working_directory);
 
 	case 4:
-		list_unlock(environment);
+		list_unlock_and_release(environment);
 
 	case 3:
-		list_unlock(arguments);
+		list_unlock_and_release(arguments);
 
 	case 2:
-		string_unlock(executable);
+		string_unlock_and_release(executable);
 
 	case 1:
 		conf_file_destroy(&conf_file);

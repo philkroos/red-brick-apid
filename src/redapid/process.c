@@ -110,13 +110,13 @@ static void process_destroy(Object *object) {
 
 	pipe_destroy(&process->state_change_pipe);
 
-	file_unlock(process->stderr);
-	file_unlock(process->stdout);
-	file_unlock(process->stdin);
-	string_unlock(process->working_directory);
-	list_unlock(process->environment);
-	list_unlock(process->arguments);
-	string_unlock(process->executable);
+	file_release(process->stderr);
+	file_release(process->stdout);
+	file_release(process->stdin);
+	string_unlock_and_release(process->working_directory);
+	list_unlock_and_release(process->environment);
+	list_unlock_and_release(process->arguments);
+	string_unlock_and_release(process->executable);
 
 	free(process);
 }
@@ -401,8 +401,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	FILE *log_file;
 	Process *process;
 
-	// lock executable string object
-	error_code = string_get_locked(executable_id, &executable);
+	// acquire and lock executable string object
+	error_code = string_get_acquired_and_locked(executable_id, &executable);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -419,7 +419,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	}
 
 	// lock arguments list object
-	error_code = list_get_locked(arguments_id, OBJECT_TYPE_STRING, &arguments);
+	error_code = list_get_acquired_and_locked(arguments_id, OBJECT_TYPE_STRING,
+	                                          &arguments);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -481,7 +482,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 	*item = NULL;
 
 	// lock environment list object
-	error_code = list_get_locked(environment_id, OBJECT_TYPE_STRING, &environment);
+	error_code = list_get_acquired_and_locked(environment_id, OBJECT_TYPE_STRING,
+	                                          &environment);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -531,8 +533,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 	*item = NULL;
 
-	// lock working directory string object
-	error_code = string_get_locked(working_directory_id, &working_directory);
+	// acquire and lock working directory string object
+	error_code = string_get_acquired_and_locked(working_directory_id, &working_directory);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -558,8 +560,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 		goto cleanup;
 	}
 
-	// lock stdin file object
-	error_code = file_get_locked(stdin_id, &stdin);
+	// acquire stdin file object
+	error_code = file_get_acquired(stdin_id, &stdin);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -567,8 +569,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 	phase = 7;
 
-	// lock stdout file object
-	error_code = file_get_locked(stdout_id, &stdout);
+	// acquire stdout file object
+	error_code = file_get_acquired(stdout_id, &stdout);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -576,8 +578,8 @@ APIE process_spawn(ObjectID executable_id, ObjectID arguments_id,
 
 	phase = 8;
 
-	// lock stderr file object
-	error_code = file_get_locked(stderr_id, &stderr);
+	// acquire stderr file object
+	error_code = file_get_acquired(stderr_id, &stderr);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -841,31 +843,31 @@ cleanup:
 		close(status_pipe[1]);
 
 	case 9:
-		file_unlock(stderr);
+		file_release(stderr);
 
 	case 8:
-		file_unlock(stdout);
+		file_release(stdout);
 
 	case 7:
-		file_unlock(stdin);
+		file_release(stdin);
 
 	case 6:
-		string_unlock(working_directory);
+		string_unlock_and_release(working_directory);
 
 	case 5:
 		array_destroy(&environment_array, NULL);
 
 	case 4:
-		list_unlock(environment);
+		list_unlock_and_release(environment);
 
 	case 3:
 		array_destroy(&arguments_array, NULL);
 
 	case 2:
-		list_unlock(arguments);
+		list_unlock_and_release(arguments);
 
 	case 1:
-		string_unlock(executable);
+		string_unlock_and_release(executable);
 
 	default:
 		break;

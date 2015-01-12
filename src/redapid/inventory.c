@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * inventory.c: Inventory of objects
  *
@@ -72,10 +72,10 @@ static void inventory_destroy_object(void *item) {
 	object_destroy(object);
 }
 
-static void inventory_unlock_object(void *item) {
-	Object *object = *(Object **)item;
+static void inventory_unlock_and_release_string(void *item) {
+	String *string = *(String **)item;
 
-	object_unlock(object);
+	string_unlock_and_release(string);
 }
 
 static APIE inventory_get_next_session_id(SessionID *id) {
@@ -239,8 +239,8 @@ void inventory_exit(void) {
 	// relations between objects that constrains the destruction order are known
 	array_destroy(&_sessions, inventory_destroy_session);
 
-	// unlock all stock string objects
-	array_destroy(&_stock_strings, inventory_unlock_object);
+	// unlock and release all stock string objects
+	array_destroy(&_stock_strings, inventory_unlock_and_release_string);
 
 	// object types have to be destroyed in a specific order. if objects of
 	// type A can use (have a reference to) objects of type B then A has to be
@@ -277,7 +277,7 @@ APIE inventory_get_stock_string(const char *buffer, String **string) {
 		candidate = *(String **)array_get(&_stock_strings, i);
 
 		if (strcmp(candidate->buffer, buffer) == 0) {
-			string_lock(candidate);
+			string_acquire_and_lock(candidate);
 
 			*string = candidate;
 
@@ -302,14 +302,14 @@ APIE inventory_get_stock_string(const char *buffer, String **string) {
 		log_error("Could not append to stock string array: %s (%d)",
 		          get_errno_name(errno), errno);
 
-		string_unlock(*string);
+		string_unlock_and_release(*string);
 
 		return error_code;
 	}
 
 	*string_ptr = *string;
 
-	string_lock(*string);
+	string_acquire_and_lock(*string);
 
 	return API_E_SUCCESS;
 }

@@ -64,7 +64,7 @@ static void program_scheduler_set_state(ProgramScheduler *program_scheduler,
 
 	if (program_scheduler->message != NULL &&
 	    program_scheduler->message != message) {
-		string_unlock(program_scheduler->message);
+		string_unlock_and_release(program_scheduler->message);
 	}
 
 	program_scheduler->state = state;
@@ -353,7 +353,7 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 		                               "Could not create absolute program working directory: %s (%d)",
 		                               api_get_error_code_name(error_code), error_code);
 
-		string_unlock(absolute_working_directory);
+		string_unlock_and_release(absolute_working_directory);
 
 		goto cleanup;
 	}
@@ -477,25 +477,25 @@ static APIE program_scheduler_prepare_filesystem(ProgramScheduler *program_sched
 
 	// update stored string objects
 	if (program_scheduler->absolute_working_directory != NULL) {
-		string_unlock(program_scheduler->absolute_working_directory);
+		string_unlock_and_release(program_scheduler->absolute_working_directory);
 	}
 
 	program_scheduler->absolute_working_directory = absolute_working_directory;
 
 	if (program_scheduler->absolute_stdin_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stdin_file_name);
+		string_unlock_and_release(program_scheduler->absolute_stdin_file_name);
 	}
 
 	program_scheduler->absolute_stdin_file_name = absolute_stdin_file_name;
 
 	if (program_scheduler->absolute_stdout_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stdout_file_name);
+		string_unlock_and_release(program_scheduler->absolute_stdout_file_name);
 	}
 
 	program_scheduler->absolute_stdout_file_name = absolute_stdout_file_name;
 
 	if (program_scheduler->absolute_stderr_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stderr_file_name);
+		string_unlock_and_release(program_scheduler->absolute_stderr_file_name);
 	}
 
 	program_scheduler->absolute_stderr_file_name = absolute_stderr_file_name;
@@ -504,16 +504,16 @@ cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 3:
 		if (program->config.stdout_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(absolute_stdout_file_name);
+			string_unlock_and_release(absolute_stdout_file_name);
 		}
 
 	case 2:
 		if (program->config.stdin_redirection == PROGRAM_STDIO_REDIRECTION_FILE) {
-			string_unlock(absolute_stdin_file_name);
+			string_unlock_and_release(absolute_stdin_file_name);
 		}
 
 	case 1:
-		string_unlock(absolute_working_directory);
+		string_unlock_and_release(absolute_working_directory);
 
 	default:
 		break;
@@ -663,7 +663,7 @@ static File *program_scheduler_prepare_individual_log(ProgramScheduler *program_
 			                       0644, 1000, 1000,
 			                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
-			string_unlock(name);
+			string_unlock_and_release(name);
 
 			if (error_code == API_E_SUCCESS) {
 				return file;
@@ -748,7 +748,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 	                       0644, 1000, 1000,
 	                       NULL, OBJECT_CREATE_FLAG_INTERNAL, NULL, &file);
 
-	string_unlock(name);
+	string_unlock_and_release(name);
 
 	if (error_code != API_E_SUCCESS) {
 		program_scheduler_handle_error(program_scheduler, true,
@@ -765,7 +765,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 		                               "Could not format timestamp for %s log file: %s (%d)",
 		                               suffix, get_errno_name(errno), errno);
 
-		file_unlock(file);
+		file_release(file);
 
 		return NULL;
 	}
@@ -776,7 +776,7 @@ static File *program_scheduler_prepare_continuous_log(ProgramScheduler *program_
 		                               "Could not write timestamp to %s log file: %s (%d)",
 		                               suffix, get_errno_name(errno), errno);
 
-		file_unlock(file);
+		file_release(file);
 
 		return NULL;
 	}
@@ -1048,7 +1048,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 2:
-		string_unlock(dev_null_file_name);
+		string_unlock_and_release(dev_null_file_name);
 
 	case 1:
 		free(log_directory);
@@ -1068,28 +1068,28 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 	}
 
 	if (program_scheduler->message != NULL) {
-		string_unlock(program_scheduler->message);
+		string_unlock_and_release(program_scheduler->message);
 	}
 
 	timer_destroy(&program_scheduler->timer);
 
-	string_unlock(program_scheduler->dev_null_file_name);
+	string_unlock_and_release(program_scheduler->dev_null_file_name);
 	free(program_scheduler->log_directory);
 
 	if (program_scheduler->absolute_stderr_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stderr_file_name);
+		string_unlock_and_release(program_scheduler->absolute_stderr_file_name);
 	}
 
 	if (program_scheduler->absolute_stdout_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stdout_file_name);
+		string_unlock_and_release(program_scheduler->absolute_stdout_file_name);
 	}
 
 	if (program_scheduler->absolute_stdin_file_name != NULL) {
-		string_unlock(program_scheduler->absolute_stdin_file_name);
+		string_unlock_and_release(program_scheduler->absolute_stdin_file_name);
 	}
 
 	if (program_scheduler->absolute_working_directory != NULL) {
-		string_unlock(program_scheduler->absolute_working_directory);
+		string_unlock_and_release(program_scheduler->absolute_working_directory);
 	}
 }
 

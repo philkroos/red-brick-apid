@@ -403,22 +403,24 @@ APIE string_get(ObjectID id, String **string) {
 	return inventory_get_object(OBJECT_TYPE_STRING, id, (Object **)string);
 }
 
-APIE string_get_locked(ObjectID id, String **string) {
+APIE string_get_acquired_and_locked(ObjectID id, String **string) {
 	APIE error_code = inventory_get_object(OBJECT_TYPE_STRING, id, (Object **)string);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
-	object_lock(&(*string)->base);
+	string_acquire_and_lock(*string);
 
 	return API_E_SUCCESS;
 }
 
-void string_lock(String *string) {
+void string_acquire_and_lock(String *string) {
+	object_add_internal_reference(&string->base);
 	object_lock(&string->base);
 }
 
-void string_unlock(String *string) {
+void string_unlock_and_release(String *string) {
 	object_unlock(&string->base);
+	object_remove_internal_reference(&string->base);
 }

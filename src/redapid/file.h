@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * file.h: File object implementation
  *
@@ -180,7 +180,8 @@ APIE file_get_events(File *file, uint16_t *events);
 IOHandle file_get_read_handle(File *file);
 IOHandle file_get_write_handle(File *file);
 
-APIE file_get_locked(ObjectID id, File **file);
-void file_unlock(File *file);
+APIE file_get_acquired(ObjectID id, File **file);
+
+void file_release(File *file);
 
 #endif // REDAPID_FILE_H

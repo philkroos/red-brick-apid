@@ -44,7 +44,9 @@ APIE list_remove_from(List *list, uint16_t index);
 
 APIE list_ensure_item_type(List *list, ObjectType type);
 
-APIE list_get_locked(ObjectID id, ObjectType item_type, List **list);
-void list_unlock(List *list);
+APIE list_get_acquired_and_locked(ObjectID id, ObjectType item_type, List **list);
+
+void list_acquire_and_lock(List *list);
+void list_unlock_and_release(List *list);
 
 #endif // REDAPID_LIST_H

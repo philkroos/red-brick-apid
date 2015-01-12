@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * directory.c: Directory object implementation
  *
@@ -44,7 +44,7 @@ static void directory_destroy(Object *object) {
 
 	closedir(directory->dp);
 
-	string_unlock(directory->name);
+	string_unlock_and_release(directory->name);
 
 	free(directory);
 }
@@ -133,8 +133,8 @@ APIE directory_open(ObjectID name_id, Session *session, ObjectID *id) {
 	DIR *dp;
 	Directory *directory;
 
-	// lock name string object
-	error_code = string_get_locked(name_id, &name);
+	// acquire and lock name string object
+	error_code = string_get_acquired_and_locked(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -231,7 +231,7 @@ cleanup:
 		closedir(dp);
 
 	case 1:
-		string_unlock(name);
+		string_unlock_and_release(name);
 
 	default:
 		break;

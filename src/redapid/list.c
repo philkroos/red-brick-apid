@@ -33,16 +33,17 @@
 
 static LogSource _log_source = LOG_SOURCE_INITIALIZER;
 
-static void list_unlock_item(void *item) {
+static void list_unlock_and_release_item(void *item) {
 	Object *object = *(Object **)item;
 
 	object_unlock(object);
+	object_remove_internal_reference(object);
 }
 
 static void list_destroy(Object *object) {
 	List *list = (List *)object;
 
-	array_destroy(&list->items, list_unlock_item);
+	array_destroy(&list->items, list_unlock_and_release_item);
 
 	free(list);
 }
@@ -107,7 +108,7 @@ APIE list_allocate(uint16_t reserve, Session *session,
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
 	case 2:
-		array_destroy(&list->items, list_unlock_item);
+		array_destroy(&list->items, list_unlock_and_release_item);
 
 	case 1:
 		free(list);
@@ -186,8 +187,6 @@ APIE list_append_to(List *list, ObjectID item_id) {
 		return error_code;
 	}
 
-	object_lock(item);
-
 	appended_item = array_append(&list->items);
 
 	if (appended_item == NULL) {
@@ -196,10 +195,11 @@ APIE list_append_to(List *list, ObjectID item_id) {
 		log_error("Could not append to list object (id: %u) item array: %s (%d)",
 		          list->base.id, get_errno_name(errno), errno);
 
-		object_unlock(item);
-
 		return error_code;
 	}
+
+	object_add_internal_reference(item);
+	object_lock(item);
 
 	*appended_item = item;
 
@@ -222,7 +222,7 @@ APIE list_remove_from(List *list, uint16_t index) {
 		return API_E_OUT_OF_RANGE;
 	}
 
-	array_remove(&list->items, index, list_unlock_item);
+	array_remove(&list->items, index, list_unlock_and_release_item);
 
 	return API_E_SUCCESS;
 }
@@ -246,7 +246,7 @@ APIE list_ensure_item_type(List *list, ObjectType type) {
 	return API_E_SUCCESS;
 }
 
-APIE list_get_locked(ObjectID id, ObjectType item_type, List **list) {
+APIE list_get_acquired_and_locked(ObjectID id, ObjectType item_type, List **list) {
 	APIE error_code = inventory_get_object(OBJECT_TYPE_LIST, id, (Object **)list);
 
 	if (error_code != API_E_SUCCESS) {
@@ -259,11 +259,17 @@ APIE list_get_locked(ObjectID id, ObjectType item_type, List **list) {
 		return error_code;
 	}
 
-	object_lock(&(*list)->base);
+	list_acquire_and_lock(*list);
 
 	return API_E_SUCCESS;
 }
 
-void list_unlock(List *list) {
+void list_acquire_and_lock(List *list) {
+	object_add_internal_reference(&list->base);
+	object_lock(&list->base);
+}
+
+void list_unlock_and_release(List *list) {
 	object_unlock(&list->base);
+	object_remove_internal_reference(&list->base);
 }

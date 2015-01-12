@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * file.c: File object implementation
  *
@@ -228,7 +228,7 @@ static void file_destroy(Object *object) {
 
 	close(file->async_read_eventfd);
 
-	string_unlock(file->name);
+	string_unlock_and_release(file->name);
 
 	free(file);
 }
@@ -736,8 +736,8 @@ APIE file_open(ObjectID name_id, uint32_t flags, uint16_t permissions,
 		mode |= file_get_mode_from_permissions(permissions);
 	}
 
-	// lock name string object
-	error_code = string_get_locked(name_id, &name);
+	// acquire and lock name string object
+	error_code = string_get_acquired_and_locked(name_id, &name);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -893,7 +893,7 @@ cleanup:
 		close(fd);
 
 	case 1:
-		string_unlock(name);
+		string_unlock_and_release(name);
 
 	default:
 		break;
@@ -1029,7 +1029,7 @@ cleanup:
 		free(file);
 
 	case 1:
-		string_unlock(name);
+		string_unlock_and_release(name);
 
 	default:
 		break;
@@ -1474,18 +1474,18 @@ IOHandle file_get_write_handle(File *file) {
 	}
 }
 
-APIE file_get_locked(ObjectID id, File **file) {
+APIE file_get_acquired(ObjectID id, File **file) {
 	APIE error_code = inventory_get_object(OBJECT_TYPE_FILE, id, (Object **)file);
 
 	if (error_code != API_E_SUCCESS) {
 		return error_code;
 	}
 
-	object_lock(&(*file)->base);
+	object_add_internal_reference(&(*file)->base);
 
 	return API_E_SUCCESS;
 }
 
-void file_unlock(File *file) {
-	object_unlock(&file->base);
+void file_release(File *file) {
+	object_remove_internal_reference(&file->base);
 }

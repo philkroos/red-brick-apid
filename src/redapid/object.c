@@ -340,8 +340,6 @@ void object_lock(Object *object) {
 	          object_get_type_name(object->type), object->id, object->lock_count);
 
 	++object->lock_count;
-
-	object_add_internal_reference(object);
 }
 
 void object_unlock(Object *object) {
@@ -356,6 +354,4 @@ void object_unlock(Object *object) {
 	          object_get_type_name(object->type), object->id, object->lock_count);
 
 	--object->lock_count;
-
-	object_remove_internal_reference(object);
 }
