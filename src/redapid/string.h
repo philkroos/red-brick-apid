@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * string.h: String object implementation
  *
@@ -37,8 +37,8 @@ typedef struct {
 } String;
 
 APIE string_wrap(const char *buffer, Session *session,
-                 uint16_t object_create_flags, ObjectID *id, String **object);
-APIE string_asprintf(Session *session, uint16_t object_create_flags,
+                 uint32_t object_create_flags, ObjectID *id, String **object);
+APIE string_asprintf(Session *session, uint32_t object_create_flags,
                      ObjectID *id, String **object, const char *format, ...) ATTRIBUTE_FMT_PRINTF(5, 6);
 APIE string_allocate(uint32_t reserve, char *buffer, Session *session, ObjectID *id);
 

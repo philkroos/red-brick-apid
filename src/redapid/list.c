@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * list.c: List object implementation
  *
@@ -56,11 +56,12 @@ static void list_signature(Object *object, char *signature) {
 
 // public API
 APIE list_allocate(uint16_t reserve, Session *session,
-                   uint16_t object_create_flags, ObjectID *id, List **object) {
+                   uint32_t object_create_flags, ObjectID *id, List **object) {
 	int phase = 0;
 	APIE error_code;
 	List *list;
 
+	// allocate list object
 	list = calloc(1, sizeof(List));
 
 	if (list == NULL) {
@@ -74,6 +75,7 @@ APIE list_allocate(uint16_t reserve, Session *session,
 
 	phase = 1;
 
+	// create list object
 	if (array_create(&list->items, reserve, sizeof(Object *), true) < 0) {
 		error_code = api_get_error_code_from_errno();
 

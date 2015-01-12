@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * object.c: Object implementation
  *
@@ -78,7 +78,7 @@ bool object_is_valid_type(ObjectType type) {
 }
 
 APIE object_create(Object *object, ObjectType type, Session *session,
-                   uint16_t create_flags, ObjectDestroyFunction destroy,
+                   uint32_t create_flags, ObjectDestroyFunction destroy,
                    ObjectSignatureFunction signature) {
 	APIE error_code;
 

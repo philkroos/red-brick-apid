@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * string.c: String object implementation
  *
@@ -85,7 +85,7 @@ static APIE string_reserve(String *string, uint32_t reserve) {
 }
 
 static APIE string_create(uint32_t reserve, char *buffer, Session *session,
-                          uint16_t object_create_flags, String **string) {
+                          uint32_t object_create_flags, String **string) {
 	int phase = 0;
 	bool external = buffer != NULL;
 	uint32_t length;
@@ -177,7 +177,7 @@ cleanup:
 }
 
 APIE string_wrap(const char *buffer, Session *session,
-                 uint16_t object_create_flags, ObjectID *id, String **object) {
+                 uint32_t object_create_flags, ObjectID *id, String **object) {
 	uint32_t length = strlen(buffer);
 	APIE error_code;
 	String *string;
@@ -210,7 +210,7 @@ APIE string_wrap(const char *buffer, Session *session,
 	return API_E_SUCCESS;
 }
 
-APIE string_asprintf(Session *session, uint16_t object_create_flags,
+APIE string_asprintf(Session *session, uint32_t object_create_flags,
                      ObjectID *id, String **object, const char *format, ...) {
 	va_list arguments;
 	char *buffer;
