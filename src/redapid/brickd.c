@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * brickd.c: Brick Daemon specific functions
  *
@@ -102,9 +102,9 @@ static void brickd_handle_read(void *opaque) {
 			log_debug("Received unknown request (%s) from Brick Daemon with mismatching UID, dropping request",
 			          packet_get_request_signature(packet_signature, &brickd->request));
 		} else {
-			log_debug("Received %s request (%s) from Brick Daemon",
-			          api_get_function_name(brickd->request.header.function_id),
-			          packet_get_request_signature(packet_signature, &brickd->request));
+			log_packet_debug("Received %s request (%s) from Brick Daemon",
+			                 api_get_function_name(brickd->request.header.function_id),
+			                 packet_get_request_signature(packet_signature, &brickd->request));
 
 			api_handle_request(&brickd->request);
 		}
@@ -186,9 +186,9 @@ void brickd_dispatch_response(BrickDaemon *brickd, Packet *response) {
 		return;
 	}
 
-	log_debug("%s %s %s (%s) to Brick Daemon",
-	          enqueued ? "Enqueued" : "Sent",
-	          api_get_function_name(response->header.function_id),
-	          packet_get_response_type(response),
-	          packet_get_response_signature(packet_signature, response));
+	log_packet_debug("%s %s %s (%s) to Brick Daemon",
+	                 enqueued ? "Enqueued" : "Sent",
+	                 api_get_function_name(response->header.function_id),
+	                 packet_get_response_type(response),
+	                 packet_get_response_signature(packet_signature, response));
 }

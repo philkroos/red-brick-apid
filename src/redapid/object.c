@@ -171,10 +171,10 @@ void object_log_signature(Object *object) {
 
 	object->signature(object, signature);
 
-	log_debug("Object (id: %u, type: %s, internal-reference-count: %d, external-reference-count: %d, lock-count: %d%s%s)",
-	          object->id, object_get_type_name(object->type),
-	          object->internal_reference_count, object->external_reference_count, object->lock_count,
-	          signature != NULL ? ", " : "", signature);
+	log_object_debug("Object (id: %u, type: %s, internal-reference-count: %d, external-reference-count: %d, lock-count: %d%s%s)",
+	                 object->id, object_get_type_name(object->type),
+	                 object->internal_reference_count, object->external_reference_count, object->lock_count,
+	                 signature != NULL ? ", " : "", signature);
 }
 
 // public API
@@ -197,9 +197,9 @@ PacketE object_release_unchecked(Object *object, Session *session) {
 }
 
 void object_add_internal_reference(Object *object) {
-	log_debug("Adding an internal %s object (id: %u) reference (count: %d +1)",
-	          object_get_type_name(object->type), object->id,
-	          object->internal_reference_count);
+	log_object_debug("Adding an internal %s object (id: %u) reference (count: %d +1)",
+	                 object_get_type_name(object->type), object->id,
+	                 object->internal_reference_count);
 
 	++object->internal_reference_count;
 }
@@ -212,9 +212,9 @@ void object_remove_internal_reference(Object *object) {
 		return;
 	}
 
-	log_debug("Removing an internal %s object (id: %u) reference (count: %d -1)",
-	          object_get_type_name(object->type), object->id,
-	          object->internal_reference_count);
+	log_object_debug("Removing an internal %s object (id: %u) reference (count: %d -1)",
+	                 object_get_type_name(object->type), object->id,
+	                 object->internal_reference_count);
 
 	--object->internal_reference_count;
 
@@ -237,9 +237,9 @@ APIE object_add_external_reference(Object *object, Session *session) {
 			if (object->id != OBJECT_ID_ZERO) {
 				// only log a message if this is not the initial call from
 				// object_create were the object is not fully initialized yet
-				log_debug("Adding an external %s object (id: %u) reference (count: %d +1) to session (id: %u)",
-				          object_get_type_name(object->type), object->id,
-				          object->external_reference_count, session->id);
+				log_object_debug("Adding an external %s object (id: %u) reference (count: %d +1) to session (id: %u)",
+				                 object_get_type_name(object->type), object->id,
+				                 object->external_reference_count, session->id);
 			}
 
 			++external_reference->count;
@@ -267,9 +267,9 @@ APIE object_add_external_reference(Object *object, Session *session) {
 	if (object->id != OBJECT_ID_ZERO) {
 		// only log a message if this is not the initial call from
 		// object_create were the object is not fully initialized yet
-		log_debug("Adding an external %s object (id: %u) reference (count: %d +1) to session (id: %u)",
-		          object_get_type_name(object->type), object->id,
-		          object->external_reference_count, session->id);
+		log_object_debug("Adding an external %s object (id: %u) reference (count: %d +1) to session (id: %u)",
+		                 object_get_type_name(object->type), object->id,
+		                 object->external_reference_count, session->id);
 	}
 
 	node_reset(&external_reference->object_node);
@@ -305,9 +305,9 @@ void object_remove_external_reference(Object *object, Session *session) {
 		external_reference = containerof(external_reference_object_node, ExternalReference, object_node);
 
 		if (external_reference->session == session) {
-			log_debug("Removing an internal %s object (id: %u) reference (count: %d -1) from session (id: %u)",
-			          object_get_type_name(object->type), object->id,
-			          object->external_reference_count, session->id);
+			log_object_debug("Removing an internal %s object (id: %u) reference (count: %d -1) from session (id: %u)",
+			                 object_get_type_name(object->type), object->id,
+			                 object->external_reference_count, session->id);
 
 			--external_reference->count;
 			--object->external_reference_count;
@@ -336,8 +336,8 @@ void object_remove_external_reference(Object *object, Session *session) {
 }
 
 void object_lock(Object *object) {
-	log_debug("Locking %s object (id: %u, lock-count: %d +1)",
-	          object_get_type_name(object->type), object->id, object->lock_count);
+	log_object_debug("Locking %s object (id: %u, lock-count: %d +1)",
+	                 object_get_type_name(object->type), object->id, object->lock_count);
 
 	++object->lock_count;
 }
@@ -350,8 +350,8 @@ void object_unlock(Object *object) {
 		return;
 	}
 
-	log_debug("Unlocking %s object (id: %u, lock-count: %d -1)",
-	          object_get_type_name(object->type), object->id, object->lock_count);
+	log_object_debug("Unlocking %s object (id: %u, lock-count: %d -1)",
+	                 object_get_type_name(object->type), object->id, object->lock_count);
 
 	--object->lock_count;
 }

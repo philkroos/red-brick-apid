@@ -437,7 +437,7 @@ APIE inventory_add_session(Session *session) {
 
 	*session_ptr = session;
 
-	log_debug("Added session (id: %u)", session->id);
+	log_object_debug("Added session (id: %u)", session->id);
 
 	return API_E_SUCCESS;
 }
@@ -453,7 +453,7 @@ void inventory_remove_session(Session *session) {
 			continue;
 		}
 
-		log_debug("Removing session (id: %u)", session->id);
+		log_object_debug("Removing session (id: %u)", session->id);
 
 		array_remove(&_sessions, i, inventory_destroy_session);
 
@@ -509,8 +509,8 @@ APIE inventory_add_object(Object *object) {
 
 	*object_ptr = object;
 
-	log_debug("Added %s object (id: %u)",
-	          object_get_type_name(object->type), object->id);
+	log_object_debug("Added %s object (id: %u)",
+	                 object_get_type_name(object->type), object->id);
 
 	return API_E_SUCCESS;
 }
@@ -526,8 +526,8 @@ void inventory_remove_object(Object *object) {
 			continue;
 		}
 
-		log_debug("Removing %s object (id: %u)",
-		          object_get_type_name(object->type), object->id);
+		log_object_debug("Removing %s object (id: %u)",
+		                 object_get_type_name(object->type), object->id);
 
 		array_remove(&_objects[object->type], i, inventory_destroy_object);
 

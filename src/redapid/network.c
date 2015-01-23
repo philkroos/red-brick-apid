@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * network.c: Network specific functions
  *
@@ -296,9 +296,9 @@ void network_dispatch_response(Packet *response) {
 	char packet_signature[PACKET_MAX_SIGNATURE_LENGTH];
 
 	if (!_brickd_connected) {
-		log_debug("No Brick Daemon connected, dropping %s (%s)",
-		          packet_get_response_type(response),
-		          packet_get_response_signature(packet_signature, response));
+		log_packet_debug("No Brick Daemon connected, dropping %s (%s)",
+		                 packet_get_response_type(response),
+		                 packet_get_response_signature(packet_signature, response));
 
 		return;
 	}
