@@ -1,5 +1,5 @@
 *.p
 *.o
 src/daemonlib
-src/redapid/dist
+src/dist
 src/redapid/redapid

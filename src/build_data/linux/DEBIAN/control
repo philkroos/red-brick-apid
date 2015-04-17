@@ -1,10 +1,10 @@
 Package: redapid
-Version: <<REDAPID_VERSION>>
+Version: <<VERSION>>
 Section: electronics
 Maintainer: Olaf Lüke <olaf@tinkerforge.com>
-Architecture: <<REDAPID_ARCHITECTURE>>
+Architecture: <<ARCHITECTURE>>
 Priority: optional
-Installed-Size: 252
+Installed-Size: <<INSTALLED_SIZE>>
 Depends: libc6, cron
 Recommends: logrotate
 Description: Tinkerforge RED Brick API Daemon
