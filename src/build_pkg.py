@@ -114,7 +114,7 @@ def build_linux_pkg():
 
     print('preparing files')
     system('objcopy --strip-debug --strip-unneeded dist/usr/bin/redapid')
-    system('cp ../changelog dist/usr/share/doc/redapid/')
+    system('cp changelog dist/usr/share/doc/redapid/')
 
     system('gzip -9 dist/usr/share/doc/redapid/changelog')
     system('gzip -9 dist/usr/share/man/man8/redapid.8')
