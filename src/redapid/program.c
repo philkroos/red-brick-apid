@@ -213,11 +213,8 @@ APIE program_load(const char *identifier, const char *root_directory,
 
 	phase = 3;
 
-	// wrap empty string
-	error_code = string_wrap("None", NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &none_message);
+	// get 'None' message stock string object
+	error_code = inventory_get_stock_string("None", &none_message);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
