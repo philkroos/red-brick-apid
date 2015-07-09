@@ -1,6 +1,6 @@
 /*
  * redapid
- * Copyright (C) 2014 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2014-2015 Matthias Bolte <matthias@tinkerforge.com>
  *
  * program_scheduler.h: Program object scheduler
  *
@@ -56,6 +56,7 @@ typedef struct {
 	String *absolute_stderr_file_name; // <home>/programs/<identifier>/bin/<stderr_file_name>
 	                                   // only != NULL after an program_scheduler_update call
 	                                   // if stderr_redirection == PROGRAM_STDIO_REDIRECTION_FILE
+	char *bin_directory; // <home>/programs/<identifier>/bin
 	char *log_directory; // <home>/programs/<identifier>/log
 	String *dev_null_file_name; // /dev/null
 	ProcessObserver observer;

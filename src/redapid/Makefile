@@ -78,6 +78,7 @@ SOURCES += ../daemonlib/io.c \
            ../daemonlib/timer_linux.c \
            ../daemonlib/utils.c \
            ../daemonlib/writer.c \
+           acl.c \
            api.c \
            api_error.c \
            brickd.c \
@@ -119,6 +120,7 @@ endif
 
 CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DLOCALSTATEDIR="\"$(localstatedir)\""
 LDFLAGS += -pthread
+LIBS += -lacl
 
 ifeq ($(WITH_LOGGING),yes)
 	CFLAGS += -DDAEMONLIB_WITH_LOGGING
