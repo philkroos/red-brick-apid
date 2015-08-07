@@ -97,7 +97,8 @@ SOURCES += ../daemonlib/io.c \
            program_scheduler.c \
            session.c \
            socat.c \
-           string.c
+           string.c \
+           vision.c
 
 OBJECTS := ${SOURCES:.c=.o}
 DEPENDS := ${SOURCES:.c=.p}
@@ -122,6 +123,12 @@ LDFLAGS += -pthread
 
 # link with -lrt for clock_gettime (RED Brick doesn't have glibc 2.17)
 LIBS += -lrt
+
+# vision
+CFLAGS += -I../../../../src/api
+LDFLAGS += -L../../../../build
+LIBS += `pkg-config --libs opencv` -ltfv -lv4l2
+LIBS += -lBasicUsageEnvironment -lUsageEnvironment -lgroupsock -lliveMedia -lx264
 
 ifeq ($(WITH_LOGGING),yes)
 	CFLAGS += -DDAEMONLIB_WITH_LOGGING

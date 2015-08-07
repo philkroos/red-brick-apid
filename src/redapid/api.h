@@ -52,4 +52,7 @@ void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
 void api_send_program_scheduler_state_changed_callback(ObjectID process_id);
 void api_send_program_process_spawned_callback(ObjectID process_id);
 
+void api_send_vision_colormatch_update_callback(int8_t id, int32_t x, int32_t y);
+void api_send_vision_motion_update_callback(int8_t id, int16_t x, int16_t y,
+                                            int16_t width, int16_t height);
 #endif // REDAPID_API_H

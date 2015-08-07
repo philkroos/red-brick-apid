@@ -35,40 +35,40 @@
 //
 
 typedef struct {
-	PacketHeader header;
-	uint32_t lifetime;
+        PacketHeader header;
+        uint32_t lifetime;
 } ATTRIBUTE_PACKED CreateSessionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t session_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED CreateSessionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED ExpireSessionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED ExpireSessionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED ExpireSessionUncheckedRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t session_id;
-	uint32_t lifetime;
+        PacketHeader header;
+        uint16_t session_id;
+        uint32_t lifetime;
 } ATTRIBUTE_PACKED KeepSessionAliveRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED KeepSessionAliveResponse;
 
 //
@@ -76,20 +76,20 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint16_t object_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t object_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED ReleaseObjectRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED ReleaseObjectResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t object_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t object_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED ReleaseObjectUncheckedRequest;
 
 //
@@ -97,62 +97,62 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint32_t length_to_reserve;
-	char buffer[STRING_MAX_ALLOCATE_BUFFER_LENGTH];
-	uint16_t session_id;
+        PacketHeader header;
+        uint32_t length_to_reserve;
+        char buffer[STRING_MAX_ALLOCATE_BUFFER_LENGTH];
+        uint16_t session_id;
 } ATTRIBUTE_PACKED AllocateStringRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t string_id;
 } ATTRIBUTE_PACKED AllocateStringResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t string_id;
-	uint32_t length;
+        PacketHeader header;
+        uint16_t string_id;
+        uint32_t length;
 } ATTRIBUTE_PACKED TruncateStringRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED TruncateStringResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t string_id;
+        PacketHeader header;
+        uint16_t string_id;
 } ATTRIBUTE_PACKED GetStringLengthRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint32_t length;
+        PacketHeader header;
+        uint8_t error_code;
+        uint32_t length;
 } ATTRIBUTE_PACKED GetStringLengthResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t string_id;
-	uint32_t offset;
-	char buffer[STRING_MAX_SET_CHUNK_BUFFER_LENGTH];
+        PacketHeader header;
+        uint16_t string_id;
+        uint32_t offset;
+        char buffer[STRING_MAX_SET_CHUNK_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED SetStringChunkRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED SetStringChunkResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t string_id;
-	uint32_t offset;
+        PacketHeader header;
+        uint16_t string_id;
+        uint32_t offset;
 } ATTRIBUTE_PACKED GetStringChunkRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	char buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH];
+        PacketHeader header;
+        uint8_t error_code;
+        char buffer[STRING_MAX_GET_CHUNK_BUFFER_LENGTH];
 } ATTRIBUTE_PACKED GetStringChunkResponse;
 
 //
@@ -160,62 +160,62 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint16_t length_to_reserve;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t length_to_reserve;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED AllocateListRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t list_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t list_id;
 } ATTRIBUTE_PACKED AllocateListResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t list_id;
+        PacketHeader header;
+        uint16_t list_id;
 } ATTRIBUTE_PACKED GetListLengthRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t length;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t length;
 } ATTRIBUTE_PACKED GetListLengthResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t list_id;
-	uint16_t index;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t list_id;
+        uint16_t index;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetListItemRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t item_object_id;
-	uint8_t type;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t item_object_id;
+        uint8_t type;
 } ATTRIBUTE_PACKED GetListItemResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t list_id;
-	uint16_t item_object_id;
+        PacketHeader header;
+        uint16_t list_id;
+        uint16_t item_object_id;
 } ATTRIBUTE_PACKED AppendToListRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED AppendToListResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t list_id;
-	uint16_t index;
+        PacketHeader header;
+        uint16_t list_id;
+        uint16_t index;
 } ATTRIBUTE_PACKED RemoveFromListRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED RemoveFromListResponse;
 
 //
@@ -223,176 +223,176 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint16_t name_string_id;
-	uint32_t flags;
-	uint16_t permissions;
-	uint32_t uid;
-	uint32_t gid;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t name_string_id;
+        uint32_t flags;
+        uint16_t permissions;
+        uint32_t uid;
+        uint32_t gid;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED OpenFileRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t file_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t file_id;
 } ATTRIBUTE_PACKED OpenFileResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint32_t flags;
-	uint64_t length;
-	uint16_t session_id;
+        PacketHeader header;
+        uint32_t flags;
+        uint64_t length;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED CreatePipeRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t file_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t file_id;
 } ATTRIBUTE_PACKED CreatePipeResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t file_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetFileInfoRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t type;
-	uint16_t name_string_id;
-	uint32_t flags;
-	uint16_t permissions;
-	uint32_t uid;
-	uint32_t gid;
-	uint64_t length;
-	uint64_t access_timestamp;
-	uint64_t modification_timestamp;
-	uint64_t status_change_timestamp;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t type;
+        uint16_t name_string_id;
+        uint32_t flags;
+        uint16_t permissions;
+        uint32_t uid;
+        uint32_t gid;
+        uint64_t length;
+        uint64_t access_timestamp;
+        uint64_t modification_timestamp;
+        uint64_t status_change_timestamp;
 } ATTRIBUTE_PACKED GetFileInfoResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t length_to_read;
+        PacketHeader header;
+        uint16_t file_id;
+        uint8_t length_to_read;
 } ATTRIBUTE_PACKED ReadFileRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t buffer[FILE_MAX_READ_BUFFER_LENGTH];
-	uint8_t length_read;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t buffer[FILE_MAX_READ_BUFFER_LENGTH];
+        uint8_t length_read;
 } ATTRIBUTE_PACKED ReadFileResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint64_t length_to_read;
+        PacketHeader header;
+        uint16_t file_id;
+        uint64_t length_to_read;
 } ATTRIBUTE_PACKED ReadFileAsyncRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
+        PacketHeader header;
+        uint16_t file_id;
 } ATTRIBUTE_PACKED AbortAsyncFileReadRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED AbortAsyncFileReadResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t buffer[FILE_MAX_WRITE_BUFFER_LENGTH];
-	uint8_t length_to_write;
+        PacketHeader header;
+        uint16_t file_id;
+        uint8_t buffer[FILE_MAX_WRITE_BUFFER_LENGTH];
+        uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t length_written;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t length_written;
 } ATTRIBUTE_PACKED WriteFileResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t buffer[FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH];
-	uint8_t length_to_write;
+        PacketHeader header;
+        uint16_t file_id;
+        uint8_t buffer[FILE_MAX_WRITE_UNCHECKED_BUFFER_LENGTH];
+        uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileUncheckedRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t buffer[FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH];
-	uint8_t length_to_write;
+        PacketHeader header;
+        uint16_t file_id;
+        uint8_t buffer[FILE_MAX_WRITE_ASYNC_BUFFER_LENGTH];
+        uint8_t length_to_write;
 } ATTRIBUTE_PACKED WriteFileAsyncRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	int64_t offset;
-	uint8_t origin;
+        PacketHeader header;
+        uint16_t file_id;
+        int64_t offset;
+        uint8_t origin;
 } ATTRIBUTE_PACKED SetFilePositionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint64_t position;
+        PacketHeader header;
+        uint8_t error_code;
+        uint64_t position;
 } ATTRIBUTE_PACKED SetFilePositionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
+        PacketHeader header;
+        uint16_t file_id;
 } ATTRIBUTE_PACKED GetFilePositionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint64_t position;
+        PacketHeader header;
+        uint8_t error_code;
+        uint64_t position;
 } ATTRIBUTE_PACKED GetFilePositionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint16_t events;
+        PacketHeader header;
+        uint16_t file_id;
+        uint16_t events;
 } ATTRIBUTE_PACKED SetFileEventsRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED SetFileEventsResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
+        PacketHeader header;
+        uint16_t file_id;
 } ATTRIBUTE_PACKED GetFileEventsRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t events;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t events;
 } ATTRIBUTE_PACKED GetFileEventsResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t error_code;
-	uint8_t buffer[FILE_MAX_READ_ASYNC_BUFFER_LENGTH];
-	uint8_t length_read;
+        PacketHeader header;
+        uint16_t file_id;
+        uint8_t error_code;
+        uint8_t buffer[FILE_MAX_READ_ASYNC_BUFFER_LENGTH];
+        uint8_t length_read;
 } ATTRIBUTE_PACKED AsyncFileReadCallback;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint8_t error_code;
-	uint8_t length_written;
+        PacketHeader header;
+        uint16_t file_id;
+        uint8_t error_code;
+        uint8_t length_written;
 } ATTRIBUTE_PACKED AsyncFileWriteCallback;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t file_id;
-	uint16_t events;
+        PacketHeader header;
+        uint16_t file_id;
+        uint16_t events;
 } ATTRIBUTE_PACKED FileEventsOccurredCallback;
 
 //
@@ -400,64 +400,64 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint16_t name_string_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t name_string_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED OpenDirectoryRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t directory_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t directory_id;
 } ATTRIBUTE_PACKED OpenDirectoryResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t directory_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t directory_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetDirectoryNameRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t name_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t name_string_id;
 } ATTRIBUTE_PACKED GetDirectoryNameResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t directory_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t directory_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetNextDirectoryEntryRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t name_string_id;
-	uint8_t type;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t name_string_id;
+        uint8_t type;
 } ATTRIBUTE_PACKED GetNextDirectoryEntryResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t directory_id;
+        PacketHeader header;
+        uint16_t directory_id;
 } ATTRIBUTE_PACKED RewindDirectoryRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED RewindDirectoryResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t name_string_id;
-	uint32_t flags;
-	uint16_t permissions;
-	uint32_t uid;
-	uint32_t gid;
+        PacketHeader header;
+        uint16_t name_string_id;
+        uint32_t flags;
+        uint16_t permissions;
+        uint32_t uid;
+        uint32_t gid;
 } ATTRIBUTE_PACKED CreateDirectoryRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED CreateDirectoryResponse;
 
 //
@@ -465,108 +465,108 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProcessesRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t processes_list_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t processes_list_id;
 } ATTRIBUTE_PACKED GetProcessesResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t executable_string_id;
-	uint16_t arguments_list_id;
-	uint16_t environment_list_id;
-	uint16_t working_directory_string_id;
-	uint32_t uid;
-	uint32_t gid;
-	uint16_t stdin_file_id;
-	uint16_t stdout_file_id;
-	uint16_t stderr_file_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t executable_string_id;
+        uint16_t arguments_list_id;
+        uint16_t environment_list_id;
+        uint16_t working_directory_string_id;
+        uint32_t uid;
+        uint32_t gid;
+        uint16_t stdin_file_id;
+        uint16_t stdout_file_id;
+        uint16_t stderr_file_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED SpawnProcessRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t process_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t process_id;
 } ATTRIBUTE_PACKED SpawnProcessResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-	uint8_t signal;
+        PacketHeader header;
+        uint16_t process_id;
+        uint8_t signal;
 } ATTRIBUTE_PACKED KillProcessRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED KillProcessResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t process_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProcessCommandRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t executable_string_id;
-	uint16_t arguments_list_id;
-	uint16_t environment_list_id;
-	uint16_t working_directory_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t executable_string_id;
+        uint16_t arguments_list_id;
+        uint16_t environment_list_id;
+        uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED GetProcessCommandResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
+        PacketHeader header;
+        uint16_t process_id;
 } ATTRIBUTE_PACKED GetProcessIdentityRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint32_t pid;
-	uint32_t uid;
-	uint32_t gid;
+        PacketHeader header;
+        uint8_t error_code;
+        uint32_t pid;
+        uint32_t uid;
+        uint32_t gid;
 } ATTRIBUTE_PACKED GetProcessIdentityResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t process_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProcessStdioRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t stdin_file_id;
-	uint16_t stdout_file_id;
-	uint16_t stderr_file_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t stdin_file_id;
+        uint16_t stdout_file_id;
+        uint16_t stderr_file_id;
 } ATTRIBUTE_PACKED GetProcessStdioResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
+        PacketHeader header;
+        uint16_t process_id;
 } ATTRIBUTE_PACKED GetProcessStateRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t state;
-	uint64_t timestamp;
-	uint8_t exit_code;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t state;
+        uint64_t timestamp;
+        uint8_t exit_code;
 } ATTRIBUTE_PACKED GetProcessStateResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t process_id;
-	uint8_t state;
-	uint64_t timestamp;
-	uint8_t exit_code;
+        PacketHeader header;
+        uint16_t process_id;
+        uint8_t state;
+        uint64_t timestamp;
+        uint8_t exit_code;
 } ATTRIBUTE_PACKED ProcessStateChangedCallback;
 
 //
@@ -574,275 +574,489 @@ typedef struct {
 //
 
 typedef struct {
-	PacketHeader header;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramsRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t programs_list_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t programs_list_id;
 } ATTRIBUTE_PACKED GetProgramsResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t identifier_string_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t identifier_string_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED DefineProgramRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t program_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t program_id;
 } ATTRIBUTE_PACKED DefineProgramResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint32_t cookie;
+        PacketHeader header;
+        uint16_t program_id;
+        uint32_t cookie;
 } ATTRIBUTE_PACKED PurgeProgramRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED PurgeProgramResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramIdentifierRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t identifier_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t identifier_string_id;
 } ATTRIBUTE_PACKED GetProgramIdentifierResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramRootDirectoryRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t root_directory_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t root_directory_string_id;
 } ATTRIBUTE_PACKED GetProgramRootDirectoryResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t executable_string_id;
-	uint16_t arguments_list_id;
-	uint16_t environment_list_id;
-	uint16_t working_directory_string_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t executable_string_id;
+        uint16_t arguments_list_id;
+        uint16_t environment_list_id;
+        uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED SetProgramCommandRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED SetProgramCommandResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramCommandRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t executable_string_id;
-	uint16_t arguments_list_id;
-	uint16_t environment_list_id;
-	uint16_t working_directory_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t executable_string_id;
+        uint16_t arguments_list_id;
+        uint16_t environment_list_id;
+        uint16_t working_directory_string_id;
 } ATTRIBUTE_PACKED GetProgramCommandResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t stdin_redirection;
-	uint16_t stdin_file_name_string_id;
-	uint8_t stdout_redirection;
-	uint16_t stdout_file_name_string_id;
-	uint8_t stderr_redirection;
-	uint16_t stderr_file_name_string_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint8_t stdin_redirection;
+        uint16_t stdin_file_name_string_id;
+        uint8_t stdout_redirection;
+        uint16_t stdout_file_name_string_id;
+        uint8_t stderr_redirection;
+        uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED SetProgramStdioRedirectionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED SetProgramStdioRedirectionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t stdin_redirection;
-	uint16_t stdin_file_name_string_id;
-	uint8_t stdout_redirection;
-	uint16_t stdout_file_name_string_id;
-	uint8_t stderr_redirection;
-	uint16_t stderr_file_name_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t stdin_redirection;
+        uint16_t stdin_file_name_string_id;
+        uint8_t stdout_redirection;
+        uint16_t stdout_file_name_string_id;
+        uint8_t stderr_redirection;
+        uint16_t stderr_file_name_string_id;
 } ATTRIBUTE_PACKED GetProgramStdioRedirectionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint8_t start_mode;
-	tfpbool continue_after_error;
-	uint32_t start_interval;
-	uint16_t start_fields_string_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint8_t start_mode;
+        tfpbool continue_after_error;
+        uint32_t start_interval;
+        uint16_t start_fields_string_id;
 } ATTRIBUTE_PACKED SetProgramScheduleRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED SetProgramScheduleResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramScheduleRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t start_mode;
-	tfpbool continue_after_error;
-	uint32_t start_interval;
-	uint16_t start_fields_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t start_mode;
+        tfpbool continue_after_error;
+        uint32_t start_interval;
+        uint16_t start_fields_string_id;
 } ATTRIBUTE_PACKED GetProgramScheduleResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetProgramSchedulerStateRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint8_t state;
-	uint64_t timestamp;
-	uint16_t message_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint8_t state;
+        uint64_t timestamp;
+        uint16_t message_string_id;
 } ATTRIBUTE_PACKED GetProgramSchedulerStateResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
+        PacketHeader header;
+        uint16_t program_id;
 } ATTRIBUTE_PACKED ContinueProgramScheduleRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED ContinueProgramScheduleResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
+        PacketHeader header;
+        uint16_t program_id;
 } ATTRIBUTE_PACKED StartProgramRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED StartProgramResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t process_id;
-	uint64_t timestamp;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t process_id;
+        uint64_t timestamp;
 } ATTRIBUTE_PACKED GetLastSpawnedProgramProcessResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetCustomProgramOptionNamesRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t names_list_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t names_list_id;
 } ATTRIBUTE_PACKED GetCustomProgramOptionNamesResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t name_string_id;
-	uint16_t value_string_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t name_string_id;
+        uint16_t value_string_id;
 } ATTRIBUTE_PACKED SetCustomProgramOptionValueRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED SetCustomProgramOptionValueResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t name_string_id;
-	uint16_t session_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t name_string_id;
+        uint16_t session_id;
 } ATTRIBUTE_PACKED GetCustomProgramOptionValueRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
-	uint16_t value_string_id;
+        PacketHeader header;
+        uint8_t error_code;
+        uint16_t value_string_id;
 } ATTRIBUTE_PACKED GetCustomProgramOptionValueResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
-	uint16_t name_string_id;
+        PacketHeader header;
+        uint16_t program_id;
+        uint16_t name_string_id;
 } ATTRIBUTE_PACKED RemoveCustomProgramOptionRequest;
 
 typedef struct {
-	PacketHeader header;
-	uint8_t error_code;
+        PacketHeader header;
+        uint8_t error_code;
 } ATTRIBUTE_PACKED RemoveCustomProgramOptionResponse;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
+        PacketHeader header;
+        uint16_t program_id;
 } ATTRIBUTE_PACKED ProgramSchedulerStateChangedCallback;
 
 typedef struct {
-	PacketHeader header;
-	uint16_t program_id;
+        PacketHeader header;
+        uint16_t program_id;
 } ATTRIBUTE_PACKED ProgramProcessSpawnedCallback;
+
+
+//
+// vision
+//
+
+typedef struct {
+        PacketHeader header;
+} ATTRIBUTE_PACKED VisionCameraAvailableRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionCameraAvailableResponse;
+
+typedef struct {
+        PacketHeader header;
+        uint16_t width;
+        uint16_t height;
+} ATTRIBUTE_PACKED VisionPreselectFramesizeRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionPreselectFramesizeResponse;
+
+typedef struct {
+        PacketHeader header;
+} ATTRIBUTE_PACKED VisionStartIdleRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionStartIdleResponse;
+
+typedef struct {
+        PacketHeader header;
+        uint32_t milliseconds;
+} ATTRIBUTE_PACKED VisionSetLatencyRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionSetLatencyResponse;
+
+typedef struct {
+        PacketHeader header;
+} ATTRIBUTE_PACKED VisionGetResolutionRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+        uint16_t width;
+        uint16_t height;
+} ATTRIBUTE_PACKED VisionGetResolutionResponse;
+
+typedef struct {
+        PacketHeader header;
+} ATTRIBUTE_PACKED VisionPauseRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionPauseResponse;
+
+typedef struct {
+        PacketHeader header;
+} ATTRIBUTE_PACKED VisionRestartRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionRestartResponse;
+
+typedef struct {
+        PacketHeader header;
+} ATTRIBUTE_PACKED VisionQuitRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionQuitResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionPauseIDRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionPauseIDResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionRestartIDRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionRestartIDResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t module_id;
+} ATTRIBUTE_PACKED VisionSceneStartRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t scene_id;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionSceneStartResponse;
+
+typedef struct {
+        PacketHeader header;
+        int16_t scene_id;
+        int8_t module_id;
+} ATTRIBUTE_PACKED VisionSceneAddRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionSceneAddResponse;
+
+typedef struct {
+        PacketHeader header;
+        int16_t scene_id;
+} ATTRIBUTE_PACKED VisionSceneRemoveRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionSceneRemoveResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+        uint8_t min_hue;
+        uint8_t max_hue;
+} ATTRIBUTE_PACKED VisionColormatchStartRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionColormatchStartResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionColormatchStopRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionColormatchStopResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionColormatchGetRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+        uint8_t min_hue;
+        uint8_t max_hue;
+} ATTRIBUTE_PACKED VisionColormatchGetResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+        uint16_t x;
+        uint16_t y;
+} ATTRIBUTE_PACKED VisionColormatchUpdateCallback;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionMotionStartRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionMotionStartResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+        uint16_t x;
+        uint16_t y;
+        uint16_t width;
+        uint16_t height;
+} ATTRIBUTE_PACKED VisionMotionUpdateCallback;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionStreamRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionStreamResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+} ATTRIBUTE_PACKED VisionSnapshotRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionSnapshotResponse;
 
 //
 // misc
 //
 
 typedef struct {
-	PacketHeader header;
+        PacketHeader header;
 } ATTRIBUTE_PACKED GetIdentityRequest;
 
 typedef struct {
-	PacketHeader header;
-	char uid[8];
-	char connected_uid[8];
-	char position;
-	uint8_t hardware_version[3];
-	uint8_t firmware_version[3];
-	uint16_t device_identifier;
+        PacketHeader header;
+        char uid[8];
+        char connected_uid[8];
+        char position;
+        uint8_t hardware_version[3];
+        uint8_t firmware_version[3];
+        uint16_t device_identifier;
 } ATTRIBUTE_PACKED GetIdentityResponse;
 
 #include <daemonlib/packed_end.h>
