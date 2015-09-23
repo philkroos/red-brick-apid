@@ -940,15 +940,14 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	int phase = 0;
 	Program *program = containerof(program_scheduler, Program, scheduler);
 	APIE error_code;
-	char bin_directory[1024];
+	char *bin_directory;
 	char *log_directory;
 	String *dev_null_file_name;
 	int i;
 	String *environment;
 
 	// format bin directory name
-	if (robust_snprintf(bin_directory, sizeof(bin_directory), "%s/bin",
-	                    program->root_directory->buffer) < 0) {
+	if (asprintf(&bin_directory, "%s/bin", program->root_directory->buffer) < 0) {
 		error_code = api_get_error_code_from_errno();
 
 		log_error("Could not format program bin directory name: %s (%d)",
@@ -956,6 +955,8 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 
 		goto cleanup;
 	}
+
+	phase = 1;
 
 	// create bin directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(bin_directory, DIRECTORY_FLAG_RECURSIVE,
@@ -975,7 +976,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 1;
+	phase = 2;
 
 	// create log directory as default user (UID 1000, GID 1000)
 	error_code = directory_create(log_directory, DIRECTORY_FLAG_RECURSIVE,
@@ -992,7 +993,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 2;
+	phase = 3;
 
 	program_scheduler->process_spawned = process_spawned;
 	program_scheduler->state_changed = state_changed;
@@ -1001,6 +1002,7 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 	program_scheduler->absolute_stdin_file_name = NULL;
 	program_scheduler->absolute_stdout_file_name = NULL;
 	program_scheduler->absolute_stderr_file_name = NULL;
+	program_scheduler->bin_directory = bin_directory;
 	program_scheduler->log_directory = log_directory;
 	program_scheduler->dev_null_file_name = dev_null_file_name;
 	program_scheduler->observer.function = program_scheduler_handle_observer;
@@ -1043,21 +1045,24 @@ APIE program_scheduler_create(ProgramScheduler *program_scheduler,
 		goto cleanup;
 	}
 
-	phase = 3;
+	phase = 4;
 
 cleanup:
 	switch (phase) { // no breaks, all cases fall through intentionally
-	case 2:
+	case 3:
 		string_unlock_and_release(dev_null_file_name);
 
-	case 1:
+	case 2:
 		free(log_directory);
+
+	case 1:
+		free(bin_directory);
 
 	default:
 		break;
 	}
 
-	return phase == 3 ? API_E_SUCCESS : error_code;
+	return phase == 4 ? API_E_SUCCESS : error_code;
 }
 
 void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
@@ -1075,6 +1080,7 @@ void program_scheduler_destroy(ProgramScheduler *program_scheduler) {
 
 	string_unlock_and_release(program_scheduler->dev_null_file_name);
 	free(program_scheduler->log_directory);
+	free(program_scheduler->bin_directory);
 
 	if (program_scheduler->absolute_stderr_file_name != NULL) {
 		string_unlock_and_release(program_scheduler->absolute_stderr_file_name);

@@ -1,0 +1,11 @@
+2.0.0:
+- Initial version
+
+2.0.1:
+- Add debug filter to fine-tune debug output
+- Adapt X11 detection to changes in image version 1.4
+- Use redapid version as RED Brick firmware version
+- Don't send packet twice after partial write
+
+2.0.2:
+- Use ACL to grant www-data user write access to the programs bin directory

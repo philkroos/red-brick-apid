@@ -31,6 +31,7 @@
 
 #include "program.h"
 
+#include "acl.h"
 #include "api.h"
 #include "directory.h"
 #include "inventory.h"
@@ -87,15 +88,17 @@ static bool program_is_valid_start_mode(ProgramStartMode mode) {
 }
 
 static ProgramCustomOption *program_find_custom_option(Program *program,
-                                                       String *name, int *index) {
+                                                       const char *name,
+                                                       bool suffix_match,
+                                                       int *index) {
 	int i;
 	ProgramCustomOption *custom_option;
 
 	for (i = 0; i < program->config.custom_options->count; ++i) {
 		custom_option = array_get(program->config.custom_options, i);
 
-		if (custom_option->name->base.id == name->base.id ||
-		    strcasecmp(custom_option->name->buffer, name->buffer) == 0) {
+		if ((suffix_match && string_ends_with(custom_option->name->buffer, name, false)) ||
+		    (!suffix_match && strcasecmp(custom_option->name->buffer, name) == 0)) {
 			if (index != NULL) {
 				*index = i;
 			}
@@ -160,6 +163,7 @@ APIE program_load(const char *identifier, const char *root_directory,
 	String *root_directory_object;
 	String *none_message;
 	Program *program;
+	ProgramCustomOption *custom_option;
 
 	// check identifier
 	if (!program_is_valid_identifier(identifier)) {
@@ -209,11 +213,8 @@ APIE program_load(const char *identifier, const char *root_directory,
 
 	phase = 3;
 
-	// wrap empty string
-	error_code = string_wrap("None", NULL,
-	                         OBJECT_CREATE_FLAG_INTERNAL |
-	                         OBJECT_CREATE_FLAG_LOCKED,
-	                         NULL, &none_message);
+	// get 'None' message stock string object
+	error_code = inventory_get_stock_string("None", &none_message);
 
 	if (error_code != API_E_SUCCESS) {
 		goto cleanup;
@@ -263,6 +264,18 @@ APIE program_load(const char *identifier, const char *root_directory,
 	}
 
 	phase = 7;
+
+	// set ACL for www-data user
+	custom_option = program_find_custom_option(program, ".start_mode", true, NULL);
+
+	if (custom_option != NULL &&
+	    strcasecmp(custom_option->value->buffer, "web_interface") == 0) {
+		if (acl_add_user(program->scheduler.bin_directory, "www-data", "rwx") < 0) {
+			log_warn("Could not add ACL for www-data user to bin directory (id: %u, identifier: %s): %s (%d)",
+			         program->base.id, program->identifier->buffer,
+			         get_errno_name(errno), errno);
+		}
+	}
 
 	log_debug("Loaded program object (id: %u, identifier: %s)",
 	          program->base.id, identifier);
@@ -1373,7 +1386,7 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 		return error_code;
 	}
 
-	custom_option = program_find_custom_option(program, name, NULL);
+	custom_option = program_find_custom_option(program, name->buffer, false, NULL);
 
 	if (custom_option == NULL) {
 		custom_option = array_append(program->config.custom_options);
@@ -1423,6 +1436,16 @@ APIE program_set_custom_option_value(Program *program, ObjectID name_id,
 		string_unlock_and_release(backup);
 	}
 
+	// set ACL for www-data user
+	if (string_ends_with(custom_option->name->buffer, ".start_mode", false) &&
+	    strcasecmp(custom_option->value->buffer, "web_interface") == 0) {
+		if (acl_add_user(program->scheduler.bin_directory, "www-data", "rwx") < 0) {
+			log_warn("Could not add ACL for www-data user to bin directory (id: %u, identifier: %s): %s (%d)",
+			         program->base.id, program->identifier->buffer,
+			         get_errno_name(errno), errno);
+		}
+	}
+
 	return API_E_SUCCESS;
 }
 
@@ -1446,7 +1469,7 @@ APIE program_get_custom_option_value(Program *program, Session *session,
 		return error_code;
 	}
 
-	custom_option = program_find_custom_option(program, name, NULL);
+	custom_option = program_find_custom_option(program, name->buffer, false, NULL);
 
 	if (custom_option == NULL) {
 		log_warn("Program object (id: %u, identifier: %s) has no custom option named '%s'",
@@ -1487,7 +1510,7 @@ APIE program_remove_custom_option(Program *program, ObjectID name_id) {
 		return error_code;
 	}
 
-	custom_option = program_find_custom_option(program, name, &index);
+	custom_option = program_find_custom_option(program, name->buffer, false, &index);
 
 	if (custom_option == NULL) {
 		log_warn("Program object (id: %u, identifier: %s) has no custom option named '%s'",

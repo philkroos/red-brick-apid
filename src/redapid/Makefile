@@ -78,6 +78,7 @@ SOURCES += ../daemonlib/io.c \
            ../daemonlib/timer_linux.c \
            ../daemonlib/utils.c \
            ../daemonlib/writer.c \
+           acl.c \
            api.c \
            api_error.c \
            brickd.c \
@@ -120,9 +121,7 @@ endif
 
 CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DLOCALSTATEDIR="\"$(localstatedir)\""
 LDFLAGS += -pthread
-
-# link with -lrt for clock_gettime (RED Brick doesn't have glibc 2.17)
-LIBS += -lrt
+LIBS += -lacl
 
 # vision
 CFLAGS += -I../../../../src/api

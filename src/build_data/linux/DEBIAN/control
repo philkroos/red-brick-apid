@@ -1,11 +1,11 @@
 Package: redapid
-Version: <<REDAPID_VERSION>>
+Version: <<VERSION>>
 Section: electronics
 Maintainer: Olaf Lüke <olaf@tinkerforge.com>
-Architecture: <<REDAPID_ARCHITECTURE>>
+Architecture: <<ARCHITECTURE>>
 Priority: optional
-Installed-Size: 252
-Depends: libc6, cron
+Installed-Size: <<INSTALLED_SIZE>>
+Depends: libc6, cron, libacl1
 Recommends: logrotate
 Description: Tinkerforge RED Brick API Daemon
  The RED Brick API Daemon program is part of the Tinkerforge software 
