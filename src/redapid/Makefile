@@ -9,6 +9,7 @@ CC ?= gcc
 WITH_LOGGING ?= yes
 WITH_EPOLL ?= yes
 WITH_DEBUG ?= no
+WITH_VISION ?= yes
 
 ## RULES ######################################################################
 
@@ -98,8 +99,11 @@ SOURCES += ../daemonlib/io.c \
            program_scheduler.c \
            session.c \
            socat.c \
-           string.c \
-           vision.c
+           string.c
+
+ifeq ($(WITH_VISION),yes)
+	SOURCES += vision.c
+endif
 
 OBJECTS := ${SOURCES:.c=.o}
 DEPENDS := ${SOURCES:.c=.p}
@@ -123,11 +127,11 @@ CFLAGS += -DSYSCONFDIR="\"$(sysconfdir)\"" -DLOCALSTATEDIR="\"$(localstatedir)\"
 LDFLAGS += -pthread
 LIBS += -lacl
 
-# vision
-CFLAGS += -I../../../../src/api
-LDFLAGS += -L../../../../build
-LIBS += `pkg-config --libs opencv` -ltfv -lv4l2
-LIBS += -lBasicUsageEnvironment -lUsageEnvironment -lgroupsock -lliveMedia -lx264
+ifeq ($(WITH_VISION),yes)
+	CFLAGS += -I/usr/local/include -DWITH_VISION
+	LDFLAGS += -L/usr/local/lib
+	LIBS += `pkg-config --libs opencv` -ltinkervision -lv4l2
+endif
 
 ifeq ($(WITH_LOGGING),yes)
 	CFLAGS += -DDAEMONLIB_WITH_LOGGING

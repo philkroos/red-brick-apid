@@ -831,6 +831,8 @@ typedef struct {
 //
 // vision
 //
+#ifdef WITH_VISION
+#define VISION_MAX_STRING_LENGTH 16
 
 typedef struct {
         PacketHeader header;
@@ -963,54 +965,61 @@ typedef struct {
 
 typedef struct {
         PacketHeader header;
+        char name[VISION_MAX_STRING_LENGTH];
         int8_t id;
-        uint8_t min_hue;
-        uint8_t max_hue;
-} ATTRIBUTE_PACKED VisionColormatchStartRequest;
+} ATTRIBUTE_PACKED VisionModuleStartRequest;
 
 typedef struct {
         PacketHeader header;
         int16_t result;
-} ATTRIBUTE_PACKED VisionColormatchStartResponse;
+} ATTRIBUTE_PACKED VisionModuleStartResponse;
 
 typedef struct {
         PacketHeader header;
         int8_t id;
-} ATTRIBUTE_PACKED VisionColormatchStopRequest;
+} ATTRIBUTE_PACKED VisionModuleStopRequest;
 
 typedef struct {
         PacketHeader header;
         int16_t result;
-} ATTRIBUTE_PACKED VisionColormatchStopResponse;
+} ATTRIBUTE_PACKED VisionModuleStopResponse;
 
 typedef struct {
         PacketHeader header;
         int8_t id;
-} ATTRIBUTE_PACKED VisionColormatchGetRequest;
+        char parameter[VISION_MAX_STRING_LENGTH];
+} ATTRIBUTE_PACKED VisionParameterGetRequest;
 
 typedef struct {
         PacketHeader header;
         int16_t result;
-        uint8_t min_hue;
-        uint8_t max_hue;
-} ATTRIBUTE_PACKED VisionColormatchGetResponse;
+        int16_t value;
+} ATTRIBUTE_PACKED VisionParameterGetResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+        char parameter[VISION_MAX_STRING_LENGTH];
+        int16_t value;
+} ATTRIBUTE_PACKED VisionParameterSetRequest;
+
+typedef struct {
+        PacketHeader header;
+        int16_t result;
+} ATTRIBUTE_PACKED VisionParameterSetResponse;
+
+typedef struct {
+        PacketHeader header;
+        int8_t id;
+        uint16_t value;
+} ATTRIBUTE_PACKED VisionValueUpdateCallback;
 
 typedef struct {
         PacketHeader header;
         int8_t id;
         uint16_t x;
         uint16_t y;
-} ATTRIBUTE_PACKED VisionColormatchUpdateCallback;
-
-typedef struct {
-        PacketHeader header;
-        int8_t id;
-} ATTRIBUTE_PACKED VisionMotionStartRequest;
-
-typedef struct {
-        PacketHeader header;
-        int16_t result;
-} ATTRIBUTE_PACKED VisionMotionStartResponse;
+} ATTRIBUTE_PACKED VisionPointUpdateCallback;
 
 typedef struct {
         PacketHeader header;
@@ -1019,27 +1028,9 @@ typedef struct {
         uint16_t y;
         uint16_t width;
         uint16_t height;
-} ATTRIBUTE_PACKED VisionMotionUpdateCallback;
+} ATTRIBUTE_PACKED VisionRectangleUpdateCallback;
 
-typedef struct {
-        PacketHeader header;
-        int8_t id;
-} ATTRIBUTE_PACKED VisionStreamRequest;
-
-typedef struct {
-        PacketHeader header;
-        int16_t result;
-} ATTRIBUTE_PACKED VisionStreamResponse;
-
-typedef struct {
-        PacketHeader header;
-        int8_t id;
-} ATTRIBUTE_PACKED VisionSnapshotRequest;
-
-typedef struct {
-        PacketHeader header;
-        int16_t result;
-} ATTRIBUTE_PACKED VisionSnapshotResponse;
+#endif // WITH_VISION
 
 //
 // misc

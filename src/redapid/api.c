@@ -40,7 +40,7 @@
 #include "version.h"
 
 #include "vision.h"
-#include "tinkervision.h"
+#include "tinkervision/tinkervision.h"
 
 static LogSource _log_source = LOG_SOURCE_INITIALIZER;
 
@@ -121,6 +121,7 @@ typedef enum {
         CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED,
         CALLBACK_PROGRAM_PROCESS_SPAWNED,
 
+#ifdef WITH_VISION
         FUNCTION_VISION_CAMERA_AVAILABLE,
         FUNCTION_VISION_PRESELECT_FRAMESIZE,
         FUNCTION_VISION_START_IDLE,
@@ -134,14 +135,15 @@ typedef enum {
         FUNCTION_VISION_SCENE_START,
         FUNCTION_VISION_SCENE_ADD,
         FUNCTION_VISION_SCENE_REMOVE,
-        FUNCTION_VISION_COLORMATCH_START,
-        FUNCTION_VISION_COLORMATCH_STOP,
-        FUNCTION_VISION_COLORMATCH_GET,
-        CALLBACK_VISION_COLORMATCH_UPDATE,
-        FUNCTION_VISION_MOTION_START,
-        CALLBACK_VISION_MOTION_UPDATE,
-        FUNCTION_VISION_STREAM,
-        FUNCTION_VISION_SNAPSHOT
+        FUNCTION_VISION_MODULE_START,
+        FUNCTION_VISION_MODULE_STOP,
+        FUNCTION_VISION_PARAMETER_GET,
+        FUNCTION_VISION_PARAMETER_SET,
+        CALLBACK_VISION_VALUE_UPDATE,
+        CALLBACK_VISION_POINT_UPDATE,
+        CALLBACK_VISION_RECTANGLE_UPDATE
+        //        CALLBACK_VISION_STRING_UPDATE
+#endif
 } APIFunctionID;
 
 static uint32_t _uid = 0; // always little endian
@@ -151,8 +153,12 @@ static FileEventsOccurredCallback _file_events_occurred_callback;
 static ProcessStateChangedCallback _process_state_changed_callback;
 static ProgramSchedulerStateChangedCallback _program_scheduler_state_changed_callback;
 static ProgramProcessSpawnedCallback _program_process_spawned_callback;
-static VisionColormatchUpdateCallback _vision_colormatch_update_callback;
-static VisionMotionUpdateCallback _vision_motion_update_callback;
+#ifdef WITH_VISION
+static VisionValueUpdateCallback _vision_value_update_callback;
+static VisionPointUpdateCallback _vision_point_update_callback;
+static VisionRectangleUpdateCallback _vision_rectangle_update_callback;
+//static VisionStringUpdateCallback _vision_string_update_callback;
+#endif
 
 static void api_prepare_response(Packet *request, Packet *response, uint8_t length) {
         // memset'ing the whole response to zero first ensures that all members
@@ -811,6 +817,7 @@ CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
 //
 // vision
 //
+#ifdef WITH_VISION
 
 CALL_FUNCTION(VisionCameraAvailable, vision_camera_available, {
         response.result = camera_available();
@@ -845,11 +852,11 @@ CALL_FUNCTION(VisionQuit, vision_quit, {
 })
 
 CALL_FUNCTION(VisionPauseID, vision_pause_id, {
-        response.result = stop_id(request->id);
+        response.result = module_stop(request->id);
 })
 
 CALL_FUNCTION(VisionRestartID, vision_restart_id, {
-        response.result = restart_id(request->id);
+        response.result = module_restart(request->id);
 })
 
 CALL_FUNCTION(VisionSceneStart, vision_scene_start, {
@@ -864,37 +871,28 @@ CALL_FUNCTION(VisionSceneRemove, vision_scene_remove, {
         response.result = scene_remove(request->scene_id);
 })
 
-CALL_FUNCTION(VisionColormatchStart, vision_colormatch_start, {
-        response.result = colormatch_start(request->id,
-                                           request->min_hue,
-                                           request->max_hue,
-                                           colormatch_callback, NULL);
+CALL_FUNCTION(VisionModuleStart, vision_module_start, {
+        response.result = module_start(request->name,
+                                       request->id);
 })
 
-CALL_FUNCTION(VisionColormatchStop, vision_colormatch_stop, {
-        response.result = colormatch_stop(request->id);
+CALL_FUNCTION(VisionModuleStop, vision_module_stop, {
+        response.result = module_stop(request->id);
 })
 
-CALL_FUNCTION(VisionColormatchGet, vision_colormatch_get, {
-        response.result = colormatch_get(request->id,
-                                         &response.min_hue,
-                                         &response.max_hue);
+CALL_FUNCTION(VisionParameterGet, vision_parameter_get, {
+        response.result = get_parameter(request->id,
+                                        request->parameter,
+                                        &response.value);
 })
 
-CALL_FUNCTION(VisionMotionStart, vision_motion_start, {
-        response.result = motiondetect_start(request->id,
-                                             motion_callback, NULL);
+CALL_FUNCTION(VisionParameterSet, vision_parameter_set, {
+        response.result = set_parameter(request->id,
+                                        request->parameter,
+                                        request->value);
 })
 
-CALL_FUNCTION(VisionStream, vision_stream, {
-        response.result = streamer_stream(request->id);
-})
-
-CALL_FUNCTION(VisionSnapshot, vision_snapshot, {
-        response.result = streamer_stream(request->id);
-})
-
-
+#endif
 
 //
 // misc
@@ -966,14 +964,24 @@ int api_init(void) {
                              sizeof(_program_process_spawned_callback),
                              CALLBACK_PROGRAM_PROCESS_SPAWNED);
 
-        api_prepare_callback((Packet *)&_vision_colormatch_update_callback,
-                             sizeof(_vision_colormatch_update_callback),
-                             CALLBACK_VISION_COLORMATCH_UPDATE);
+#ifdef WITH_VISION
+        api_prepare_callback((Packet *)&_vision_value_update_callback,
+                             sizeof(_vision_value_update_callback),
+                             CALLBACK_VISION_VALUE_UPDATE);
 
-        api_prepare_callback((Packet *)&_vision_motion_update_callback,
-                             sizeof(_vision_motion_update_callback),
-                             CALLBACK_VISION_MOTION_UPDATE);
+        api_prepare_callback((Packet *)&_vision_point_update_callback,
+                             sizeof(_vision_point_update_callback),
+                             CALLBACK_VISION_POINT_UPDATE);
 
+        api_prepare_callback((Packet *)&_vision_rectangle_update_callback,
+                             sizeof(_vision_rectangle_update_callback),
+                             CALLBACK_VISION_RECTANGLE_UPDATE);
+        /*
+        api_prepare_callback((Packet *)&_vision_string_update_callback,
+                             sizeof(_vision_string_update_callback),
+                             CALLBACK_VISION_STRING_UPDATE);
+        */
+#endif
         return 0;
 }
 
@@ -1076,6 +1084,7 @@ void api_handle_request(Packet *request) {
         DISPATCH_FUNCTION(REMOVE_CUSTOM_PROGRAM_OPTION,     RemoveCustomProgramOption,    remove_custom_program_option)
 
         // vision
+#ifdef WITH_VISION
         DISPATCH_FUNCTION(VISION_CAMERA_AVAILABLE,          VisionCameraAvailable,        vision_camera_available)
         DISPATCH_FUNCTION(VISION_PRESELECT_FRAMESIZE,       VisionPreselectFramesize,     vision_preselect_framesize)
         DISPATCH_FUNCTION(VISION_START_IDLE,                VisionStartIdle,              vision_start_idle)
@@ -1089,13 +1098,11 @@ void api_handle_request(Packet *request) {
         DISPATCH_FUNCTION(VISION_SCENE_ADD,                 VisionSceneAdd,               vision_scene_add)
         DISPATCH_FUNCTION(VISION_SCENE_REMOVE,              VisionSceneRemove,            vision_scene_remove)
         DISPATCH_FUNCTION(VISION_QUIT,                      VisionQuit,                   vision_quit)
-        DISPATCH_FUNCTION(VISION_COLORMATCH_START,          VisionColormatchStart,        vision_colormatch_start)
-        DISPATCH_FUNCTION(VISION_COLORMATCH_STOP,           VisionColormatchStop,         vision_colormatch_stop)
-        DISPATCH_FUNCTION(VISION_COLORMATCH_GET,            VisionColormatchGet,          vision_colormatch_get)
-        DISPATCH_FUNCTION(VISION_MOTION_START,              VisionMotionStart,            vision_motion_start)
-        DISPATCH_FUNCTION(VISION_STREAM,                    VisionStream,                 vision_stream)
-        DISPATCH_FUNCTION(VISION_SNAPSHOT,                  VisionSnapshot,               vision_snapshot)
-
+        DISPATCH_FUNCTION(VISION_MODULE_START,              VisionModuleStart,            vision_module_start)
+        DISPATCH_FUNCTION(VISION_MODULE_STOP,               VisionModuleStop,             vision_module_stop)
+        DISPATCH_FUNCTION(VISION_PARAMETER_GET,             VisionParameterGet,           vision_parameter_get)
+        DISPATCH_FUNCTION(VISION_PARAMETER_SET,             VisionParameterSet,           vision_parameter_set)
+#endif
         // misc
         DISPATCH_FUNCTION(GET_IDENTITY,                     GetIdentity,                  get_identity)
 
@@ -1194,6 +1201,7 @@ const char *api_get_function_name(int function_id) {
         case CALLBACK_PROGRAM_PROCESS_SPAWNED:          return "program-process-spawned";
         case CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED:  return "program-scheduler-state-changed";
 
+#ifdef WITH_VISION
         case FUNCTION_VISION_CAMERA_AVAILABLE:          return "vision-camera-available";
         case FUNCTION_VISION_PRESELECT_FRAMESIZE:       return "vision-preselect-framesize";
         case FUNCTION_VISION_START_IDLE:                return "vision-start-idle";
@@ -1207,15 +1215,15 @@ const char *api_get_function_name(int function_id) {
         case FUNCTION_VISION_SCENE_START:               return "vision-scene-start";
         case FUNCTION_VISION_SCENE_ADD:                 return "vision-scene-add";
         case FUNCTION_VISION_SCENE_REMOVE:              return "vision-scene-remove";
-        case FUNCTION_VISION_COLORMATCH_START:          return "vision-colormatch-start";
-        case FUNCTION_VISION_COLORMATCH_STOP:           return "vision-colormatch-stop";
-        case FUNCTION_VISION_COLORMATCH_GET:            return "vision-colormatch-get";
-        case CALLBACK_VISION_COLORMATCH_UPDATE:         return "vision-colortrack-update";
-        case FUNCTION_VISION_MOTION_START:              return "vision-motion-start";
-        case CALLBACK_VISION_MOTION_UPDATE:             return "vision-colortrack-update";
-        case FUNCTION_VISION_STREAM:                    return "vision-stream";
-        case FUNCTION_VISION_SNAPSHOT:                  return "vision-snapshot";
-
+        case FUNCTION_VISION_MODULE_START:              return "vision-module-start";
+        case FUNCTION_VISION_MODULE_STOP:               return "vision-module-stop";
+        case FUNCTION_VISION_PARAMETER_GET:             return "vision-parameter-get";
+        case FUNCTION_VISION_PARAMETER_SET:             return "vision-parameter-set";
+        case CALLBACK_VISION_VALUE_UPDATE:              return "vision-value-update";
+        case CALLBACK_VISION_POINT_UPDATE:              return "vision-point-update";
+        case CALLBACK_VISION_RECTANGLE_UPDATE:          return "vision-rectangle-update";
+            //        case CALLBACK_VISION_STRING_UPDATE:             return "vision-string-update";
+#endif
         // misc
         case FUNCTION_GET_IDENTITY:                     return "get-identity";
 
@@ -1280,21 +1288,39 @@ void api_send_program_process_spawned_callback(ObjectID program_id) {
         network_dispatch_response((Packet *)&_program_process_spawned_callback);
 }
 
-void api_send_vision_colormatch_update_callback(int8_t id, int32_t x, int32_t y) {
-        _vision_colormatch_update_callback.id = id;
-        _vision_colormatch_update_callback.x = x;
-        _vision_colormatch_update_callback.y = y;
+#ifdef WITH_VISION
+void api_send_vision_value_update_callback(int8_t id, uint16_t value) {
+        _vision_value_update_callback.id = id;
+        _vision_value_update_callback.value = value;
 
-        network_dispatch_response((Packet *)&_vision_colormatch_update_callback);
+        network_dispatch_response((Packet *)&_vision_value_update_callback);
 }
 
-void api_send_vision_motion_update_callback(int8_t id, int16_t x, int16_t y,
-                                            int16_t width, int16_t height) {
+void api_send_vision_point_update_callback(int8_t id, uint16_t x, uint16_t y) {
+        _vision_point_update_callback.id = id;
+        _vision_point_update_callback.x = x;
+        _vision_point_update_callback.y = y;
+
+        network_dispatch_response((Packet *)&_vision_point_update_callback);
+}
+
+void api_send_vision_rectangle_update_callback(int8_t id, uint16_t x, uint16_t y,
+                                               uint16_t width, uint16_t height) {
+        _vision_rectangle_update_callback.id = id;
+        _vision_rectangle_update_callback.x = x;
+        _vision_rectangle_update_callback.y = y;
+        _vision_rectangle_update_callback.width = width;
+        _vision_rectangle_update_callback.height = height;
+
+        network_dispatch_response((Packet *)&_vision_rectangle_update_callback);
+}
+
+/*
+void api_send_vision_string_update_callback(int8_t id, char* string) {
         _vision_motion_update_callback.id = id;
-        _vision_motion_update_callback.x = x;
-        _vision_motion_update_callback.y = y;
-        _vision_motion_update_callback.width = width;
-        _vision_motion_update_callback.height = height;
+        _vision_motion_update_callback.string = string;
 
-        network_dispatch_response((Packet *)&_vision_motion_update_callback);
+        network_dispatch_response((Packet *)&_vision_string_update_callback);
 }
+*/
+#endif
