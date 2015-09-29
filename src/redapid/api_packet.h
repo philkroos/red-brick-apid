@@ -931,22 +931,67 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	int8_t id;
-} ATTRIBUTE_PACKED VisionPauseIDRequest;
+	char parameter[VISION_MAX_STRING_LENGTH];
+	int16_t value;
+} ATTRIBUTE_PACKED VisionParameterSetRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-} ATTRIBUTE_PACKED VisionPauseIDResponse;
+} ATTRIBUTE_PACKED VisionParameterSetResponse;
 
 typedef struct {
 	PacketHeader header;
 	int8_t id;
-} ATTRIBUTE_PACKED VisionRestartIDRequest;
+	char parameter[VISION_MAX_STRING_LENGTH];
+} ATTRIBUTE_PACKED VisionParameterGetRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-} ATTRIBUTE_PACKED VisionRestartIDResponse;
+	int16_t value;
+} ATTRIBUTE_PACKED VisionParameterGetResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+	char name[VISION_MAX_STRING_LENGTH];
+} ATTRIBUTE_PACKED VisionModuleStartRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionModuleStartResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+} ATTRIBUTE_PACKED VisionModuleStopRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionModuleStopResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+} ATTRIBUTE_PACKED VisionModuleRestartRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionModuleRestartResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+} ATTRIBUTE_PACKED VisionModuleRemoveRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionModuleRemoveResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -979,51 +1024,6 @@ typedef struct {
 	PacketHeader header;
 	int16_t result;
 } ATTRIBUTE_PACKED VisionSceneRemoveResponse;
-
-typedef struct {
-	PacketHeader header;
-	char name[VISION_MAX_STRING_LENGTH];
-	int8_t id;
-} ATTRIBUTE_PACKED VisionModuleStartRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-} ATTRIBUTE_PACKED VisionModuleStartResponse;
-
-typedef struct {
-	PacketHeader header;
-	int8_t id;
-} ATTRIBUTE_PACKED VisionModuleStopRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-} ATTRIBUTE_PACKED VisionModuleStopResponse;
-
-typedef struct {
-	PacketHeader header;
-	int8_t id;
-	char parameter[VISION_MAX_STRING_LENGTH];
-} ATTRIBUTE_PACKED VisionParameterGetRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-	int16_t value;
-} ATTRIBUTE_PACKED VisionParameterGetResponse;
-
-typedef struct {
-	PacketHeader header;
-	int8_t id;
-	char parameter[VISION_MAX_STRING_LENGTH];
-	int16_t value;
-} ATTRIBUTE_PACKED VisionParameterSetRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-} ATTRIBUTE_PACKED VisionParameterSetResponse;
 
 typedef struct {
 	PacketHeader header;

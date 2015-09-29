@@ -130,15 +130,15 @@ typedef enum {
 	FUNCTION_VISION_PAUSE,
 	FUNCTION_VISION_RESTART,
 	FUNCTION_VISION_QUIT,
-	FUNCTION_VISION_PAUSE_ID,
-	FUNCTION_VISION_RESTART_ID,
+	FUNCTION_VISION_PARAMETER_SET,
+	FUNCTION_VISION_PARAMETER_GET,
+	FUNCTION_VISION_MODULE_START,
+	FUNCTION_VISION_MODULE_STOP,
+	FUNCTION_VISION_MODULE_RESTART,
+	FUNCTION_VISION_MODULE_REMOVE,
 	FUNCTION_VISION_SCENE_START,
 	FUNCTION_VISION_SCENE_ADD,
 	FUNCTION_VISION_SCENE_REMOVE,
-	FUNCTION_VISION_MODULE_START,
-	FUNCTION_VISION_MODULE_STOP,
-	FUNCTION_VISION_PARAMETER_GET,
-	FUNCTION_VISION_PARAMETER_SET,
 	CALLBACK_VISION_VALUE_UPDATE,
 	CALLBACK_VISION_POINT_UPDATE,
 	CALLBACK_VISION_RECTANGLE_UPDATE
@@ -851,12 +851,33 @@ CALL_FUNCTION(VisionQuit, vision_quit, {
 	response.result = quit();
 })
 
-CALL_FUNCTION(VisionPauseID, vision_pause_id, {
+CALL_FUNCTION(VisionParameterSet, vision_parameter_set, {
+	response.result = set_parameter(request->id,
+					request->parameter,
+					request->value);
+})
+
+CALL_FUNCTION(VisionParameterGet, vision_parameter_get, {
+	response.result = get_parameter(request->id,
+					request->parameter,
+					&response.value);
+})
+
+CALL_FUNCTION(VisionModuleStart, vision_module_start, {
+	response.result = module_start(request->name,
+				       request->id);
+})
+
+CALL_FUNCTION(VisionModuleStop, vision_module_stop, {
 	response.result = module_stop(request->id);
 })
 
-CALL_FUNCTION(VisionRestartID, vision_restart_id, {
+CALL_FUNCTION(VisionModuleRestart, vision_module_restart, {
 	response.result = module_restart(request->id);
+})
+
+CALL_FUNCTION(VisionModuleRemove, vision_module_remove, {
+	response.result = module_remove(request->id);
 })
 
 CALL_FUNCTION(VisionSceneStart, vision_scene_start, {
@@ -869,27 +890,6 @@ CALL_FUNCTION(VisionSceneAdd, vision_scene_add, {
 
 CALL_FUNCTION(VisionSceneRemove, vision_scene_remove, {
 	response.result = scene_remove(request->scene_id);
-})
-
-CALL_FUNCTION(VisionModuleStart, vision_module_start, {
-	response.result = module_start(request->name,
-				       request->id);
-})
-
-CALL_FUNCTION(VisionModuleStop, vision_module_stop, {
-	response.result = module_stop(request->id);
-})
-
-CALL_FUNCTION(VisionParameterGet, vision_parameter_get, {
-	response.result = get_parameter(request->id,
-					request->parameter,
-					&response.value);
-})
-
-CALL_FUNCTION(VisionParameterSet, vision_parameter_set, {
-	response.result = set_parameter(request->id,
-					request->parameter,
-					request->value);
 })
 
 #endif
@@ -1090,18 +1090,18 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_START_IDLE,		    VisionStartIdle,		  vision_start_idle)
 	DISPATCH_FUNCTION(VISION_SET_LATENCY,		    VisionSetLatency,		  vision_set_latency)
 	DISPATCH_FUNCTION(VISION_GET_RESOLUTION,	    VisionGetResolution,	  vision_get_resolution)
-	DISPATCH_FUNCTION(VISION_PAUSE,			    VisionPause,		  vision_pause)
+	DISPATCH_FUNCTION(VISION_PAUSE,		    VisionPause,		  vision_pause)
 	DISPATCH_FUNCTION(VISION_RESTART,		    VisionRestart,		  vision_restart)
-	DISPATCH_FUNCTION(VISION_PAUSE_ID,		    VisionPauseID,		  vision_pause_id)
-	DISPATCH_FUNCTION(VISION_RESTART_ID,		    VisionRestartID,		  vision_restart_id)
+	DISPATCH_FUNCTION(VISION_QUIT,			    VisionQuit,		  vision_quit)
+	DISPATCH_FUNCTION(VISION_PARAMETER_SET,	    VisionParameterSet,	  vision_parameter_set)
+	DISPATCH_FUNCTION(VISION_PARAMETER_GET,	    VisionParameterGet,	  vision_parameter_get)
+	DISPATCH_FUNCTION(VISION_MODULE_START,		    VisionModuleStart,		  vision_module_start)
+	DISPATCH_FUNCTION(VISION_MODULE_STOP,		    VisionModuleStop,		  vision_module_stop)
+	DISPATCH_FUNCTION(VISION_MODULE_RESTART,	    VisionModuleRestart,	  vision_module_restart)
+	DISPATCH_FUNCTION(VISION_MODULE_REMOVE,	    VisionModuleRemove,	  vision_module_remove)
 	DISPATCH_FUNCTION(VISION_SCENE_START,		    VisionSceneStart,		  vision_scene_start)
 	DISPATCH_FUNCTION(VISION_SCENE_ADD,		    VisionSceneAdd,		  vision_scene_add)
 	DISPATCH_FUNCTION(VISION_SCENE_REMOVE,		    VisionSceneRemove,		  vision_scene_remove)
-	DISPATCH_FUNCTION(VISION_QUIT,			    VisionQuit,			  vision_quit)
-	DISPATCH_FUNCTION(VISION_MODULE_START,		    VisionModuleStart,		  vision_module_start)
-	DISPATCH_FUNCTION(VISION_MODULE_STOP,		    VisionModuleStop,		  vision_module_stop)
-	DISPATCH_FUNCTION(VISION_PARAMETER_GET,		    VisionParameterGet,		  vision_parameter_get)
-	DISPATCH_FUNCTION(VISION_PARAMETER_SET,		    VisionParameterSet,		  vision_parameter_set)
 #endif
 	// misc
 	DISPATCH_FUNCTION(GET_IDENTITY,			    GetIdentity,		  get_identity)
@@ -1210,15 +1210,15 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_PAUSE:			return "vision-pause";
 	case FUNCTION_VISION_RESTART:			return "vision-restart";
 	case FUNCTION_VISION_QUIT:			return "vision-quit";
-	case FUNCTION_VISION_PAUSE_ID:			return "vision-pause-id";
-	case FUNCTION_VISION_RESTART_ID:		return "vision-restart-id";
-	case FUNCTION_VISION_SCENE_START:		return "vision-scene-start";
-	case FUNCTION_VISION_SCENE_ADD:			return "vision-scene-add";
-	case FUNCTION_VISION_SCENE_REMOVE:		return "vision-scene-remove";
+	case FUNCTION_VISION_PARAMETER_SET:		return "vision-parameter-set";
+	case FUNCTION_VISION_PARAMETER_GET:		return "vision-parameter-get";
 	case FUNCTION_VISION_MODULE_START:		return "vision-module-start";
 	case FUNCTION_VISION_MODULE_STOP:		return "vision-module-stop";
-	case FUNCTION_VISION_PARAMETER_GET:		return "vision-parameter-get";
-	case FUNCTION_VISION_PARAMETER_SET:		return "vision-parameter-set";
+	case FUNCTION_VISION_MODULE_RESTART:		return "vision-module-restart";
+	case FUNCTION_VISION_MODULE_REMOVE:		return "vision-module-remove";
+	case FUNCTION_VISION_SCENE_START:		return "vision-scene-start";
+	case FUNCTION_VISION_SCENE_ADD:		return "vision-scene-add";
+	case FUNCTION_VISION_SCENE_REMOVE:		return "vision-scene-remove";
 	case CALLBACK_VISION_VALUE_UPDATE:		return "vision-value-update";
 	case CALLBACK_VISION_POINT_UPDATE:		return "vision-point-update";
 	case CALLBACK_VISION_RECTANGLE_UPDATE:		return "vision-rectangle-update";
