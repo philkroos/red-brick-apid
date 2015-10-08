@@ -855,7 +855,7 @@ CALL_FUNCTION(VisionParameterGet, vision_parameter_get, {
 
 CALL_FUNCTION(VisionModuleStart, vision_module_start, {
 	response.result = module_start(request->name,
-				       request->id);
+				       &response.id);
 })
 
 CALL_FUNCTION(VisionModuleStop, vision_module_stop, {

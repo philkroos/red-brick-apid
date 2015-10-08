@@ -945,12 +945,12 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	int8_t id;
 	char name[VISION_MAX_STRING_LENGTH];
 } ATTRIBUTE_PACKED VisionModuleStartRequest;
 
 typedef struct {
 	PacketHeader header;
+	int8_t id;
 	int16_t result;
 } ATTRIBUTE_PACKED VisionModuleStartResponse;
 
