@@ -128,7 +128,6 @@ typedef enum {
 	FUNCTION_VISION_GET_RESOLUTION,
 	FUNCTION_VISION_PAUSE,
 	FUNCTION_VISION_RESTART,
-	FUNCTION_VISION_QUIT,
 	FUNCTION_VISION_PARAMETER_SET,
 	FUNCTION_VISION_PARAMETER_GET,
 	FUNCTION_VISION_MODULE_START,
@@ -842,10 +841,6 @@ CALL_FUNCTION(VisionRestart, vision_restart, {
 	response.result = start();
 })
 
-CALL_FUNCTION(VisionQuit, vision_quit, {
-	response.result = quit();
-})
-
 CALL_FUNCTION(VisionParameterSet, vision_parameter_set, {
 	response.result = set_parameter(request->id,
 					request->parameter,
@@ -1086,7 +1081,6 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_GET_RESOLUTION,	    VisionGetResolution,	  vision_get_resolution)
 	DISPATCH_FUNCTION(VISION_PAUSE,		    VisionPause,		  vision_pause)
 	DISPATCH_FUNCTION(VISION_RESTART,		    VisionRestart,		  vision_restart)
-	DISPATCH_FUNCTION(VISION_QUIT,			    VisionQuit,		  vision_quit)
 	DISPATCH_FUNCTION(VISION_PARAMETER_SET,	    VisionParameterSet,	  vision_parameter_set)
 	DISPATCH_FUNCTION(VISION_PARAMETER_GET,	    VisionParameterGet,	  vision_parameter_get)
 	DISPATCH_FUNCTION(VISION_MODULE_START,		    VisionModuleStart,		  vision_module_start)
@@ -1203,7 +1197,6 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_GET_RESOLUTION:		return "vision-get-resolution";
 	case FUNCTION_VISION_PAUSE:			return "vision-pause";
 	case FUNCTION_VISION_RESTART:			return "vision-restart";
-	case FUNCTION_VISION_QUIT:			return "vision-quit";
 	case FUNCTION_VISION_PARAMETER_SET:		return "vision-parameter-set";
 	case FUNCTION_VISION_PARAMETER_GET:		return "vision-parameter-get";
 	case FUNCTION_VISION_MODULE_START:		return "vision-module-start";

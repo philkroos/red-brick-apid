@@ -48,6 +48,11 @@ int vision_init(void) {
 void vision_exit(void) {
 	log_debug("Shutting down vision subsystem");
 
+	TFV_Result code = quit();
+	if (TFV_OK != code) {
+		log_error("Quit failed with %d", code);
+	}
+
 	event_remove_source(vision_update_pipe.read_end,
 			    EVENT_SOURCE_TYPE_GENERIC);
 

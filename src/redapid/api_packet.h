@@ -921,15 +921,6 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-} ATTRIBUTE_PACKED VisionQuitRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-} ATTRIBUTE_PACKED VisionQuitResponse;
-
-typedef struct {
-	PacketHeader header;
 	int8_t id;
 	char parameter[VISION_MAX_STRING_LENGTH];
 	int16_t value;
