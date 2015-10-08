@@ -1028,24 +1028,11 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	int8_t id;
-	uint16_t value;
-} ATTRIBUTE_PACKED VisionValueUpdateCallback;
-
-typedef struct {
-	PacketHeader header;
-	int8_t id;
-	uint16_t x;
-	uint16_t y;
-} ATTRIBUTE_PACKED VisionPointUpdateCallback;
-
-typedef struct {
-	PacketHeader header;
-	int8_t id;
 	uint16_t x;
 	uint16_t y;
 	uint16_t width;
 	uint16_t height;
-} ATTRIBUTE_PACKED VisionRectangleUpdateCallback;
+} ATTRIBUTE_PACKED VisionLocationCallback;
 
 #endif // WITH_VISION
 

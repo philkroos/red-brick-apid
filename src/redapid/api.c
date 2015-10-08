@@ -40,7 +40,6 @@
 #include "version.h"
 
 #include "vision.h"
-#include "tinkervision/tinkervision.h"
 
 static LogSource _log_source = LOG_SOURCE_INITIALIZER;
 
@@ -139,9 +138,7 @@ typedef enum {
 	FUNCTION_VISION_SCENE_START,
 	FUNCTION_VISION_SCENE_ADD,
 	FUNCTION_VISION_SCENE_REMOVE,
-	CALLBACK_VISION_VALUE_UPDATE,
-	CALLBACK_VISION_POINT_UPDATE,
-	CALLBACK_VISION_RECTANGLE_UPDATE
+	CALLBACK_VISION_LOCATION_UPDATE,
 	//	  CALLBACK_VISION_STRING_UPDATE
 #endif
 } APIFunctionID;
@@ -154,9 +151,7 @@ static ProcessStateChangedCallback _process_state_changed_callback;
 static ProgramSchedulerStateChangedCallback _program_scheduler_state_changed_callback;
 static ProgramProcessSpawnedCallback _program_process_spawned_callback;
 #ifdef WITH_VISION
-static VisionValueUpdateCallback _vision_value_update_callback;
-static VisionPointUpdateCallback _vision_point_update_callback;
-static VisionRectangleUpdateCallback _vision_rectangle_update_callback;
+static VisionLocationCallback _vision_location_callback;
 //static VisionStringUpdateCallback _vision_string_update_callback;
 #endif
 
@@ -965,28 +960,27 @@ int api_init(void) {
 			     CALLBACK_PROGRAM_PROCESS_SPAWNED);
 
 #ifdef WITH_VISION
-	api_prepare_callback((Packet *)&_vision_value_update_callback,
-			     sizeof(_vision_value_update_callback),
-			     CALLBACK_VISION_VALUE_UPDATE);
+	if (vision_init() < 0) {
+		log_error("Error during initialization of the vision subsystem");
+	}
 
-	api_prepare_callback((Packet *)&_vision_point_update_callback,
-			     sizeof(_vision_point_update_callback),
-			     CALLBACK_VISION_POINT_UPDATE);
-
-	api_prepare_callback((Packet *)&_vision_rectangle_update_callback,
-			     sizeof(_vision_rectangle_update_callback),
-			     CALLBACK_VISION_RECTANGLE_UPDATE);
+	else {
+		api_prepare_callback((Packet *)&_vision_location_callback,
+				     sizeof(_vision_location_callback),
+				     CALLBACK_VISION_LOCATION_UPDATE);
 	/*
 	api_prepare_callback((Packet *)&_vision_string_update_callback,
 			     sizeof(_vision_string_update_callback),
 			     CALLBACK_VISION_STRING_UPDATE);
 	*/
+	}
 #endif
 	return 0;
 }
 
 void api_exit(void) {
 	log_debug("Shutting down API subsystem");
+	vision_exit();
 }
 
 uint32_t api_get_uid(void) {
@@ -1219,9 +1213,7 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_SCENE_START:		return "vision-scene-start";
 	case FUNCTION_VISION_SCENE_ADD:		return "vision-scene-add";
 	case FUNCTION_VISION_SCENE_REMOVE:		return "vision-scene-remove";
-	case CALLBACK_VISION_VALUE_UPDATE:		return "vision-value-update";
-	case CALLBACK_VISION_POINT_UPDATE:		return "vision-point-update";
-	case CALLBACK_VISION_RECTANGLE_UPDATE:		return "vision-rectangle-update";
+	case CALLBACK_VISION_LOCATION_UPDATE:		return "vision-location-update";
 	    //	      case CALLBACK_VISION_STRING_UPDATE:	      return "vision-string-update";
 #endif
 	// misc
@@ -1289,30 +1281,15 @@ void api_send_program_process_spawned_callback(ObjectID program_id) {
 }
 
 #ifdef WITH_VISION
-void api_send_vision_value_update_callback(int8_t id, uint16_t value) {
-	_vision_value_update_callback.id = id;
-	_vision_value_update_callback.value = value;
+void api_send_vision_location_callback(int8_t id, uint16_t x, uint16_t y,
+				       uint16_t width, uint16_t height) {
+	_vision_location_callback.id = id;
+	_vision_location_callback.x = x;
+	_vision_location_callback.y = y;
+	_vision_location_callback.width = width;
+	_vision_location_callback.height = height;
 
-	network_dispatch_response((Packet *)&_vision_value_update_callback);
-}
-
-void api_send_vision_point_update_callback(int8_t id, uint16_t x, uint16_t y) {
-	_vision_point_update_callback.id = id;
-	_vision_point_update_callback.x = x;
-	_vision_point_update_callback.y = y;
-
-	network_dispatch_response((Packet *)&_vision_point_update_callback);
-}
-
-void api_send_vision_rectangle_update_callback(int8_t id, uint16_t x, uint16_t y,
-					       uint16_t width, uint16_t height) {
-	_vision_rectangle_update_callback.id = id;
-	_vision_rectangle_update_callback.x = x;
-	_vision_rectangle_update_callback.y = y;
-	_vision_rectangle_update_callback.width = width;
-	_vision_rectangle_update_callback.height = height;
-
-	network_dispatch_response((Packet *)&_vision_rectangle_update_callback);
+	network_dispatch_response((Packet *)&_vision_location_callback);
 }
 
 /*

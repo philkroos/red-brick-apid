@@ -146,6 +146,7 @@ $(info features:)
 $(info - logging: $(WITH_LOGGING))
 $(info - epoll:   $(WITH_EPOLL))
 $(info - debug:   $(WITH_DEBUG))
+$(info - vision:  $(WITH_VISION))
 endif
 
 .PHONY: all clean
