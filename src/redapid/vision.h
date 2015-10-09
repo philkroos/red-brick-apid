@@ -18,7 +18,7 @@ typedef struct {
 int vision_init(void);
 void vision_exit(void);
 void vision_send_location_update_callback(void* object);
-void location_callback(int8_t id, TFV_ModuleResult result, TFV_Context);
+void location_callback(int8_t id, TV_ModuleResult result, TV_Context);
 //void string_callback(int8_t id, uint16_t value);
 
 #endif /* WITH_VISION */
