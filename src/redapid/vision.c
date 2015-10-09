@@ -35,9 +35,9 @@ int vision_init(void) {
 		return -1;
 	}
 
-	TFV_Result result = enable_default_callback(location_callback);
+	TV_Result result = enable_default_callback(location_callback);
 
-	if (TFV_OK != result) {
+	if (TV_OK != result) {
 		log_error("Could not register default callback");
 		return -1;
 	}
@@ -48,8 +48,8 @@ int vision_init(void) {
 void vision_exit(void) {
 	log_debug("Shutting down vision subsystem");
 
-	TFV_Result code = quit();
-	if (TFV_OK != code) {
+	TV_Result code = quit();
+	if (TV_OK != code) {
 		log_error("Quit failed with %d", code);
 	}
 
@@ -81,7 +81,7 @@ void vision_send_location_update_callback(void* object) {
 	}
 }
 
-void location_callback(int8_t id, TFV_ModuleResult result, TFV_Context opaque) {
+void location_callback(int8_t id, TV_ModuleResult result, TV_Context opaque) {
 	UNUSED(opaque);
 
 	VisionLocationUpdate location_update;
