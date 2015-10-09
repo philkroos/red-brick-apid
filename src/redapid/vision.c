@@ -35,10 +35,10 @@ int vision_init(void) {
 		return -1;
 	}
 
-	TV_Result result = enable_default_callback(location_callback);
+	TV_Result result = tv_enable_default_callback(location_callback);
 
 	if (TV_OK != result) {
-		log_error("Could not register default callback");
+		log_error("EnableCallback failed: %s", tv_result_string(result));
 		return -1;
 	}
 
@@ -48,9 +48,9 @@ int vision_init(void) {
 void vision_exit(void) {
 	log_debug("Shutting down vision subsystem");
 
-	TV_Result code = quit();
+	TV_Result code = tv_quit();
 	if (TV_OK != code) {
-		log_error("Quit failed with %d", code);
+		log_error("Quit failed: %s", tv_result_string(code));
 	}
 
 	event_remove_source(vision_update_pipe.read_end,

@@ -814,72 +814,73 @@ CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
 #ifdef WITH_VISION
 
 CALL_FUNCTION(VisionCameraAvailable, vision_camera_available, {
-	response.result = camera_available();
+	response.result = tv_camera_available();
 })
 
 CALL_FUNCTION(VisionPreselectFramesize, vision_preselect_framesize, {
-	response.result = preselect_framesize(request->width, request->height);
+	response.result = tv_preselect_framesize(request->width, request->height);
 })
 
 CALL_FUNCTION(VisionStartIdle, vision_start_idle, {
-	response.result = start_idle();
+	response.result = tv_start_idle();
 })
 
 CALL_FUNCTION(VisionSetLatency, vision_set_latency, {
-	response.result = set_execution_latency(request->milliseconds);
+	response.result = tv_set_execution_latency(request->milliseconds);
 })
 
 CALL_FUNCTION(VisionGetResolution, vision_get_resolution, {
-	response.result = get_resolution(&response.width, &response.height);
+	response.result = tv_get_resolution(&response.width, &response.height);
 })
 
 CALL_FUNCTION(VisionPause, vision_pause, {
-	response.result = stop();
+	response.result = tv_stop();
 })
 
 CALL_FUNCTION(VisionRestart, vision_restart, {
-	response.result = start();
+	response.result = tv_start();
 })
 
 CALL_FUNCTION(VisionParameterSet, vision_parameter_set, {
-	response.result = set_parameter(request->id,
-					request->parameter,
-					request->value);
+	response.result = tv_set_parameter(request->id,
+					   request->parameter,
+					   request->value);
 })
 
 CALL_FUNCTION(VisionParameterGet, vision_parameter_get, {
-	response.result = get_parameter(request->id,
-					request->parameter,
-					&response.value);
+	response.result = tv_get_parameter(request->id,
+					   request->parameter,
+					   &response.value);
 })
 
 CALL_FUNCTION(VisionModuleStart, vision_module_start, {
-	response.result = module_start(request->name,
-				       &response.id);
+	response.result = tv_module_start(request->name,
+					  &response.id);
 })
 
 CALL_FUNCTION(VisionModuleStop, vision_module_stop, {
-	response.result = module_stop(request->id);
+	response.result = tv_module_stop(request->id);
 })
 
 CALL_FUNCTION(VisionModuleRestart, vision_module_restart, {
-	response.result = module_restart(request->id);
+	response.result = tv_module_restart(request->id);
 })
 
 CALL_FUNCTION(VisionModuleRemove, vision_module_remove, {
-	response.result = module_remove(request->id);
+	response.result = tv_module_remove(request->id);
 })
 
 CALL_FUNCTION(VisionSceneStart, vision_scene_start, {
-	response.result = scene_from_module(request->module_id, &response.scene_id);
+	response.result = tv_scene_from_module(request->module_id,
+					       &response.scene_id);
 })
 
 CALL_FUNCTION(VisionSceneAdd, vision_scene_add, {
-	response.result = scene_add_module(request->scene_id, request->module_id);
+	response.result = tv_scene_add_module(request->scene_id, request->module_id);
 })
 
 CALL_FUNCTION(VisionSceneRemove, vision_scene_remove, {
-	response.result = scene_remove(request->scene_id);
+	response.result = tv_scene_remove(request->scene_id);
 })
 
 #endif
