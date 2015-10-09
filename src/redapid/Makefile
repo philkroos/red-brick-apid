@@ -128,8 +128,8 @@ LDFLAGS += -pthread
 LIBS += -lacl
 
 ifeq ($(WITH_VISION),yes)
-	CFLAGS += -I/usr/local/include -DWITH_VISION
-	LDFLAGS += -L/usr/local/lib
+	CFLAGS += -I/usr/include -DWITH_VISION
+	LDFLAGS += -L/usr/lib
 	LIBS += `pkg-config --libs opencv` -ltinkervision -lv4l2
 endif
 
