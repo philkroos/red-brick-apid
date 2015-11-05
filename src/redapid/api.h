@@ -52,6 +52,13 @@ void api_send_process_state_changed_callback(ObjectID process_id, uint8_t state,
 void api_send_program_scheduler_state_changed_callback(ObjectID process_id);
 void api_send_program_process_spawned_callback(ObjectID process_id);
 
-void api_send_vision_location_callback(int8_t id, uint16_t x, uint16_t y,
-				       uint16_t width, uint16_t height);
+#ifdef WITH_VISION
+void api_send_vision_module_callback(int8_t id, int32_t x, uint32_t y,
+                                     uint32_t width, uint32_t height,
+                                     char* string);
+void api_send_vision_libraries_callback(char const* name, char const* path,
+					char* status);
+
+#endif // WITH_VISION
+
 #endif // REDAPID_API_H

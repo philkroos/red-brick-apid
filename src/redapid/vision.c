@@ -26,7 +26,7 @@ int vision_init(void) {
 	int code = event_add_source(vision_update_pipe.read_end,
 				    EVENT_SOURCE_TYPE_GENERIC,
 				    EVENT_READ,
-				    vision_send_location_update_callback,
+				    vision_send_module_update_callback,
 				    NULL);
 
 	if (0 != code) {
@@ -35,10 +35,17 @@ int vision_init(void) {
 		return -1;
 	}
 
-	TV_Result result = tv_enable_default_callback(location_callback);
+	TV_Result result = tv_enable_default_callback(module_callback);
 
 	if (TV_OK != result) {
-		log_error("EnableCallback failed: %s", tv_result_string(result));
+		log_error("EnableDefaultCallback failed: %s", tv_result_string(result));
+		return -1;
+	}
+
+	result = tv_libraries_changed_callback(libraries_callback, NULL);
+
+	if (TV_OK != result) {
+		log_error("LibrariesChangedCallback failed: %s", tv_result_string(result));
 		return -1;
 	}
 
@@ -60,41 +67,81 @@ void vision_exit(void) {
 }
 
 
-void vision_send_location_update_callback(void* object) {
+void vision_send_module_update_callback(void* object) {
 	UNUSED(object);
 
-	VisionLocationUpdate location_update;
+	VisionModuleUpdate module_update;
 
 	if (0 > pipe_read(&vision_update_pipe,
-			  &location_update,
-			  sizeof(VisionLocationUpdate))) {
+			  &module_update,
+			  sizeof(VisionModuleUpdate))) {
 		log_error("Could not read from pipe: %s (%d)",
 			   get_errno_name(errno), errno);
 	}
 
 	else {
-		api_send_vision_location_callback(location_update.id,
-						  location_update.x,
-						  location_update.y,
-						  location_update.width,
-						  location_update.height);
+		api_send_vision_module_callback(module_update.id,
+						module_update.x,
+						module_update.y,
+						module_update.width,
+						module_update.height,
+						module_update.result);
 	}
 }
 
-void location_callback(int8_t id, TV_ModuleResult result, TV_Context opaque) {
+void module_callback(int8_t id, TV_ModuleResult result, TV_Context opaque) {
 	UNUSED(opaque);
 
-	VisionLocationUpdate location_update;
+	VisionModuleUpdate module_update;
 
-	location_update.id = id;
-	location_update.x = result.x;
-	location_update.y = result.y;
-	location_update.width = result.width;
-	location_update.height = result.height;
+	module_update.id = id;
+	module_update.x = result.x;
+	module_update.y = result.y;
+	module_update.width = result.width;
+	module_update.height = result.height;
+	strncpy(module_update.result, result.string, TV_CHAR_ARRAY_SIZE);
 
 	if (0 > pipe_write(&vision_update_pipe,
-			   &location_update,
-			   sizeof(VisionLocationUpdate))) {
+			   &module_update,
+			   sizeof(VisionModuleUpdate))) {
+
+		log_error("Could not write to pipe: %d (%s)",
+			  errno, strerror(errno));
+		return;
+	}
+}
+
+void vision_send_libraries_update_callback(void* object) {
+	UNUSED(object);
+
+	VisionLibrariesUpdate libraries_update;
+
+	if (0 > pipe_read(&vision_update_pipe,
+			  &libraries_update,
+			  sizeof(VisionLibrariesUpdate))) {
+		log_error("Could not read from pipe: %s (%d)",
+			   get_errno_name(errno), errno);
+	}
+
+	else {
+		api_send_vision_libraries_callback(libraries_update.name,
+						   libraries_update.path,
+						   libraries_update.status);
+	}
+}
+
+void libraries_callback(char const* name, char const* path,
+			char const* status, TV_Context opaque) {
+	UNUSED(opaque);
+
+	VisionLibrariesUpdate libraries_update;
+	libraries_update.name = name;
+	libraries_update.path = path;
+	libraries_update.status = status;
+
+	if (0 > pipe_write(&vision_update_pipe,
+			   &libraries_update,
+			   sizeof(VisionLibrariesUpdate))) {
 
 		log_error("Could not write to pipe: %d (%s)",
 			  errno, strerror(errno));
