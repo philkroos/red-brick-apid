@@ -1077,12 +1077,12 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	VisionString path;
 } ATTRIBUTE_PACKED VisionSetLibUserLoadPathRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-	VisionString path;
 } ATTRIBUTE_PACKED VisionSetLibUserLoadPathResponse;
 
 typedef struct {
