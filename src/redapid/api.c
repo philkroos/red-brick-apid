@@ -121,16 +121,19 @@ typedef enum {
 	CALLBACK_PROGRAM_PROCESS_SPAWNED,
 
 #ifdef WITH_VISION
+	FUNCTION_VISION_IS_VALID,
 	FUNCTION_VISION_CAMERA_AVAILABLE,
+	FUNCTION_VISION_GET_FRAMESIZE,
 	FUNCTION_VISION_SET_FRAMESIZE,
 	FUNCTION_VISION_START_IDLE,
-	FUNCTION_VISION_SET_LATENCY,
-	FUNCTION_VISION_GET_INV_FRAMERATE,
-	FUNCTION_VISION_GET_RESOLUTION,
+	FUNCTION_VISION_REQUEST_FRAMEPERIOD,
+	FUNCTION_VISION_GET_FRAMEPERIOD,
 	FUNCTION_VISION_STOP,
 	FUNCTION_VISION_RESTART,
-	FUNCTION_VISION_PARAMETER_SET,
-	FUNCTION_VISION_PARAMETER_GET,
+	FUNCTION_VISION_NUMERICAL_PARAMETER_SET,
+	FUNCTION_VISION_NUMERICAL_PARAMETER_GET,
+	FUNCTION_VISION_STRING_PARAMETER_SET,
+	FUNCTION_VISION_STRING_PARAMETER_GET,
 	FUNCTION_VISION_MODULE_START,
 	FUNCTION_VISION_MODULE_STOP,
 	FUNCTION_VISION_MODULE_RESTART,
@@ -138,11 +141,11 @@ typedef enum {
 	FUNCTION_VISION_MODULE_GET_NAME,
 	FUNCTION_VISION_LIBS_COUNT,
 	FUNCTION_VISION_LIB_NAME_PATH,
-	FUNCTION_VISION_LIB_PARAMETER_COUNT,
+	FUNCTION_VISION_LIB_PARAMETERS_COUNT,
 	FUNCTION_VISION_LIB_PARAMETER_DESCRIBE,
-	FUNCTION_VISION_LIB_USER_LOAD_PATH,
-	FUNCTION_VISION_LIB_SYSTEM_LOAD_PATH,
-	FUNCTION_VISION_SET_LIB_USER_LOAD_PATH,
+	FUNCTION_VISION_LIB_GET_USER_LOAD_PATH,
+	FUNCTION_VISION_LIB_SET_USER_LOAD_PATH,
+	FUNCTION_VISION_LIB_GET_SYSTEM_LOAD_PATH,
 	FUNCTION_VISION_REMOVE_ALL_MODULES,
 	FUNCTION_VISION_MODULE_RESULT,
 	FUNCTION_VISION_SCENE_START,
@@ -824,8 +827,16 @@ CALL_PROGRAM_FUNCTION(RemoveCustomProgramOption, remove_custom_program_option, {
 //
 #ifdef WITH_VISION
 
+CALL_FUNCTION(VisionIsValid, vision_is_valid, {
+	response.result = tv_valid();
+})
+
 CALL_FUNCTION(VisionCameraAvailable, vision_camera_available, {
 	response.result = tv_camera_available();
+})
+
+CALL_FUNCTION(VisionGetFramesize, vision_get_framesize, {
+	response.result = tv_get_framesize(&response.width, &response.height);
 })
 
 CALL_FUNCTION(VisionSetFramesize, vision_set_framesize, {
@@ -836,16 +847,12 @@ CALL_FUNCTION(VisionStartIdle, vision_start_idle, {
 	response.result = tv_start_idle();
 })
 
-CALL_FUNCTION(VisionSetLatency, vision_set_latency, {
-	response.result = tv_set_execution_latency(request->milliseconds);
+CALL_FUNCTION(VisionGetFrameperiod, vision_get_frameperiod, {
+	response.result = tv_effective_frameperiod(&response.rate);
 })
 
-CALL_FUNCTION(VisionGetInverseFramerate, vision_get_inverse_framerate, {
-	response.result = tv_effective_inv_framerate(&response.rate);
-})
-
-CALL_FUNCTION(VisionGetResolution, vision_get_resolution, {
-	response.result = tv_get_resolution(&response.width, &response.height);
+CALL_FUNCTION(VisionRequestFrameperiod, vision_request_frameperiod, {
+	response.result = tv_request_frameperiod(request->milliseconds);
 })
 
 CALL_FUNCTION(VisionStop, vision_stop, {
@@ -856,16 +863,28 @@ CALL_FUNCTION(VisionRestart, vision_restart, {
 	response.result = tv_start();
 })
 
-CALL_FUNCTION(VisionParameterSet, vision_parameter_set, {
-	response.result = tv_set_parameter(request->id,
-					   request->parameter,
-					   request->value);
+CALL_FUNCTION(VisionNumericalParameterGet, vision_numerical_parameter_get, {
+	response.result = tv_get_numerical_parameter(request->id,
+						     request->parameter,
+						     &response.value);
 })
 
-CALL_FUNCTION(VisionParameterGet, vision_parameter_get, {
-	response.result = tv_get_parameter(request->id,
-					   request->parameter,
-					   &response.value);
+CALL_FUNCTION(VisionNumericalParameterSet, vision_numerical_parameter_set, {
+	response.result = tv_set_numerical_parameter(request->id,
+						     request->parameter,
+						     request->value);
+})
+
+CALL_FUNCTION(VisionStringParameterGet, vision_string_parameter_get, {
+	response.result = tv_get_string_parameter(request->id,
+						  request->parameter,
+						  response.value);
+})
+
+CALL_FUNCTION(VisionStringParameterSet, vision_string_parameter_set, {
+	response.result = tv_set_string_parameter(request->id,
+						  request->parameter,
+						  request->value);
 })
 
 CALL_FUNCTION(VisionModuleStart, vision_module_start, {
@@ -899,29 +918,30 @@ CALL_FUNCTION(VisionLibNamePath, vision_lib_name_path, {
 						   response.path);
 });
 
-CALL_FUNCTION(VisionLibParameterCount, vision_lib_parameter_count, {
-	response.result = tv_library_parameter_count(request->name, &response.count);
+CALL_FUNCTION(VisionLibParametersCount, vision_lib_parameters_count, {
+	response.result = tv_library_parameters_count(request->name, &response.count);
 });
 
 CALL_FUNCTION(VisionLibParameterDescribe, vision_lib_parameter_describe, {
-	response.result = tv_library_describe_parameter(request->name,
-							request->number,
+	response.result = tv_library_parameter_describe(request->libname,
+							request->parameter_number,
 							response.name,
+							&response.type,
 							&response.min,
 							&response.max,
 							&response.init);
 });
 
-CALL_FUNCTION(VisionLibUserLoadPath, vision_lib_user_load_path, {
-	response.result = tv_user_module_load_path(response.path);
+CALL_FUNCTION(VisionLibGetUserLoadPath, vision_lib_get_user_load_path, {
+	response.result = tv_get_user_module_load_path(response.path);
 })
 
-CALL_FUNCTION(VisionLibSystemLoadPath, vision_lib_system_load_path, {
-	response.result = tv_system_module_load_path(response.path);
-})
-
-CALL_FUNCTION(VisionSetLibUserLoadPath, vision_set_lib_user_load_path, {
+CALL_FUNCTION(VisionLibSetUserLoadPath, vision_lib_set_user_load_path, {
 	response.result = tv_set_user_module_load_path(request->path);
+})
+
+CALL_FUNCTION(VisionLibGetSystemLoadPath, vision_lib_get_system_load_path, {
+	response.result = tv_get_system_module_load_path(response.path);
 })
 
 CALL_FUNCTION(VisionRemoveAllModules, vision_remove_all_modules, {
@@ -935,6 +955,7 @@ CALL_FUNCTION(VisionModuleResult, vision_module_result, {
 	response.y = result.y;
 	response.width = result.width;
 	response.height = result.height;
+	strncpy(response.string, result.string, TV_STRING_SIZE);
 })
 
 CALL_FUNCTION(VisionSceneStart, vision_scene_start, {
@@ -1144,16 +1165,19 @@ void api_handle_request(Packet *request) {
 
 	// vision
 #ifdef WITH_VISION
+	DISPATCH_FUNCTION(VISION_IS_VALID,		    VisionIsValid,		  vision_is_valid)
 	DISPATCH_FUNCTION(VISION_CAMERA_AVAILABLE,	    VisionCameraAvailable,	  vision_camera_available)
+	DISPATCH_FUNCTION(VISION_GET_FRAMESIZE,	    VisionGetFramesize,	  vision_get_framesize)
 	DISPATCH_FUNCTION(VISION_SET_FRAMESIZE,	    VisionSetFramesize,	  vision_set_framesize)
 	DISPATCH_FUNCTION(VISION_START_IDLE,		    VisionStartIdle,		  vision_start_idle)
-	DISPATCH_FUNCTION(VISION_SET_LATENCY,		    VisionSetLatency,		  vision_set_latency)
-	DISPATCH_FUNCTION(VISION_GET_INV_FRAMERATE,	    VisionGetInverseFramerate,	  vision_get_inverse_framerate)
-	DISPATCH_FUNCTION(VISION_GET_RESOLUTION,	    VisionGetResolution,	  vision_get_resolution)
+	DISPATCH_FUNCTION(VISION_REQUEST_FRAMEPERIOD,	    VisionRequestFrameperiod,	  vision_request_frameperiod)
+	DISPATCH_FUNCTION(VISION_GET_FRAMEPERIOD,	    VisionGetFrameperiod,	  vision_get_frameperiod)
 	DISPATCH_FUNCTION(VISION_STOP,			    VisionStop,		  vision_stop)
 	DISPATCH_FUNCTION(VISION_RESTART,		    VisionRestart,		  vision_restart)
-	DISPATCH_FUNCTION(VISION_PARAMETER_SET,	    VisionParameterSet,	  vision_parameter_set)
-	DISPATCH_FUNCTION(VISION_PARAMETER_GET,	    VisionParameterGet,	  vision_parameter_get)
+	DISPATCH_FUNCTION(VISION_NUMERICAL_PARAMETER_GET,   VisionNumericalParameterGet,  vision_numerical_parameter_get)
+	DISPATCH_FUNCTION(VISION_NUMERICAL_PARAMETER_SET,   VisionNumericalParameterSet,  vision_numerical_parameter_set)
+	DISPATCH_FUNCTION(VISION_STRING_PARAMETER_GET,      VisionStringParameterGet,     vision_string_parameter_get)
+	DISPATCH_FUNCTION(VISION_STRING_PARAMETER_SET,      VisionStringParameterSet,     vision_string_parameter_set)
 	DISPATCH_FUNCTION(VISION_MODULE_START,		    VisionModuleStart,		  vision_module_start)
 	DISPATCH_FUNCTION(VISION_MODULE_STOP,		    VisionModuleStop,		  vision_module_stop)
 	DISPATCH_FUNCTION(VISION_MODULE_RESTART,	    VisionModuleRestart,	  vision_module_restart)
@@ -1161,11 +1185,11 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_MODULE_GET_NAME,	    VisionModuleGetName,	  vision_module_get_name)
 	DISPATCH_FUNCTION(VISION_LIBS_COUNT,		    VisionLibsCount,		  vision_libs_count)
 	DISPATCH_FUNCTION(VISION_LIB_NAME_PATH,	    VisionLibNamePath,		  vision_lib_name_path)
-	DISPATCH_FUNCTION(VISION_LIB_PARAMETER_COUNT,	    VisionLibParameterCount,	  vision_lib_parameter_count)
+	DISPATCH_FUNCTION(VISION_LIB_PARAMETERS_COUNT,	    VisionLibParametersCount,	  vision_lib_parameters_count)
 	DISPATCH_FUNCTION(VISION_LIB_PARAMETER_DESCRIBE,    VisionLibParameterDescribe,   vision_lib_parameter_describe)
-	DISPATCH_FUNCTION(VISION_LIB_USER_LOAD_PATH,	    VisionLibUserLoadPath,	  vision_lib_user_load_path)
-	DISPATCH_FUNCTION(VISION_LIB_SYSTEM_LOAD_PATH,	    VisionLibSystemLoadPath,	  vision_lib_system_load_path)
-	DISPATCH_FUNCTION(VISION_SET_LIB_USER_LOAD_PATH,    VisionSetLibUserLoadPath,	  vision_set_lib_user_load_path)
+	DISPATCH_FUNCTION(VISION_LIB_GET_USER_LOAD_PATH,    VisionLibGetUserLoadPath,	  vision_lib_get_user_load_path)
+	DISPATCH_FUNCTION(VISION_LIB_SET_USER_LOAD_PATH,    VisionLibSetUserLoadPath,	  vision_lib_set_user_load_path)
+	DISPATCH_FUNCTION(VISION_LIB_GET_SYSTEM_LOAD_PATH,  VisionLibGetSystemLoadPath,   vision_lib_get_system_load_path)
 	DISPATCH_FUNCTION(VISION_REMOVE_ALL_MODULES,	    VisionRemoveAllModules,	  vision_remove_all_modules)
 	DISPATCH_FUNCTION(VISION_MODULE_RESULT,	    VisionModuleResult,	  vision_module_result)
 	DISPATCH_FUNCTION(VISION_SCENE_START,		    VisionSceneStart,		  vision_scene_start)
@@ -1271,16 +1295,19 @@ const char *api_get_function_name(int function_id) {
 	case CALLBACK_PROGRAM_SCHEDULER_STATE_CHANGED:	return "program-scheduler-state-changed";
 
 #ifdef WITH_VISION
+	case FUNCTION_VISION_IS_VALID:			return "vision-is-valid";
 	case FUNCTION_VISION_CAMERA_AVAILABLE:		return "vision-camera-available";
+	case FUNCTION_VISION_GET_FRAMESIZE:		return "vision-get-framesize";
 	case FUNCTION_VISION_SET_FRAMESIZE:             return "vision-set-framesize";
 	case FUNCTION_VISION_START_IDLE:		return "vision-start-idle";
-	case FUNCTION_VISION_SET_LATENCY:		return "vision-set-latency";
-	case FUNCTION_VISION_GET_INV_FRAMERATE:         return "vision-set-framesize";
-	case FUNCTION_VISION_GET_RESOLUTION:		return "vision-get-resolution";
+	case FUNCTION_VISION_REQUEST_FRAMEPERIOD:	return "vision-request-frameperiod";
+	case FUNCTION_VISION_GET_FRAMEPERIOD:		return "vision-get-frameperiod";
 	case FUNCTION_VISION_STOP:			return "vision-stop";
 	case FUNCTION_VISION_RESTART:			return "vision-restart";
-	case FUNCTION_VISION_PARAMETER_SET:		return "vision-parameter-set";
-	case FUNCTION_VISION_PARAMETER_GET:		return "vision-parameter-get";
+	case FUNCTION_VISION_NUMERICAL_PARAMETER_GET:	return "vision-numerical-parameter-get";
+	case FUNCTION_VISION_NUMERICAL_PARAMETER_SET:	return "vision-numerical-parameter-set";
+	case FUNCTION_VISION_STRING_PARAMETER_GET:	return "vision-string-parameter-get";
+	case FUNCTION_VISION_STRING_PARAMETER_SET:	return "vision-string-parameter-set";
 	case FUNCTION_VISION_MODULE_START:		return "vision-module-start";
 	case FUNCTION_VISION_MODULE_STOP:		return "vision-module-stop";
 	case FUNCTION_VISION_MODULE_RESTART:		return "vision-module-restart";
@@ -1288,11 +1315,11 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_MODULE_GET_NAME:		return "vision-module-get-name";
 	case FUNCTION_VISION_LIBS_COUNT:		return "vision-libs-count";
 	case FUNCTION_VISION_LIB_NAME_PATH:		return "vision-lib-name-path";
-	case FUNCTION_VISION_LIB_PARAMETER_COUNT:	return "vision-lib-parameter-count";
+	case FUNCTION_VISION_LIB_PARAMETERS_COUNT:	return "vision-lib-parameters-count";
 	case FUNCTION_VISION_LIB_PARAMETER_DESCRIBE:	return "vision-lib-parameter-describe";
-	case FUNCTION_VISION_LIB_USER_LOAD_PATH:	return "vision-lib-user-load-path";
-	case FUNCTION_VISION_LIB_SYSTEM_LOAD_PATH:	return "vision-lib-system-load-path";
-	case FUNCTION_VISION_SET_LIB_USER_LOAD_PATH:	return "vision-set-lib-user-load-path";
+	case FUNCTION_VISION_LIB_GET_USER_LOAD_PATH:	return "vision-lib-get-user-load-path";
+	case FUNCTION_VISION_LIB_SET_USER_LOAD_PATH:	return "vision-lib-set-user-load-path";
+	case FUNCTION_VISION_LIB_GET_SYSTEM_LOAD_PATH:	return "vision-lib-get-system-load-path";
 	case FUNCTION_VISION_REMOVE_ALL_MODULES:	return "vision-remove-all-modules";
 	case FUNCTION_VISION_MODULE_RESULT:		return "vision-module-result";
 	case FUNCTION_VISION_SCENE_START:		return "vision-scene-start";
@@ -1374,17 +1401,17 @@ void api_send_vision_module_callback(int8_t id, int32_t x, uint32_t y,
 	_vision_module_callback.y = y;
 	_vision_module_callback.width = width;
 	_vision_module_callback.height = height;
-	strncpy(_vision_module_callback.string, string, TV_CHAR_ARRAY_SIZE);
+	strncpy(_vision_module_callback.string, string, TV_STRING_SIZE);
 
 	network_dispatch_response((Packet *)&_vision_module_callback);
 }
 
 void api_send_vision_libraries_callback(char const* name, char const* path,
-					char const* status) {
+					int8_t status) {
 
-	strncpy(_vision_libraries_callback.name, name, TV_CHAR_ARRAY_SIZE);
-	strncpy(_vision_libraries_callback.path, path, TV_CHAR_ARRAY_SIZE);
-	strncpy(_vision_libraries_callback.status, status, TV_CHAR_ARRAY_SIZE);
+	strncpy(_vision_libraries_callback.name, name, TV_STRING_SIZE);
+	strncpy(_vision_libraries_callback.path, path, TV_STRING_SIZE);
+	_vision_libraries_callback.status = status;
 
 	network_dispatch_response((Packet *)&_vision_libraries_callback);
 }

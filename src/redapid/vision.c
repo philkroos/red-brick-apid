@@ -35,7 +35,7 @@ int vision_init(void) {
 		return -1;
 	}
 
-	TV_Result result = tv_enable_default_callback(module_callback);
+	int16_t result = tv_enable_default_callback(module_callback);
 
 	if (TV_OK != result) {
 		log_error("EnableDefaultCallback failed: %s", tv_result_string(result));
@@ -55,7 +55,7 @@ int vision_init(void) {
 void vision_exit(void) {
 	log_debug("Shutting down vision subsystem");
 
-	TV_Result code = tv_quit();
+	int16_t code = tv_quit();
 	if (TV_OK != code) {
 		log_error("Quit failed: %s", tv_result_string(code));
 	}
@@ -89,7 +89,7 @@ void vision_send_module_update_callback(void* object) {
 	}
 }
 
-void module_callback(int8_t id, TV_ModuleResult result, TV_Context opaque) {
+void module_callback(int8_t id, TV_ModuleResult result, void* opaque) {
 	UNUSED(opaque);
 
 	VisionModuleUpdate module_update;
@@ -99,7 +99,7 @@ void module_callback(int8_t id, TV_ModuleResult result, TV_Context opaque) {
 	module_update.y = result.y;
 	module_update.width = result.width;
 	module_update.height = result.height;
-	strncpy(module_update.result, result.string, TV_CHAR_ARRAY_SIZE);
+	strncpy(module_update.result, result.string, TV_STRING_SIZE);
 
 	if (0 > pipe_write(&vision_update_pipe,
 			   &module_update,
@@ -131,7 +131,7 @@ void vision_send_libraries_update_callback(void* object) {
 }
 
 void libraries_callback(char const* name, char const* path,
-			char const* status, TV_Context opaque) {
+			int8_t status, void* opaque) {
 	UNUSED(opaque);
 
 	VisionLibrariesUpdate libraries_update;

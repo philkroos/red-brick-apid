@@ -39,7 +39,11 @@
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 0
 #define VERSION_RELEASE 2
+#ifdef WITH_VISION
+#define VERSION_SUFFIX_STRING "+vision"
+#else
 #define VERSION_SUFFIX_STRING ""
+#endif
 
 #define INT_TO_STRING_(x) #x
 #define INT_TO_STRING(x) INT_TO_STRING_(x)

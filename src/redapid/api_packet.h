@@ -851,7 +851,16 @@ typedef struct {
 #ifdef WITH_VISION
 #include <tinkervision/tinkervision_defines.h>
 
-typedef TV_CharArray VisionString;
+typedef char VisionString[TV_STRING_SIZE];
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED VisionIsValidRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionIsValidResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -861,6 +870,17 @@ typedef struct {
 	PacketHeader header;
 	int16_t result;
 } ATTRIBUTE_PACKED VisionCameraAvailableResponse;
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED VisionGetFramesizeRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+	uint16_t width;
+	uint16_t height;
+} ATTRIBUTE_PACKED VisionGetFramesizeResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -885,33 +905,22 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	uint32_t milliseconds;
-} ATTRIBUTE_PACKED VisionSetLatencyRequest;
+} ATTRIBUTE_PACKED VisionRequestFrameperiodRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-} ATTRIBUTE_PACKED VisionSetLatencyResponse;
+} ATTRIBUTE_PACKED VisionRequestFrameperiodResponse;
 
 typedef struct {
 	PacketHeader header;
-} ATTRIBUTE_PACKED VisionGetInverseFramerateRequest;
+} ATTRIBUTE_PACKED VisionGetFrameperiodRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	uint32_t rate;
-} ATTRIBUTE_PACKED VisionGetInverseFramerateResponse;
-
-typedef struct {
-	PacketHeader header;
-} ATTRIBUTE_PACKED VisionGetResolutionRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-	uint16_t width;
-	uint16_t height;
-} ATTRIBUTE_PACKED VisionGetResolutionResponse;
+} ATTRIBUTE_PACKED VisionGetFrameperiodResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -935,25 +944,49 @@ typedef struct {
 	PacketHeader header;
 	int8_t id;
 	VisionString parameter;
-	int32_t value;
-} ATTRIBUTE_PACKED VisionParameterSetRequest;
+} ATTRIBUTE_PACKED VisionNumericalParameterGetRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-} ATTRIBUTE_PACKED VisionParameterSetResponse;
+	int32_t value;
+} ATTRIBUTE_PACKED VisionNumericalParameterGetResponse;
 
 typedef struct {
 	PacketHeader header;
 	int8_t id;
 	VisionString parameter;
-} ATTRIBUTE_PACKED VisionParameterGetRequest;
+	int32_t value;
+} ATTRIBUTE_PACKED VisionNumericalParameterSetRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-	int32_t value;
-} ATTRIBUTE_PACKED VisionParameterGetResponse;
+} ATTRIBUTE_PACKED VisionNumericalParameterSetResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+	VisionString parameter;
+} ATTRIBUTE_PACKED VisionStringParameterGetRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+	VisionString value;
+} ATTRIBUTE_PACKED VisionStringParameterGetResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+	VisionString parameter;
+	VisionString value;
+} ATTRIBUTE_PACKED VisionStringParameterSetRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionStringParameterSetResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -1032,24 +1065,25 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	VisionString name;
-} ATTRIBUTE_PACKED VisionLibParameterCountRequest;
+} ATTRIBUTE_PACKED VisionLibParametersCountRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	uint16_t count;
-} ATTRIBUTE_PACKED VisionLibParameterCountResponse;
+} ATTRIBUTE_PACKED VisionLibParametersCountResponse;
 
 typedef struct {
 	PacketHeader header;
-	VisionString name;
-	uint16_t number;
+	VisionString libname;
+	uint16_t parameter_number;
 } ATTRIBUTE_PACKED VisionLibParameterDescribeRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	VisionString name;
+	uint8_t type;
 	int32_t min;
 	int32_t max;
 	int32_t init;
@@ -1057,33 +1091,33 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-} ATTRIBUTE_PACKED VisionLibUserLoadPathRequest;
+} ATTRIBUTE_PACKED VisionLibGetUserLoadPathRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	VisionString path;
-} ATTRIBUTE_PACKED VisionLibUserLoadPathResponse;
+} ATTRIBUTE_PACKED VisionLibGetUserLoadPathResponse;
 
 typedef struct {
 	PacketHeader header;
-} ATTRIBUTE_PACKED VisionLibSystemLoadPathRequest;
+	VisionString path;
+} ATTRIBUTE_PACKED VisionLibSetUserLoadPathRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionLibSetUserLoadPathResponse;
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED VisionLibGetSystemLoadPathRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	VisionString path;
-} ATTRIBUTE_PACKED VisionLibSystemLoadPathResponse;
-
-typedef struct {
-	PacketHeader header;
-	VisionString path;
-} ATTRIBUTE_PACKED VisionSetLibUserLoadPathRequest;
-
-typedef struct {
-	PacketHeader header;
-	int16_t result;
-} ATTRIBUTE_PACKED VisionSetLibUserLoadPathResponse;
+} ATTRIBUTE_PACKED VisionLibGetSystemLoadPathResponse;
 
 typedef struct {
 	PacketHeader header;
@@ -1155,7 +1189,7 @@ typedef struct {
 	PacketHeader header;
 	VisionString name;
 	VisionString path;
-	VisionString status;
+	int8_t status;
 } ATTRIBUTE_PACKED VisionLibrariesCallback;
 
 #endif // WITH_VISION

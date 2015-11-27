@@ -57,7 +57,7 @@ void api_send_vision_module_callback(int8_t id, int32_t x, uint32_t y,
                                      uint32_t width, uint32_t height,
                                      char* string);
 void api_send_vision_libraries_callback(char const* name, char const* path,
-					char const* status);
+					int8_t status);
 
 #endif // WITH_VISION
 
