@@ -864,27 +864,27 @@ CALL_FUNCTION(VisionRestart, vision_restart, {
 })
 
 CALL_FUNCTION(VisionNumericalParameterGet, vision_numerical_parameter_get, {
-	response.result = tv_get_numerical_parameter(request->id,
-						     request->parameter,
-						     &response.value);
+	response.result = tv_module_get_numerical_parameter(request->id,
+							    request->parameter,
+							    &response.value);
 })
 
 CALL_FUNCTION(VisionNumericalParameterSet, vision_numerical_parameter_set, {
-	response.result = tv_set_numerical_parameter(request->id,
-						     request->parameter,
-						     request->value);
+	response.result = tv_module_set_numerical_parameter(request->id,
+							    request->parameter,
+							    request->value);
 })
 
 CALL_FUNCTION(VisionStringParameterGet, vision_string_parameter_get, {
-	response.result = tv_get_string_parameter(request->id,
-						  request->parameter,
-						  response.value);
+	response.result = tv_module_get_string_parameter(request->id,
+							 request->parameter,
+							 response.value);
 })
 
 CALL_FUNCTION(VisionStringParameterSet, vision_string_parameter_set, {
-	response.result = tv_set_string_parameter(request->id,
-						  request->parameter,
-						  request->value);
+	response.result = tv_module_set_string_parameter(request->id,
+							 request->parameter,
+							 request->value);
 })
 
 CALL_FUNCTION(VisionModuleStart, vision_module_start, {
@@ -950,7 +950,7 @@ CALL_FUNCTION(VisionRemoveAllModules, vision_remove_all_modules, {
 
 CALL_FUNCTION(VisionModuleResult, vision_module_result, {
 	TV_ModuleResult result;
-	response.result = tv_get_result(request->id, &result);
+	response.result = tv_module_get_result(request->id, &result);
 	response.x = result.x;
 	response.y = result.y;
 	response.width = result.width;

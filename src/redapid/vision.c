@@ -35,17 +35,17 @@ int vision_init(void) {
 		return -1;
 	}
 
-	int16_t result = tv_enable_default_callback(module_callback);
+	int16_t result = tv_callback_enable_default(module_callback);
 
 	if (TV_OK != result) {
-		log_error("EnableDefaultCallback failed: %s", tv_result_string(result));
+		log_error("CallbackEnableDefault failed: %s", tv_result_string(result));
 		return -1;
 	}
 
-	result = tv_libraries_changed_callback(libraries_callback, NULL);
+	result = tv_callback_libraries_changed_set(libraries_callback, NULL);
 
 	if (TV_OK != result) {
-		log_error("LibrariesChangedCallback failed: %s", tv_result_string(result));
+		log_error("CallbackLibrariesChanged failed: %s", tv_result_string(result));
 		return -1;
 	}
 
