@@ -911,7 +911,7 @@ CALL_FUNCTION(VisionModuleGetName, vision_module_get_name, {
 	response.result = tv_module_get_name(request->id, response.name);
 })
 
-CALL_FUNCTION(VisionModuleGetId, vision_module_get_id, {
+CALL_FUNCTION(VisionModuleGetID, vision_module_get_id, {
 	response.result = tv_get_module_id(request->library, &response.id);
 })
 
@@ -1198,7 +1198,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_MODULE_RESTART,	    VisionModuleRestart,	  vision_module_restart)
 	DISPATCH_FUNCTION(VISION_MODULE_REMOVE,	    VisionModuleRemove,	  vision_module_remove)
 	DISPATCH_FUNCTION(VISION_MODULE_GET_NAME,	    VisionModuleGetName,	  vision_module_get_name)
-	DISPATCH_FUNCTION(VISION_MODULE_GET_ID,	    VisionModuleGetId,		  vision_module_get_id)
+	DISPATCH_FUNCTION(VISION_MODULE_GET_ID,	    VisionModuleGetID,		  vision_module_get_id)
 	DISPATCH_FUNCTION(VISION_MODULE_IS_ACTIVE,	    VisionModuleIsActive,	  vision_module_is_active)
 	DISPATCH_FUNCTION(VISION_LIBS_COUNT,		    VisionLibsCount,		  vision_libs_count)
 	DISPATCH_FUNCTION(VISION_LIBS_LOADED_COUNT,	    VisionLibsLoadedCount,	  vision_libs_loaded_count)

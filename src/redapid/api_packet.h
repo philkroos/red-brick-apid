@@ -1043,13 +1043,13 @@ typedef struct {
 typedef struct {
 	PacketHeader header;
 	int16_t library;
-} ATTRIBUTE_PACKED VisionModuleGetIdRequest;
+} ATTRIBUTE_PACKED VisionModuleGetIDRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	int8_t id;
-} ATTRIBUTE_PACKED VisionModuleGetIdResponse;
+} ATTRIBUTE_PACKED VisionModuleGetIDResponse;
 
 typedef struct {
 	PacketHeader header;
