@@ -139,7 +139,10 @@ typedef enum {
 	FUNCTION_VISION_MODULE_RESTART,
 	FUNCTION_VISION_MODULE_REMOVE,
 	FUNCTION_VISION_MODULE_GET_NAME,
+	FUNCTION_VISION_MODULE_GET_ID,
+	FUNCTION_VISION_MODULE_IS_ACTIVE,
 	FUNCTION_VISION_LIBS_COUNT,
+	FUNCTION_VISION_LIBS_LOADED_COUNT,
 	FUNCTION_VISION_LIB_NAME_PATH,
 	FUNCTION_VISION_LIB_PARAMETERS_COUNT,
 	FUNCTION_VISION_LIB_PARAMETER_DESCRIBE,
@@ -908,7 +911,19 @@ CALL_FUNCTION(VisionModuleGetName, vision_module_get_name, {
 	response.result = tv_module_get_name(request->id, response.name);
 })
 
+CALL_FUNCTION(VisionModuleGetId, vision_module_get_id, {
+	response.result = tv_get_module_id(request->library, &response.id);
+})
+
+CALL_FUNCTION(VisionModuleIsActive, vision_module_is_active, {
+	response.result = tv_module_is_active(request->id, &response.active);
+})
+
 CALL_FUNCTION(VisionLibsCount, vision_libs_count, {
+	response.result = tv_libraries_count(&response.count);
+});
+
+CALL_FUNCTION(VisionLibsLoadedCount, vision_libs_loaded_count, {
 	response.result = tv_libraries_count(&response.count);
 });
 
@@ -1183,7 +1198,10 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_MODULE_RESTART,	    VisionModuleRestart,	  vision_module_restart)
 	DISPATCH_FUNCTION(VISION_MODULE_REMOVE,	    VisionModuleRemove,	  vision_module_remove)
 	DISPATCH_FUNCTION(VISION_MODULE_GET_NAME,	    VisionModuleGetName,	  vision_module_get_name)
+	DISPATCH_FUNCTION(VISION_MODULE_GET_ID,	    VisionModuleGetId,		  vision_module_get_id)
+	DISPATCH_FUNCTION(VISION_MODULE_IS_ACTIVE,	    VisionModuleIsActive,	  vision_module_is_active)
 	DISPATCH_FUNCTION(VISION_LIBS_COUNT,		    VisionLibsCount,		  vision_libs_count)
+	DISPATCH_FUNCTION(VISION_LIBS_LOADED_COUNT,	    VisionLibsLoadedCount,	  vision_libs_loaded_count)
 	DISPATCH_FUNCTION(VISION_LIB_NAME_PATH,	    VisionLibNamePath,		  vision_lib_name_path)
 	DISPATCH_FUNCTION(VISION_LIB_PARAMETERS_COUNT,	    VisionLibParametersCount,	  vision_lib_parameters_count)
 	DISPATCH_FUNCTION(VISION_LIB_PARAMETER_DESCRIBE,    VisionLibParameterDescribe,   vision_lib_parameter_describe)
@@ -1298,7 +1316,7 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_IS_VALID:			return "vision-is-valid";
 	case FUNCTION_VISION_CAMERA_AVAILABLE:		return "vision-camera-available";
 	case FUNCTION_VISION_GET_FRAMESIZE:		return "vision-get-framesize";
-	case FUNCTION_VISION_SET_FRAMESIZE:             return "vision-set-framesize";
+	case FUNCTION_VISION_SET_FRAMESIZE:		return "vision-set-framesize";
 	case FUNCTION_VISION_START_IDLE:		return "vision-start-idle";
 	case FUNCTION_VISION_REQUEST_FRAMEPERIOD:	return "vision-request-frameperiod";
 	case FUNCTION_VISION_GET_FRAMEPERIOD:		return "vision-get-frameperiod";
@@ -1313,7 +1331,10 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_MODULE_RESTART:		return "vision-module-restart";
 	case FUNCTION_VISION_MODULE_REMOVE:		return "vision-module-remove";
 	case FUNCTION_VISION_MODULE_GET_NAME:		return "vision-module-get-name";
+	case FUNCTION_VISION_MODULE_GET_ID:		return "vision-module-get-id";
+	case FUNCTION_VISION_MODULE_IS_ACTIVE:		return "vision-module-is-active";
 	case FUNCTION_VISION_LIBS_COUNT:		return "vision-libs-count";
+	case FUNCTION_VISION_LIBS_LOADED_COUNT:	return "vision-libs-loaded-count";
 	case FUNCTION_VISION_LIB_NAME_PATH:		return "vision-lib-name-path";
 	case FUNCTION_VISION_LIB_PARAMETERS_COUNT:	return "vision-lib-parameters-count";
 	case FUNCTION_VISION_LIB_PARAMETER_DESCRIBE:	return "vision-lib-parameter-describe";

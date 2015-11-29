@@ -1042,6 +1042,28 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	int16_t library;
+} ATTRIBUTE_PACKED VisionModuleGetIdRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+	int8_t id;
+} ATTRIBUTE_PACKED VisionModuleGetIdResponse;
+
+typedef struct {
+	PacketHeader header;
+	int8_t id;
+} ATTRIBUTE_PACKED VisionModuleIsActiveRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+	uint8_t active;
+} ATTRIBUTE_PACKED VisionModuleIsActiveResponse;
+
+typedef struct {
+	PacketHeader header;
 } ATTRIBUTE_PACKED VisionLibsCountRequest;
 
 typedef struct {
@@ -1049,6 +1071,16 @@ typedef struct {
 	int16_t result;
 	uint16_t count;
 } ATTRIBUTE_PACKED VisionLibsCountResponse;
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED VisionLibsLoadedCountRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+	uint16_t count;
+} ATTRIBUTE_PACKED VisionLibsLoadedCountResponse;
 
 typedef struct {
 	PacketHeader header;
