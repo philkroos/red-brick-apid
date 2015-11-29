@@ -1123,23 +1123,23 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-} ATTRIBUTE_PACKED VisionLibGetUserLoadPathRequest;
+} ATTRIBUTE_PACKED VisionLibGetUserPrefixRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
 	VisionString path;
-} ATTRIBUTE_PACKED VisionLibGetUserLoadPathResponse;
+} ATTRIBUTE_PACKED VisionLibGetUserPrefixResponse;
 
 typedef struct {
 	PacketHeader header;
 	VisionString path;
-} ATTRIBUTE_PACKED VisionLibSetUserLoadPathRequest;
+} ATTRIBUTE_PACKED VisionLibSetUserPrefixRequest;
 
 typedef struct {
 	PacketHeader header;
 	int16_t result;
-} ATTRIBUTE_PACKED VisionLibSetUserLoadPathResponse;
+} ATTRIBUTE_PACKED VisionLibSetUserPrefixResponse;
 
 typedef struct {
 	PacketHeader header;

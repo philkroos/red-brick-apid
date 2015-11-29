@@ -146,8 +146,8 @@ typedef enum {
 	FUNCTION_VISION_LIB_NAME_PATH,
 	FUNCTION_VISION_LIB_PARAMETERS_COUNT,
 	FUNCTION_VISION_LIB_PARAMETER_DESCRIBE,
-	FUNCTION_VISION_LIB_GET_USER_LOAD_PATH,
-	FUNCTION_VISION_LIB_SET_USER_LOAD_PATH,
+	FUNCTION_VISION_LIB_GET_USER_PREFIX,
+	FUNCTION_VISION_LIB_SET_USER_PREFIX,
 	FUNCTION_VISION_LIB_GET_SYSTEM_LOAD_PATH,
 	FUNCTION_VISION_REMOVE_ALL_MODULES,
 	FUNCTION_VISION_MODULE_RESULT,
@@ -947,12 +947,12 @@ CALL_FUNCTION(VisionLibParameterDescribe, vision_lib_parameter_describe, {
 							&response.init);
 });
 
-CALL_FUNCTION(VisionLibGetUserLoadPath, vision_lib_get_user_load_path, {
-	response.result = tv_get_user_module_load_path(response.path);
+CALL_FUNCTION(VisionLibGetUserPrefix, vision_lib_get_user_prefix, {
+	response.result = tv_get_user_paths_prefix(response.path);
 })
 
-CALL_FUNCTION(VisionLibSetUserLoadPath, vision_lib_set_user_load_path, {
-	response.result = tv_set_user_module_load_path(request->path);
+CALL_FUNCTION(VisionLibSetUserPrefix, vision_lib_set_user_prefix, {
+	response.result = tv_set_user_paths_prefix(request->path);
 })
 
 CALL_FUNCTION(VisionLibGetSystemLoadPath, vision_lib_get_system_load_path, {
@@ -1205,8 +1205,8 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_LIB_NAME_PATH,	    VisionLibNamePath,		  vision_lib_name_path)
 	DISPATCH_FUNCTION(VISION_LIB_PARAMETERS_COUNT,	    VisionLibParametersCount,	  vision_lib_parameters_count)
 	DISPATCH_FUNCTION(VISION_LIB_PARAMETER_DESCRIBE,    VisionLibParameterDescribe,   vision_lib_parameter_describe)
-	DISPATCH_FUNCTION(VISION_LIB_GET_USER_LOAD_PATH,    VisionLibGetUserLoadPath,	  vision_lib_get_user_load_path)
-	DISPATCH_FUNCTION(VISION_LIB_SET_USER_LOAD_PATH,    VisionLibSetUserLoadPath,	  vision_lib_set_user_load_path)
+	DISPATCH_FUNCTION(VISION_LIB_GET_USER_PREFIX,       VisionLibGetUserPrefix,	  vision_lib_get_user_prefix)
+	DISPATCH_FUNCTION(VISION_LIB_SET_USER_PREFIX,       VisionLibSetUserPrefix,	  vision_lib_set_user_prefix)
 	DISPATCH_FUNCTION(VISION_LIB_GET_SYSTEM_LOAD_PATH,  VisionLibGetSystemLoadPath,   vision_lib_get_system_load_path)
 	DISPATCH_FUNCTION(VISION_REMOVE_ALL_MODULES,	    VisionRemoveAllModules,	  vision_remove_all_modules)
 	DISPATCH_FUNCTION(VISION_MODULE_RESULT,	    VisionModuleResult,	  vision_module_result)
@@ -1338,8 +1338,8 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_LIB_NAME_PATH:		return "vision-lib-name-path";
 	case FUNCTION_VISION_LIB_PARAMETERS_COUNT:	return "vision-lib-parameters-count";
 	case FUNCTION_VISION_LIB_PARAMETER_DESCRIBE:	return "vision-lib-parameter-describe";
-	case FUNCTION_VISION_LIB_GET_USER_LOAD_PATH:	return "vision-lib-get-user-load-path";
-	case FUNCTION_VISION_LIB_SET_USER_LOAD_PATH:	return "vision-lib-set-user-load-path";
+	case FUNCTION_VISION_LIB_GET_USER_PREFIX:	return "vision-lib-get-user-prefix";
+	case FUNCTION_VISION_LIB_SET_USER_PREFIX:	return "vision-lib-set-user-prefix";
 	case FUNCTION_VISION_LIB_GET_SYSTEM_LOAD_PATH:	return "vision-lib-get-system-load-path";
 	case FUNCTION_VISION_REMOVE_ALL_MODULES:	return "vision-remove-all-modules";
 	case FUNCTION_VISION_MODULE_RESULT:		return "vision-module-result";
