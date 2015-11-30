@@ -1209,6 +1209,16 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	int16_t code;
+} ATTRIBUTE_PACKED VisionGetErrorDescriptionRequest;
+
+typedef struct {
+	PacketHeader header;
+	VisionString description;
+} ATTRIBUTE_PACKED VisionGetErrorDescriptionResponse;
+
+typedef struct {
+	PacketHeader header;
 	int8_t id;
 	uint16_t x;
 	uint16_t y;

@@ -154,6 +154,7 @@ typedef enum {
 	FUNCTION_VISION_SCENE_START,
 	FUNCTION_VISION_SCENE_ADD,
 	FUNCTION_VISION_SCENE_REMOVE,
+	FUNCTION_VISION_GET_ERROR_DESCRIPTION,
 	CALLBACK_VISION_LIBRARIES_UPDATE,
 	CALLBACK_VISION_MODULE_UPDATE,
 #endif
@@ -970,7 +971,9 @@ CALL_FUNCTION(VisionModuleResult, vision_module_result, {
 	response.y = result.y;
 	response.width = result.width;
 	response.height = result.height;
+
 	strncpy(response.string, result.string, TV_STRING_SIZE);
+	response.string[TV_STRING_SIZE - 1] = '\0';
 })
 
 CALL_FUNCTION(VisionSceneStart, vision_scene_start, {
@@ -984,6 +987,13 @@ CALL_FUNCTION(VisionSceneAdd, vision_scene_add, {
 
 CALL_FUNCTION(VisionSceneRemove, vision_scene_remove, {
 	response.result = tv_scene_remove(request->scene_id);
+})
+
+CALL_FUNCTION(VisionGetErrorDescription, vision_get_error_description, {
+	strncpy(response.description,
+		tv_result_string(request->code),
+		TV_STRING_SIZE);
+	response.description[TV_STRING_SIZE - 1] = '\0';
 })
 
 #endif
@@ -1213,6 +1223,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_SCENE_START,		    VisionSceneStart,		  vision_scene_start)
 	DISPATCH_FUNCTION(VISION_SCENE_ADD,		    VisionSceneAdd,		  vision_scene_add)
 	DISPATCH_FUNCTION(VISION_SCENE_REMOVE,		    VisionSceneRemove,		  vision_scene_remove)
+	DISPATCH_FUNCTION(VISION_GET_ERROR_DESCRIPTION,     VisionGetErrorDescription,	  vision_get_error_description)
 #endif
 	// misc
 	DISPATCH_FUNCTION(GET_IDENTITY,			    GetIdentity,		  get_identity)
@@ -1346,6 +1357,7 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_SCENE_START:		return "vision-scene-start";
 	case FUNCTION_VISION_SCENE_ADD:		return "vision-scene-add";
 	case FUNCTION_VISION_SCENE_REMOVE:		return "vision-scene-remove";
+	case FUNCTION_VISION_GET_ERROR_DESCRIPTION:	return "vision-get-error-description";
 	case CALLBACK_VISION_MODULE_UPDATE:		return "vision-module-update";
 	case CALLBACK_VISION_LIBRARIES_UPDATE:		return "vision-libraries-update";
 #endif
@@ -1422,6 +1434,8 @@ void api_send_vision_module_callback(int8_t id, int32_t x, uint32_t y,
 	_vision_module_callback.y = y;
 	_vision_module_callback.width = width;
 	_vision_module_callback.height = height;
+
+	// 0-termination guaranteed from vision.c
 	strncpy(_vision_module_callback.string, string, TV_STRING_SIZE);
 
 	network_dispatch_response((Packet *)&_vision_module_callback);
@@ -1430,6 +1444,7 @@ void api_send_vision_module_callback(int8_t id, int32_t x, uint32_t y,
 void api_send_vision_libraries_callback(char const* name, char const* path,
 					int8_t status) {
 
+	// 0-termination guaranteed from vision.c
 	strncpy(_vision_libraries_callback.name, name, TV_STRING_SIZE);
 	strncpy(_vision_libraries_callback.path, path, TV_STRING_SIZE);
 	_vision_libraries_callback.status = status;

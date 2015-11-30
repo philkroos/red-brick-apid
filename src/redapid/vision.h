@@ -19,8 +19,8 @@ typedef struct {
 } VisionModuleUpdate;
 
 typedef struct {
-	char const* name;
-	char const* path;
+	VisionString name;
+	VisionString path;
 	int8_t status;
 } VisionLibrariesUpdate;
 
