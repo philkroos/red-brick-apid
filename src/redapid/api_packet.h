@@ -995,8 +995,8 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	int8_t id;
 	int16_t result;
+	int8_t id;
 } ATTRIBUTE_PACKED VisionModuleStartResponse;
 
 typedef struct {
@@ -1182,8 +1182,8 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
-	int16_t scene_id;
 	int16_t result;
+	int16_t scene_id;
 } ATTRIBUTE_PACKED VisionSceneStartResponse;
 
 typedef struct {
