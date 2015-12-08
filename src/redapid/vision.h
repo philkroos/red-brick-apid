@@ -7,7 +7,7 @@
 
 #include <daemonlib/pipe.h>
 
-typedef char VisionString[TV_STRING_SIZE];
+typedef char VisionString[TV_STRING_SIZE]; // defined in tinkervision_defines.h
 
 typedef struct {
 	int8_t id;
