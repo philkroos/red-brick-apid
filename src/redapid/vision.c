@@ -100,7 +100,7 @@ void module_callback(int8_t id, TV_ModuleResult result, void* opaque) {
 	module_update.width = result.width;
 	module_update.height = result.height;
 
-	strncpy(module_update.result, result.string, TV_STRING_SIZE);
+	strncpy(module_update.result, result.string, TV_STRING_SIZE - 1);
 	module_update.result[TV_STRING_SIZE - 1] = '\0';
 
 	if (0 > pipe_write(&vision_update_pipe,
@@ -137,8 +137,8 @@ void libraries_callback(char const* name, char const* path,
 	UNUSED(opaque);
 
 	VisionLibrariesUpdate libraries_update;
-	strncpy(libraries_update.name, name, TV_STRING_SIZE);
-	strncpy(libraries_update.path, path, TV_STRING_SIZE);
+	strncpy(libraries_update.name, name, TV_STRING_SIZE - 1);
+	strncpy(libraries_update.path, path, TV_STRING_SIZE - 1);
 	libraries_update.status = status;
 
 	libraries_update.name[TV_STRING_SIZE - 1] = '\0';

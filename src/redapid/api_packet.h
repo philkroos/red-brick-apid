@@ -873,6 +873,26 @@ typedef struct {
 
 typedef struct {
 	PacketHeader header;
+	uint8_t id;
+} ATTRIBUTE_PACKED VisionCameraIDAvailableRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionCameraIDAvailableResponse;
+
+typedef struct {
+	PacketHeader header;
+	uint8_t id;
+} ATTRIBUTE_PACKED VisionCameraIDSelectRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionCameraIDSelectResponse;
+
+typedef struct {
+	PacketHeader header;
 } ATTRIBUTE_PACKED VisionGetFramesizeRequest;
 
 typedef struct {
@@ -1216,6 +1236,15 @@ typedef struct {
 	PacketHeader header;
 	VisionString description;
 } ATTRIBUTE_PACKED VisionGetErrorDescriptionResponse;
+
+typedef struct {
+	PacketHeader header;
+} ATTRIBUTE_PACKED VisionGetBufferedResultRequest;
+
+typedef struct {
+	PacketHeader header;
+	int16_t result;
+} ATTRIBUTE_PACKED VisionGetBufferedResultResponse;
 
 typedef struct {
 	PacketHeader header;

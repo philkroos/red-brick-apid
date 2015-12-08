@@ -123,6 +123,8 @@ typedef enum {
 #ifdef WITH_VISION
 	FUNCTION_VISION_IS_VALID,
 	FUNCTION_VISION_CAMERA_AVAILABLE,
+	FUNCTION_VISION_CAMERA_ID_AVAILABLE,
+	FUNCTION_VISION_CAMERA_ID_SELECT,
 	FUNCTION_VISION_GET_FRAMESIZE,
 	FUNCTION_VISION_SET_FRAMESIZE,
 	FUNCTION_VISION_START_IDLE,
@@ -155,6 +157,7 @@ typedef enum {
 	FUNCTION_VISION_SCENE_ADD,
 	FUNCTION_VISION_SCENE_REMOVE,
 	FUNCTION_VISION_GET_ERROR_DESCRIPTION,
+	FUNCTION_VISION_GET_BUFFERED_RESULT,
 	CALLBACK_VISION_LIBRARIES_UPDATE,
 	CALLBACK_VISION_MODULE_UPDATE,
 #endif
@@ -839,6 +842,14 @@ CALL_FUNCTION(VisionCameraAvailable, vision_camera_available, {
 	response.result = tv_camera_available();
 })
 
+CALL_FUNCTION(VisionCameraIDAvailable, vision_camera_id_available, {
+	response.result = tv_camera_id_available(request->id);
+})
+
+CALL_FUNCTION(VisionCameraIDSelect, vision_camera_id_select, {
+	response.result = tv_prefer_camera_with_id(request->id);
+})
+
 CALL_FUNCTION(VisionGetFramesize, vision_get_framesize, {
 	response.result = tv_get_framesize(&response.width, &response.height);
 })
@@ -972,7 +983,7 @@ CALL_FUNCTION(VisionModuleResult, vision_module_result, {
 	response.width = result.width;
 	response.height = result.height;
 
-	strncpy(response.string, result.string, TV_STRING_SIZE);
+	strncpy(response.string, result.string, TV_STRING_SIZE - 1);
 	response.string[TV_STRING_SIZE - 1] = '\0';
 })
 
@@ -989,10 +1000,14 @@ CALL_FUNCTION(VisionSceneRemove, vision_scene_remove, {
 	response.result = tv_scene_remove(request->scene_id);
 })
 
+CALL_FUNCTION(VisionGetBufferedResult, vision_get_buffered_result, {
+	response.result = tv_get_buffered_result();
+})
+
 CALL_FUNCTION(VisionGetErrorDescription, vision_get_error_description, {
 	strncpy(response.description,
 		tv_result_string(request->code),
-		TV_STRING_SIZE);
+		TV_STRING_SIZE - 1);
 	response.description[TV_STRING_SIZE - 1] = '\0';
 })
 
@@ -1192,6 +1207,8 @@ void api_handle_request(Packet *request) {
 #ifdef WITH_VISION
 	DISPATCH_FUNCTION(VISION_IS_VALID,		    VisionIsValid,		  vision_is_valid)
 	DISPATCH_FUNCTION(VISION_CAMERA_AVAILABLE,	    VisionCameraAvailable,	  vision_camera_available)
+	DISPATCH_FUNCTION(VISION_CAMERA_ID_AVAILABLE,	    VisionCameraIDAvailable,	  vision_camera_id_available)
+	DISPATCH_FUNCTION(VISION_CAMERA_ID_SELECT,	    VisionCameraIDSelect,	  vision_camera_id_select)
 	DISPATCH_FUNCTION(VISION_GET_FRAMESIZE,	    VisionGetFramesize,	  vision_get_framesize)
 	DISPATCH_FUNCTION(VISION_SET_FRAMESIZE,	    VisionSetFramesize,	  vision_set_framesize)
 	DISPATCH_FUNCTION(VISION_START_IDLE,		    VisionStartIdle,		  vision_start_idle)
@@ -1224,6 +1241,7 @@ void api_handle_request(Packet *request) {
 	DISPATCH_FUNCTION(VISION_SCENE_ADD,		    VisionSceneAdd,		  vision_scene_add)
 	DISPATCH_FUNCTION(VISION_SCENE_REMOVE,		    VisionSceneRemove,		  vision_scene_remove)
 	DISPATCH_FUNCTION(VISION_GET_ERROR_DESCRIPTION,     VisionGetErrorDescription,	  vision_get_error_description)
+	DISPATCH_FUNCTION(VISION_GET_BUFFERED_RESULT,	    VisionGetBufferedResult,	  vision_get_buffered_result)
 #endif
 	// misc
 	DISPATCH_FUNCTION(GET_IDENTITY,			    GetIdentity,		  get_identity)
@@ -1326,6 +1344,8 @@ const char *api_get_function_name(int function_id) {
 #ifdef WITH_VISION
 	case FUNCTION_VISION_IS_VALID:			return "vision-is-valid";
 	case FUNCTION_VISION_CAMERA_AVAILABLE:		return "vision-camera-available";
+	case FUNCTION_VISION_CAMERA_ID_AVAILABLE:	return "vision-camera-id-available";
+	case FUNCTION_VISION_CAMERA_ID_SELECT:		return "vision-camera-id-select";
 	case FUNCTION_VISION_GET_FRAMESIZE:		return "vision-get-framesize";
 	case FUNCTION_VISION_SET_FRAMESIZE:		return "vision-set-framesize";
 	case FUNCTION_VISION_START_IDLE:		return "vision-start-idle";
@@ -1358,6 +1378,7 @@ const char *api_get_function_name(int function_id) {
 	case FUNCTION_VISION_SCENE_ADD:		return "vision-scene-add";
 	case FUNCTION_VISION_SCENE_REMOVE:		return "vision-scene-remove";
 	case FUNCTION_VISION_GET_ERROR_DESCRIPTION:	return "vision-get-error-description";
+	case FUNCTION_VISION_GET_BUFFERED_RESULT:	return "vision-get-buffered-result";
 	case CALLBACK_VISION_MODULE_UPDATE:		return "vision-module-update";
 	case CALLBACK_VISION_LIBRARIES_UPDATE:		return "vision-libraries-update";
 #endif
@@ -1435,16 +1456,18 @@ void api_send_vision_module_callback(int8_t id, int32_t x, uint32_t y,
 	_vision_module_callback.width = width;
 	_vision_module_callback.height = height;
 
-	// 0-termination guaranteed from vision.c
+	// 0-termination guaranted from vision.c
 	strncpy(_vision_module_callback.string, string, TV_STRING_SIZE);
+	string[TV_STRING_SIZE - 1] = '\0';
 
+	log_debug("Dispatching %d-%d-%d-%d-%d/%s with size %d", id, x, y, width, height,string, sizeof(_vision_module_callback));
 	network_dispatch_response((Packet *)&_vision_module_callback);
 }
 
 void api_send_vision_libraries_callback(char const* name, char const* path,
 					int8_t status) {
 
-	// 0-termination guaranteed from vision.c
+	// 0-termination guaranted from vision.c
 	strncpy(_vision_libraries_callback.name, name, TV_STRING_SIZE);
 	strncpy(_vision_libraries_callback.path, path, TV_STRING_SIZE);
 	_vision_libraries_callback.status = status;
