@@ -936,7 +936,7 @@ CALL_FUNCTION(VisionLibsCount, vision_libs_count, {
 });
 
 CALL_FUNCTION(VisionLibsLoadedCount, vision_libs_loaded_count, {
-	response.result = tv_libraries_count(&response.count);
+	response.result = tv_get_loaded_libraries_count(&response.count);
 });
 
 CALL_FUNCTION(VisionLibNamePath, vision_lib_name_path, {
