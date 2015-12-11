@@ -129,7 +129,7 @@ LIBS += -lacl
 
 ifeq ($(WITH_VISION),yes)
 	CFLAGS += -I/usr/include -DWITH_VISION
-	LIBS += `pkg-config --libs opencv` -ltinkervision -lv4l2
+	LIBS += -ltinkervision -lv4l2
 endif
 
 ifeq ($(WITH_LOGGING),yes)
